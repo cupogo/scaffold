@@ -1,0 +1,56 @@
+
+qualified:
+  comm: 'hyyl.xyz/cupola/aurora/pkg/models/comm'
+  oid: 'hyyl.xyz/cupola/aurora/pkg/models/oid'
+
+modelpkg: cms1
+models:
+  - name: Article
+    comment: '文章'
+    tableTag: 'cms_article,alias:a'
+    fields:
+      - name: comm.DefaultModel
+      - name: Author
+        type: string
+        tags: {json: 'author', pg: ',notnull'}
+        isset: true
+      - name: Title
+        type: string
+        tags: {json: 'title', pg: ',notnull'}
+        isset: true
+      - name: Contant
+        type: string
+        tags: {json: 'content', pg: ',notnull'}
+        isset: true
+    oidcat: article
+
+  - name: Clause
+    comment: '条款'
+    tableTag: 'cms_clause,alias:c'
+    fields:
+      - name: comm.DefaultModel
+      - name: Text
+        type: string
+        tags:
+          json: 'text'
+          pg: 'text,notnull'
+        isset: true
+    oidcat: article
+
+stores:
+  - name: contentStore
+    methods:
+      - name: ListArticle
+      - name: GetArticle
+      - name: CreateArticle
+      - name: UpdateArticle
+      - name: DeleteArticle
+      - name: ListClause
+      - name: GetClause
+      - name: CreateClause
+      - name: UpdateClause
+      - name: DeleteClause
+
+apis:
+  - handles:
+    - name: getClause
