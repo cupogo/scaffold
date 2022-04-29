@@ -1,5 +1,5 @@
 
-qualified:
+depends:
   comm: 'hyyl.xyz/cupola/aurora/pkg/models/comm'
   oid: 'hyyl.xyz/cupola/aurora/pkg/models/oid'
 
