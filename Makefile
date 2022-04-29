@@ -2,7 +2,7 @@
 .PHONY: docs
 
 NAME:=scaffold
-ROOF:=fhyx.tech/capcon/scaffold
+ROOF:=hyyl.xyz/cupola/scaffold
 DATE := $(shell date '+%Y%m%d')
 TAG:=$(shell git describe --tags --always)
 GO=$(shell which go)
