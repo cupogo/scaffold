@@ -17,5 +17,5 @@ Go 项目脚手架
 
 ```bash
 
-go run -tags=codegen ./scripts/pgcodegen docs/clause.yaml
+go run -tags=codegen ./scripts/pgcodegen docs/cms.yaml
 ```

@@ -34,7 +34,7 @@ type Document struct {
 
 	Models    []Model `yaml:"models"`
 	ModelPkg  string  `yaml:"modelpkg"`
-	Qualified Maps    `yaml:"qualified"` // imports name
+	Qualified Maps    `yaml:"depends"` // imports name
 	Stores    []Store `yaml:"stores"`
 }
 
