@@ -15,7 +15,7 @@ type Clause = cms1.Clause
 type ClauseSet = cms1.ClauseSet
 type Clauses = cms1.Clauses
 
-type ContentStore interface {
+type ContantStore interface {
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data []cms1.Article, total int, err error)
 	GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error)
 	CreateArticle(ctx context.Context, obj *cms1.Article) (err error)
@@ -24,8 +24,7 @@ type ContentStore interface {
 
 	ListClause(ctx context.Context, spec *ClauseSpec) (data []cms1.Clause, total int, err error)
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
-	CreateClause(ctx context.Context, obj *cms1.Clause) (err error)
-	UpdateClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error)
+	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error)
 	DeleteClause(ctx context.Context, id string) error
 }
 type ArticleSpec struct {
@@ -80,21 +79,11 @@ func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clau
 	err = getModelWithPKOID(s.w.db, obj, id)
 	return
 }
-func (s *contentStore) CreateClause(ctx context.Context, obj *cms1.Clause) (err error) {
-	err = dbInsert(ctx, s.w.db, obj)
-	return
-}
-func (s *contentStore) UpdateClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error) {
-	exist := new(cms1.Clause)
-	err = getModelWithPKOID(s.w.db, exist, id)
-	if err != nil {
-		return
-	}
-	cs := exist.SetWith(in)
-	if len(cs) == 0 {
-		return
-	}
-	err = dbUpdate(ctx, s.w.db, exist, cs...)
+func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error) {
+	obj := new(cms1.Clause)
+	obj.SetID(id)
+	cs := obj.SetWith(in)
+	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
 	return
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {

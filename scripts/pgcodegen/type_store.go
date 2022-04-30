@@ -3,20 +3,27 @@ package main
 
 import (
 	"log"
-	"strings"
 
 	"github.com/dave/jennifer/jen"
 
 	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
-type Method struct {
+type Var struct {
 	Name string `yaml:"name"`
-	// model
+	Type string `yaml:"type"`
+}
+
+type Method struct {
+	Name   string `yaml:"name"`
+	Simple bool   `yaml:"simple"`
+	Args   []Var  `yaml:"args,omitempty"`
+	Rets   []Var  `yaml:"rets,omitempty"`
 }
 
 type Store struct {
 	Name    string   `yaml:"name"`
+	IName   string   `yaml:"iname,omitempty"`
 	Methods []Method `yaml:"methods"`
 }
 
@@ -33,9 +40,14 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 	for _, mth := range s.Methods {
 		var args, rets []jen.Code
 		args = append(args, _ctx)
-		if strings.HasPrefix(mth.Name, "List") && validModel(mth.Name[4:]) {
+		act, mname, ok := cutMethod(mth.Name)
+		if !ok {
+			log.Fatalf("inalid method: %s", mth.Name)
+			return
+		}
+		// log.Printf("act %s, %s, %v", act, mname, ok)
+		if act == "List" {
 			comm, _ := getQual("comm")
-			mname := mth.Name[4:]
 			tname := mname + "Spec"
 			tspec := jen.Type().Id(tname).Struct(jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec")).Line()
 			tcs = append(tcs, tspec)
@@ -52,8 +64,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				jen.Return(),
 			))
 			nap = append(nap, false)
-		} else if strings.HasPrefix(mth.Name, "Get") && validModel(mth.Name[3:]) {
-			mname := mth.Name[3:]
+		} else if act == "Get" {
 			args = append(args, jen.Id("id").String())
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.Block(
@@ -63,8 +74,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				jen.Return(),
 			))
 			nap = append(nap, false)
-		} else if strings.HasPrefix(mth.Name, "Create") && validModel(mth.Name[6:]) {
-			mname := mth.Name[6:]
+		} else if act == "Create" {
 			args = append(args, jen.Id("obj").Op("*").Qual(modpkg, mname))
 			rets = append(rets, jen.Id("err").Error())
 			bcs = append(bcs, jen.Block(
@@ -74,8 +84,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				jen.Return(),
 			))
 			nap = append(nap, false)
-		} else if strings.HasPrefix(mth.Name, "Update") && validModel(mth.Name[6:]) {
-			mname := mth.Name[6:]
+		} else if act == "Update" {
 			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
 			rets = append(rets, jen.Id("err").Error())
 			bcs = append(bcs, jen.Block(
@@ -91,17 +100,38 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				jen.Err().Op("=").Id("dbUpdate").Call(
 					jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("cs..."),
 				),
-				// jen.Id("_").Op(",").Id("err").Op("=").Id("dbStoreWithCall").Call(
-				// 	jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("obj"),
-				// 	jen.Func().Params().Index().String().Block(
-				// 		jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("o"))),
-				// 	),
-				// ),
 				jen.Return(),
 			))
 			nap = append(nap, false)
-		} else if strings.HasPrefix(mth.Name, "Delete") && validModel(mth.Name[6:]) {
-			mname := mth.Name[6:]
+		} else if act == "Put" {
+			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
+			if !mth.Simple {
+				rets = append(rets, jen.Id("isnew").Bool())
+			}
+			rets = append(rets, jen.Err().Error())
+			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
+				g.Id("obj").Dot("SetID").Call(jen.Id("id"))
+				if mth.Simple {
+					g.Id("cs").Op(":=").Id("obj").Dot("SetWith").Call(jen.Id("in"))
+					g.Err().Op("=").Id("dbStoreSimple").Call(
+						jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"), jen.Id("cs..."),
+					)
+				} else {
+					g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
+					g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
+					g.Id("isnew").Op(",").Id("err").Op("=").Id("dbStoreWithCall").Call(
+						jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("obj"),
+						jen.Func().Params().Index().String().Block(
+							jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
+						),
+					)
+				}
+				g.Return()
+			}))
+			nap = append(nap, false)
+
+		} else if act == "Delete" {
 			args = append(args, jen.Id("id").String())
 			rets = append(rets, jen.Error())
 			bcs = append(bcs, jen.Block(
@@ -111,6 +141,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			).Line())
 			nap = append(nap, true)
 		} else {
+			log.Printf("unknown action: %s", act)
 			bcs = append(bcs, jen.Block())
 			nap = append(nap, false)
 
@@ -119,6 +150,13 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 	}
 
 	return
+}
+
+func (s *Store) GetIName() string {
+	if len(s.IName) > 0 {
+		return s.IName
+	}
+	return utils.CamelCased(s.Name)
 }
 
 func (s *Store) Codes(modelpkg string) jen.Code {
@@ -134,7 +172,8 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 			ics = append(ics, jen.Line())
 		}
 	}
-	st := jen.Type().Id(utils.CamelCased(s.Name)).Interface(ics...).Line()
+
+	st := jen.Type().Id(s.GetIName()).Interface(ics...).Line()
 	st.Add(tcs...).Line()
 
 	st.Type().Id(s.Name).Struct(jen.Id("w").Op("*").Id("Wrap")).Line()

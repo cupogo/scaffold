@@ -7,16 +7,24 @@ import (
 	"hyyl.xyz/cupola/aurora/pkg/settings"
 )
 
+type Storage interface {
+	Contant() ContantStore
+}
+
 // Wrap implements Storages
 type Wrap struct {
 	db *pgx.DB
 	rc *redis.Client
+
+	contentStore *contentStore
 }
 
 // NewWithDB ...
 func NewWithDB(db *pgx.DB, rc *redis.Client) *Wrap {
 	w := &Wrap{db: db, rc: rc}
 
+	w.contentStore = &contentStore{w}
+	// more member stores
 	return w
 }
 
@@ -49,4 +57,8 @@ func OpenBases(args ...string) (db *pgx.DB, rc *redis.Client, err error) {
 	rc = redis.NewClient(opt)
 
 	return
+}
+
+func (w *Wrap) Contant() ContantStore {
+	return w.contentStore
 }
