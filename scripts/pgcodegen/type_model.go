@@ -15,12 +15,31 @@ const (
 	oidQual = "hyyl.xyz/cupola/aurora/pkg/models/oid"
 )
 
+func qual(args ...string) jen.Code {
+	if len(args) == 0 {
+		log.Fatal("empty args for qual")
+	}
+	if len(args) > 1 {
+		return jen.Qual(args[0], args[1])
+	}
+	name := args[0]
+	if pos := strings.Index(name, "."); pos > 0 {
+		if qual, ok := getQual(name[0:pos]); ok {
+			return jen.Qual(qual, name[pos+1:])
+		} else {
+			log.Printf("get qual %s fail", name)
+		}
+	}
+	return jen.Id(name)
+}
+
 type Field struct {
-	Name  string `yaml:"name"`
-	Type  string `yaml:"type,omitempty"`
-	Tags  Maps   `yaml:"tags,omitempty"`
-	Qual  string `yaml:"qual,omitempty"`
-	IsSet bool   `yaml:"isset,omitempty"`
+	Name    string `yaml:"name"`
+	Type    string `yaml:"type,omitempty"`
+	Tags    Maps   `yaml:"tags,flow,omitempty"`
+	Qual    string `yaml:"qual,omitempty"`
+	IsSet   bool   `yaml:"isset,omitempty"`
+	Comment string `yaml:"comment,omitempty"`
 }
 
 func (f *Field) Code() jen.Code {
@@ -42,11 +61,15 @@ func (f *Field) Code() jen.Code {
 		// embed field
 		st.Line()
 	default:
-		st.Add(jen.Id(f.Type))
+		st.Id(f.Type)
 	}
 	if len(f.Tags) > 0 {
 		// log.Printf("%s: %+v", f.Name, f.Tags)
 		st.Tag(f.Tags)
+	}
+
+	if len(f.Comment) > 0 {
+		st.Comment(f.Comment)
 	}
 
 	return st

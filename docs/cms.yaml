@@ -14,14 +14,17 @@ models:
         type: string
         tags: {json: 'author', pg: ',notnull'}
         isset: true
+        comment: 作者
       - name: Title
         type: string
         tags: {json: 'title', pg: ',notnull'}
         isset: true
+        comment: 标题
       - name: Contant
         type: string
         tags: {json: 'content', pg: ',notnull'}
         isset: true
+        comment: 内容
     oidcat: article
 
   - name: Clause
@@ -39,6 +42,7 @@ models:
 
 stores:
   - name: contentStore
+    iname: ContantStore
     methods:
       - name: ListArticle
       - name: GetArticle
@@ -47,10 +51,38 @@ stores:
       - name: DeleteArticle
       - name: ListClause
       - name: GetClause
-      - name: CreateClause
-      - name: UpdateClause
+      - name: PutClause
+        simple: true
       - name: DeleteClause
 
-apis:
-  - handles:
-    - name: getClause
+webapi:
+  pkg: api_v1
+  handles:
+    - name: getCmsClause
+      store: Contant
+      method: GetClause
+      summary: 获取内容条款
+      route: '/api/v1/cms/clauses/{id} [get]'
+      authreq: true
+    - name: putCmsClause
+      id: v1-cms-clause-id-get
+      store: Contant
+      method: PutClause
+      bindobj: cms1.ClauseSet
+      summary: 录入内容条款
+      route: '/api/v1/cms/clauses/{id} [put]'
+      authreq: true
+    - name: getCmsClauses
+      store: Contant
+      method: ListClause
+      bindobj: stores.ClauseSpec
+      summary: 列出内容条款
+      route: '/api/v1/cms/clauses [get]'
+      authreq: true
+    - name: deleteCmsClause
+      id: v1-cms-clause-id-delete
+      store: Contant
+      method: DeleteClause
+      summary: 删除内容条款
+      route: '/api/v1/cms/clauses/{id} [delete]'
+      authreq: true

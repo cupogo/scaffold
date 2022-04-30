@@ -41,6 +41,9 @@ func main() {
 
 	if err = doc.genModels(dropfirst); err == nil {
 		err = doc.genStores(dropfirst)
+		if err == nil {
+			err = doc.genWebAPI()
+		}
 	}
 
 	if err != nil {
@@ -69,16 +72,16 @@ func getTableName(mn string) string {
 	return utils.Underscore(mn)
 }
 
-func validModel(name string) bool {
+func getModel(name string) *Model {
 	if doc != nil {
 		for _, model := range doc.Models {
 			if model.Name == name {
-				return true
+				return &model
 			}
 		}
 	}
 
-	return false
+	return &Model{}
 }
 
 func loadPackage(path string) *packages.Package {
@@ -109,4 +112,26 @@ func checkPackageObject(pkg *packages.Package, name string) bool {
 		}
 	}
 	return false
+}
+
+func cutMethod(s string) (act string, tgt string, ok bool) {
+	var foundLow bool
+	var foundUp bool
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if utils.IsUpper(c) {
+			if foundUp && foundLow || i > 2 { // PutObject, putObject
+				act = s[0:i]
+				tgt = s[i:]
+				ok = len(tgt) > 0
+				return
+			}
+			foundUp = true
+		}
+		if utils.IsLower(c) {
+			foundLow = true
+		}
+	}
+
+	return
 }
