@@ -63,26 +63,26 @@ webapi:
       method: GetClause
       summary: 获取内容条款
       route: '/api/v1/cms/clauses/{id} [get]'
-      authreq: true
+      needAuth: true
     - name: putCmsClause
-      id: v1-cms-clause-id-get
       store: Contant
       method: PutClause
       bindobj: cms1.ClauseSet
       summary: 录入内容条款
       route: '/api/v1/cms/clauses/{id} [put]'
-      authreq: true
+      needAuth: true
+      needPerm: true
     - name: getCmsClauses
       store: Contant
       method: ListClause
       bindobj: stores.ClauseSpec
       summary: 列出内容条款
       route: '/api/v1/cms/clauses [get]'
-      authreq: true
+      needAuth: true
     - name: deleteCmsClause
-      id: v1-cms-clause-id-delete
       store: Contant
       method: DeleteClause
       summary: 删除内容条款
       route: '/api/v1/cms/clauses/{id} [delete]'
-      authreq: true
+      needAuth: true
+      needPerm: true

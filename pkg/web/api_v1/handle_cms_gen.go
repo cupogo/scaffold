@@ -30,7 +30,7 @@ func (a *api) getCmsClause(c *gin.Context) {
 	success(c, obj)
 }
 
-// @ID v1-cms-clause-id-get
+// @ID v1-cms-clauses-id-put
 // @Summary 录入内容条款
 // @Accept json
 // @Produce json
@@ -87,7 +87,7 @@ func (a *api) getCmsClauses(c *gin.Context) {
 	success(c, dtResult(data, total))
 }
 
-// @ID v1-cms-clause-id-delete
+// @ID v1-cms-clauses-id-delete
 // @Summary 删除内容条款
 // @Accept json
 // @Produce json

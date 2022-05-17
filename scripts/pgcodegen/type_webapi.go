@@ -24,6 +24,7 @@ var preFails = map[int]string{
 const paramAuth = `token    header   string  true "登录票据凭证"`
 
 var replPkg = strings.NewReplacer("_", "", "-", "")
+var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
 
 type WebAPI struct {
 	Pkg     string   `yaml:"pkg"`
@@ -45,7 +46,8 @@ type Handle struct {
 	Produce  string   `yaml:"produce,omitempty"`
 	Name     string   `yaml:"name,omitempty"`
 	Route    string   `yaml:"route,omitempty"`
-	AuthReq  bool     `yaml:"authreq,omitempty"`
+	NeedAuth bool     `yaml:"needAuth,omitempty"`
+	NeedPerm bool     `yaml:"needPerm,omitempty"`
 	Params   []string `yaml:"params,omitempty"`
 	Success  string   `yaml:"success,omitempty" `
 	Failures []int    `yaml:"failures,flow,omitempty"`
@@ -63,6 +65,16 @@ func (h *Handle) GetProduce() string {
 		return h.Produce
 	}
 	return "json"
+}
+
+func (h *Handle) GenID() string {
+	s := h.Route
+	if strings.HasPrefix(s, "/api/") {
+		s = s[5:]
+	}
+	s = replRoute.Replace(s)
+
+	return strings.TrimSpace(s)
 }
 
 func (h *Handle) GetFails(act string) []int {
@@ -85,13 +97,16 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if len(h.Tags) > 0 {
 		st.Comment("@Tags " + h.Tags).Line()
 	}
-	if len(h.ID) > 0 {
+	if len(h.ID) > 0 || h.NeedPerm {
+		if len(h.ID) == 0 {
+			h.ID = h.GenID()
+		}
 		st.Comment("@ID " + h.ID).Line()
 	}
 	st.Comment("@Summary " + h.Summary).Line()
 	st.Comment("@Accept " + h.GetAccept()).Line()
 	st.Comment("@Produce " + h.GetProduce()).Line()
-	if h.AuthReq {
+	if h.NeedAuth {
 		st.Comment("@Param " + paramAuth).Line()
 	}
 	var paramed bool
