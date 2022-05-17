@@ -30,7 +30,17 @@ type ContantStore interface {
 type ArticleSpec struct {
 	comm.PageSpec
 	MDftSpec
+
+	Title string `form:"title" json:"title"` // 标题
 }
+
+func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
+	q, _ = spec.MDftSpec.Sift(q)
+	q, _ = siftEquel(q, "title", spec.Title, false)
+
+	return q, nil
+}
+
 type ClauseSpec struct {
 	comm.PageSpec
 	MDftSpec

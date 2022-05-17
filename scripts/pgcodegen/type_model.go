@@ -40,6 +40,7 @@ type Field struct {
 	Qual    string `yaml:"qual,omitempty"`
 	IsSet   bool   `yaml:"isset,omitempty"`
 	Comment string `yaml:"comment,omitempty"`
+	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 }
 
 func (f *Field) Code() jen.Code {
@@ -82,6 +83,27 @@ func (f *Field) ColName() string {
 		}
 	}
 	return utils.Underscore(f.Name)
+}
+
+func (f *Field) queryCode() jen.Code {
+	st := jen.Id(f.Name).Id(f.Type)
+
+	tags := f.Tags.Copy()
+	if len(tags) > 0 {
+		if _, ok := tags["form"]; !ok {
+			if v, ok := tags["json"]; ok {
+				tags["form"] = v
+			}
+		}
+		delete(tags, "pg")
+		st.Tag(tags)
+	}
+
+	if len(f.Comment) > 0 {
+		st.Comment(f.Comment)
+	}
+
+	return st
 }
 
 type Fields []Field
@@ -241,4 +263,46 @@ func (m *Model) hasHooks() (bool, string) {
 		return true, "DateFields"
 	}
 	return false, ""
+}
+
+func (m *Model) specFields() (out Fields) {
+	for _, f := range m.Fields {
+		if f.Query != "" {
+			out = append(out, f)
+		}
+	}
+	return
+}
+
+func (m *Model) getSpecCodes() jen.Code {
+	comm, _ := getQual("comm")
+	var fcs []jen.Code
+	fcs = append(fcs, jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec"))
+	specFields := m.specFields()
+	if len(specFields) > 0 {
+		fcs = append(fcs, jen.Empty())
+		for _, field := range specFields {
+			fcs = append(fcs, field.queryCode())
+		}
+	}
+
+	tname := m.Name + "Spec"
+	st := jen.Type().Id(tname).Struct(fcs...).Line()
+	if len(fcs) > 2 {
+		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
+			Params(jen.Op("*").Id("ormQuery"), jen.Error())
+		st.BlockFunc(func(g *jen.Group) {
+			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("MDftSpec").Dot("Sift").Call(jen.Id("q"))
+			for _, field := range specFields {
+				// TODO: set text wildcard
+				g.Id("q").Op(",").Id("_").Op("=").Id("siftEquel").Call(
+					jen.Id("q"), jen.Lit(field.ColName()), jen.Id("spec").Dot(field.Name), jen.False(),
+				)
+			}
+			g.Line()
+			g.Return(jen.Id("q"), jen.Nil())
+		}).Line()
+	}
+
+	return st
 }

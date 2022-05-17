@@ -27,6 +27,15 @@ type Unmarshaler = yaml.Unmarshaler
 
 type Maps map[string]string
 
+// Copy ...
+func (m Maps) Copy() (out Maps) {
+	out = Maps{}
+	for k, v := range m {
+		out[k] = v
+	}
+	return
+}
+
 type Document struct {
 	name    string
 	dirmod  string
@@ -114,6 +123,15 @@ func (doc *Document) genModels(dropfirst bool) error {
 	}
 	log.Printf("generated for %s ok", doc.dirmod)
 	return nil
+}
+
+func (doc *Document) modelWithName(name string) (*Model, bool) {
+	for _, m := range doc.Models {
+		if m.Name == name {
+			return &m, true
+		}
+	}
+	return nil, false
 }
 
 func (doc *Document) genStores(dropfirst bool) error {
