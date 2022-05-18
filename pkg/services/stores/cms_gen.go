@@ -27,6 +27,7 @@ type ContantStore interface {
 	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error)
 	DeleteClause(ctx context.Context, id string) error
 }
+
 type ArticleSpec struct {
 	comm.PageSpec
 	MDftSpec

@@ -22,6 +22,7 @@ var preFails = map[int]string{
 }
 
 const paramAuth = `token    header   string  true "登录票据凭证"`
+const swagTags = "默认 文档生成"
 
 var replPkg = strings.NewReplacer("_", "", "-", "")
 var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
@@ -77,6 +78,13 @@ func (h *Handle) GenID() string {
 	return strings.TrimSpace(s)
 }
 
+func (h *Handle) GetTags() string {
+	if len(h.Tags) > 0 {
+		return h.Tags
+	}
+	return swagTags
+}
+
 func (h *Handle) GetFails(act string) []int {
 	if h.Failures == nil {
 		return getDftFails(act)
@@ -94,9 +102,8 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 		return nil
 	}
 	st := jen.Empty()
-	if len(h.Tags) > 0 {
-		st.Comment("@Tags " + h.Tags).Line()
-	}
+	st.Comment("@Tags " + h.GetTags()).Line()
+
 	if len(h.ID) > 0 || h.NeedPerm {
 		if len(h.ID) == 0 {
 			h.ID = h.GenID()
@@ -164,7 +171,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 			log.Printf("invalid failure code: %d", fi)
 		}
 	}
-	st.Comment("@Route " + h.Route).Line()
+	st.Comment("@Router " + h.Route).Line()
 
 	return st
 }
