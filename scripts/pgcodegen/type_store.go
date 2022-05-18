@@ -179,7 +179,7 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 		}
 	}
 
-	st := jen.Type().Id(s.GetIName()).Interface(ics...).Line()
+	st := jen.Type().Id(s.GetIName()).Interface(ics...).Line().Line()
 	st.Add(tcs...).Line()
 
 	st.Type().Id(s.Name).Struct(jen.Id("w").Op("*").Id("Wrap")).Line()

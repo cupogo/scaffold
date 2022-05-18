@@ -8,6 +8,7 @@ import (
 	"hyyl.xyz/cupola/scaffold/pkg/services/stores"
 )
 
+// @Tags 默认 文档生成
 // @Summary 获取内容条款
 // @Accept json
 // @Produce json
@@ -18,7 +19,7 @@ import (
 // @Failure 401 {object} resp.Failure "未登录"
 // @Failure 404 {object} resp.Failure "目标未找到"
 // @Failure 503 {object} resp.Failure "服务端错误"
-// @Route /api/v1/cms/clauses/{id} [get]
+// @Router /api/v1/cms/clauses/{id} [get]
 func (a *api) getCmsClause(c *gin.Context) {
 	id := c.Param("id")
 	obj, err := a.sto.Contant().GetClause(c.Request.Context(), id)
@@ -30,6 +31,7 @@ func (a *api) getCmsClause(c *gin.Context) {
 	success(c, obj)
 }
 
+// @Tags 默认 文档生成
 // @ID v1-cms-clauses-id-put
 // @Summary 录入内容条款
 // @Accept json
@@ -42,7 +44,7 @@ func (a *api) getCmsClause(c *gin.Context) {
 // @Failure 401 {object} resp.Failure "未登录"
 // @Failure 403 {object} resp.Failure "无权限"
 // @Failure 503 {object} resp.Failure "服务端错误"
-// @Route /api/v1/cms/clauses/{id} [put]
+// @Router /api/v1/cms/clauses/{id} [put]
 func (a *api) putCmsClause(c *gin.Context) {
 	id := c.Param("id")
 	var in cms1.ClauseSet
@@ -60,6 +62,7 @@ func (a *api) putCmsClause(c *gin.Context) {
 	success(c, "ok")
 }
 
+// @Tags 默认 文档生成
 // @Summary 列出内容条款
 // @Accept json
 // @Produce json
@@ -70,7 +73,7 @@ func (a *api) putCmsClause(c *gin.Context) {
 // @Failure 401 {object} resp.Failure "未登录"
 // @Failure 404 {object} resp.Failure "目标未找到"
 // @Failure 503 {object} resp.Failure "服务端错误"
-// @Route /api/v1/cms/clauses [get]
+// @Router /api/v1/cms/clauses [get]
 func (a *api) getCmsClauses(c *gin.Context) {
 	var spec stores.ClauseSpec
 	if err := c.Bind(&spec); err != nil {
@@ -87,6 +90,7 @@ func (a *api) getCmsClauses(c *gin.Context) {
 	success(c, dtResult(data, total))
 }
 
+// @Tags 默认 文档生成
 // @ID v1-cms-clauses-id-delete
 // @Summary 删除内容条款
 // @Accept json
@@ -98,7 +102,7 @@ func (a *api) getCmsClauses(c *gin.Context) {
 // @Failure 401 {object} resp.Failure "未登录"
 // @Failure 403 {object} resp.Failure "无权限"
 // @Failure 503 {object} resp.Failure "服务端错误"
-// @Route /api/v1/cms/clauses/{id} [delete]
+// @Router /api/v1/cms/clauses/{id} [delete]
 func (a *api) deleteCmsClause(c *gin.Context) {
 	id := c.Param("id")
 	err := a.sto.Contant().DeleteClause(c.Request.Context(), id)
