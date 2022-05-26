@@ -173,6 +173,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		if s, ok := field.Tags["json"]; ok {
 			code.Tag(Maps{"json": s})
 		}
+		if len(field.Comment) > 0 {
+			code.Comment(field.Comment)
+		}
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).Block(
 			jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name),
