@@ -39,9 +39,9 @@ func (z *Article) Saving() error {
 }
 
 type ArticleSet struct {
-	Author  *string `json:"author"`
-	Title   *string `json:"title"`
-	Contant *string `json:"content"`
+	Author  *string `json:"author"`  // 作者
+	Title   *string `json:"title"`   // 标题
+	Contant *string `json:"content"` // 内容
 }
 
 func (z *Article) SetWith(o *ArticleSet) (cs []string) {
