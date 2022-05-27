@@ -152,13 +152,15 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 			success = true
 			if act == "List" {
 				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultData{" + mth.Rets[0].Type + "}}").Line()
+			} else if act == "Create" {
+				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultID}").Line()
 			} else {
 				st.Comment("@Success 200 {object} resp.Done{result=" + mth.Rets[0].Type + "}").Line()
 			}
 		}
 	}
 	if !success {
-		if act == "Put" || act == "Create" {
+		if act == "Put" || act == "Update" {
 			st.Comment("@Success 200 {object} resp.Done{result=string}").Line()
 		} else {
 			st.Comment("@Success 200 {object} resp.Done").Line()
@@ -212,7 +214,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					jfail(503)...,
 				).Line()
 				g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
-			} else if act == "Put" && len(mth.Args) > 2 {
+			} else if (act == "Put" || act == "Update") && len(mth.Args) > 2 {
 				g.Var().Id("in").Add(qual(mth.Args[2].Type))
 				g.Add(jbind("in"))
 				g.Err().Add(jmcc).Call(
@@ -241,6 +243,17 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				jfail(503)...,
 			).Line()
 			g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
+		} else if act == "Create" && len(mth.Args) > 1 {
+			g.Var().Id("in").Add(qual(mth.Args[1].Type))
+			g.Add(jbind("in"))
+			g.Id("obj").Op(",").Err().Add(jmcc).Call(
+				jctx, jen.Op("&").Id("in"),
+			)
+			g.If(jen.Err().Op("!=").Nil()).Block(
+				jfail(503)...,
+			).Line()
+			g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
+
 		}
 
 	})

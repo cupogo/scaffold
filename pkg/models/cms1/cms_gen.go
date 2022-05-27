@@ -35,7 +35,7 @@ func (z *Article) Creating() error {
 
 // Saving function call to it's inner fields defined hooks
 func (z *Article) Saving() error {
-	return z.DefaultModel.Creating()
+	return z.DefaultModel.Saving()
 }
 
 type ArticleSet struct {
@@ -86,7 +86,7 @@ func (z *Clause) Creating() error {
 
 // Saving function call to it's inner fields defined hooks
 func (z *Clause) Saving() error {
-	return z.DefaultModel.Creating()
+	return z.DefaultModel.Saving()
 }
 
 type ClauseSet struct {

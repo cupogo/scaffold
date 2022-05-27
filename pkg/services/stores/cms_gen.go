@@ -18,7 +18,7 @@ type Clauses = cms1.Clauses
 type ContantStore interface {
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data []cms1.Article, total int, err error)
 	GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error)
-	CreateArticle(ctx context.Context, obj *cms1.Article) (err error)
+	CreateArticle(ctx context.Context, in *cms1.ArticleBasic) (obj *cms1.Article, err error)
 	UpdateArticle(ctx context.Context, id string, in *cms1.ArticleSet) (err error)
 	DeleteArticle(ctx context.Context, id string) error
 
@@ -60,7 +60,10 @@ func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Art
 	err = getModelWithPKOID(s.w.db, obj, id)
 	return
 }
-func (s *contentStore) CreateArticle(ctx context.Context, obj *cms1.Article) (err error) {
+func (s *contentStore) CreateArticle(ctx context.Context, in *cms1.ArticleBasic) (obj *cms1.Article, err error) {
+	obj = &cms1.Article{
+		ArticleBasic: *in,
+	}
 	err = dbInsert(ctx, s.w.db, obj)
 	return
 }
