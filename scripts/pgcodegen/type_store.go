@@ -25,6 +25,8 @@ type Store struct {
 	Name    string   `yaml:"name"`
 	IName   string   `yaml:"iname,omitempty"`
 	Methods []Method `yaml:"methods"`
+
+	mnames []string // TODO: aliases
 }
 
 func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bcs []*jen.Statement) {
@@ -81,9 +83,11 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			))
 			nap = append(nap, false)
 		} else if act == "Create" {
-			args = append(args, jen.Id("obj").Op("*").Qual(modpkg, mname))
-			rets = append(rets, jen.Id("err").Error())
+			tname := mname + "Basic"
+			args = append(args, jen.Id("in").Op("*").Qual(modpkg, tname))
+			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.Block(
+				jen.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Op("*").Id("in").Op(",")),
 				jen.Id("err").Op("=").Id("dbInsert").Call(
 					jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"),
 				),

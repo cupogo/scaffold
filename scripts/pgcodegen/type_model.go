@@ -227,7 +227,7 @@ func (m *Model) Codes() jen.Code {
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
 		).Id("Saving").Params().Error().Block(
-			jen.Return(jen.Id("z").Dot(field).Dot("Creating").Call()),
+			jen.Return(jen.Id("z").Dot(field).Dot("Saving").Call()),
 		).Line()
 	}
 
