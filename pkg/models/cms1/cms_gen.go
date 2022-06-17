@@ -14,13 +14,13 @@ type Article struct {
 	comm.DefaultModel
 
 	ArticleBasic
-}
+} // @name Article
 
 type ArticleBasic struct {
 	Author  string `json:"author" pg:",notnull"`  // 作者
 	Title   string `json:"title" pg:",notnull"`   // 标题
 	Contant string `json:"content" pg:",notnull"` // 内容
-}
+} // @name ArticleBasic
 
 type Articles []Article
 
@@ -42,7 +42,7 @@ type ArticleSet struct {
 	Author  *string `json:"author"`  // 作者
 	Title   *string `json:"title"`   // 标题
 	Contant *string `json:"content"` // 内容
-}
+} // @name ArticleSet
 
 func (z *Article) SetWith(o *ArticleSet) (cs []string) {
 	if o.Author != nil {
@@ -67,11 +67,11 @@ type Clause struct {
 	comm.DefaultModel
 
 	ClauseBasic
-}
+} // @name Clause
 
 type ClauseBasic struct {
 	Text string `json:"text" pg:"text,notnull"`
-}
+} // @name ClauseBasic
 
 type Clauses []Clause
 
@@ -91,7 +91,7 @@ func (z *Clause) Saving() error {
 
 type ClauseSet struct {
 	Text *string `json:"text"`
-}
+} // @name ClauseSet
 
 func (z *Clause) SetWith(o *ClauseSet) (cs []string) {
 	if o.Text != nil {

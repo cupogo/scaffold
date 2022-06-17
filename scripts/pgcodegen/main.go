@@ -80,10 +80,8 @@ func getQual(k string) (string, bool) {
 
 func getTableName(mn string) string {
 	if doc != nil {
-		for _, model := range doc.Models {
-			if model.Name == mn {
-				return model.tableName()
-			}
+		if model, ok := doc.modelWithName(mn); ok {
+			return model.tableName()
 		}
 	}
 	return utils.Underscore(mn)
@@ -91,10 +89,8 @@ func getTableName(mn string) string {
 
 func getModel(name string) *Model {
 	if doc != nil {
-		for _, model := range doc.Models {
-			if model.Name == name {
-				return &model
-			}
+		if model, ok := doc.modelWithName(name); ok {
+			return model
 		}
 	}
 

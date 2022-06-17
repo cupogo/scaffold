@@ -9,9 +9,11 @@ import (
 )
 
 type Article = cms1.Article
+type ArticleBasic = cms1.ArticleBasic
 type ArticleSet = cms1.ArticleSet
 type Articles = cms1.Articles
 type Clause = cms1.Clause
+type ClauseBasic = cms1.ClauseBasic
 type ClauseSet = cms1.ClauseSet
 type Clauses = cms1.Clauses
 
