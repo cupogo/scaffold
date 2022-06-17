@@ -134,6 +134,15 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 	return nil, false
 }
 
+func (doc *Document) modelAliasable(name string) bool {
+	for _, m := range doc.Models {
+		if m.Name == name || strings.HasPrefix(name, m.Name) {
+			return true
+		}
+	}
+	return false
+}
+
 func (doc *Document) genStores(dropfirst bool) error {
 	mpkg := loadPackage(doc.dirmod)
 	// if err != nil {
@@ -153,7 +162,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	var aliases []string
 	for _, f := range mpkg.Syntax {
 		for k := range f.Scope.Objects {
-			if strings.HasSuffix(k, "Basic") {
+			if !doc.modelAliasable(k) {
 				continue
 			}
 			aliases = append(aliases, k)

@@ -44,26 +44,32 @@ type Field struct {
 }
 
 func (f *Field) Code() jen.Code {
+	if len(f.Type) == 0 {
+		f.Type = f.Name
+		f.Name = ""
+	}
 	var st *jen.Statement
-	if len(f.Qual) > 0 {
-		st = jen.Qual(f.Qual, f.Name)
-	} else if pos := strings.Index(f.Name, "."); pos > 0 {
-		if qual, ok := getQual(f.Name[0:pos]); ok {
-			st = jen.Qual(qual, f.Name[pos+1:])
-		} else {
-			log.Printf("get qual %s fail", f.Name)
-		}
-	} else {
+
+	switch f.Name {
+	case "":
+		// embed field
+		st = jen.Empty()
+	default:
 		st = jen.Id(f.Name)
 	}
 
-	switch f.Type {
-	case "":
-		// embed field
-		st.Line()
-	default:
+	if len(f.Qual) > 0 {
+		st.Qual(f.Qual, f.Type)
+	} else if pos := strings.Index(f.Type, "."); pos > 0 {
+		if qual, ok := getQual(f.Type[0:pos]); ok {
+			st.Qual(qual, f.Type[pos+1:])
+		} else {
+			log.Printf("get qual %s fail", f.Type)
+		}
+	} else {
 		st.Id(f.Type)
 	}
+
 	if len(f.Tags) > 0 {
 		// log.Printf("%s: %+v", f.Name, f.Tags)
 		st.Tag(f.Tags)
@@ -71,6 +77,10 @@ func (f *Field) Code() jen.Code {
 
 	if len(f.Comment) > 0 {
 		st.Comment(f.Comment)
+	}
+
+	if len(f.Name) == 0 {
+		st.Line()
 	}
 
 	return st
@@ -197,10 +207,10 @@ func (m *Model) Codes() jen.Code {
 		cs = append(cs, jen.Id(basicName))
 	}
 
-	st.Type().Id(m.Name).Struct(cs...).Line().Line()
+	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + m.Name)).Line().Line()
 
 	if len(bcs) > 0 {
-		st.Type().Id(basicName).Struct(bcs...).Line().Line()
+		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + basicName)).Line().Line()
 	}
 
 	st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
@@ -233,7 +243,7 @@ func (m *Model) Codes() jen.Code {
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
-		st.Type().Id(changeSetName).Struct(ccs...).Line().Line()
+		st.Type().Id(changeSetName).Struct(ccs...).Add(jen.Comment("@name " + changeSetName)).Line().Line()
 		scs = append(scs, jen.Return())
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
