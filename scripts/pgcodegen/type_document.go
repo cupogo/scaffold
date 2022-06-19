@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"go/ast"
 	"go/types"
 	"log"
 	"os"
@@ -161,11 +162,10 @@ func (doc *Document) genStores(dropfirst bool) error {
 
 	var aliases []string
 	for _, f := range mpkg.Syntax {
-		for k := range f.Scope.Objects {
-			if !doc.modelAliasable(k) {
-				continue
+		for k, o := range f.Scope.Objects {
+			if o.Kind == ast.Typ && doc.modelAliasable(k) {
+				aliases = append(aliases, k)
 			}
-			aliases = append(aliases, k)
 		}
 	}
 	sort.Strings(aliases)

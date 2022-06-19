@@ -43,13 +43,11 @@ type Field struct {
 	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 }
 
-func (f *Field) Code() jen.Code {
+func (f *Field) preCode() (st *jen.Statement) {
 	if len(f.Type) == 0 {
 		f.Type = f.Name
 		f.Name = ""
 	}
-	var st *jen.Statement
-
 	switch f.Name {
 	case "":
 		// embed field
@@ -69,6 +67,12 @@ func (f *Field) Code() jen.Code {
 	} else {
 		st.Id(f.Type)
 	}
+
+	return st
+}
+
+func (f *Field) Code() jen.Code {
+	st := f.preCode()
 
 	if len(f.Tags) > 0 {
 		// log.Printf("%s: %+v", f.Name, f.Tags)
@@ -96,7 +100,7 @@ func (f *Field) ColName() string {
 }
 
 func (f *Field) queryCode() jen.Code {
-	st := jen.Id(f.Name).Id(f.Type)
+	st := f.preCode()
 
 	tags := f.Tags.Copy()
 	if len(tags) > 0 {
