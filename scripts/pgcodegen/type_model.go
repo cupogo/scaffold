@@ -100,6 +100,9 @@ func (f *Field) ColName() string {
 }
 
 func (f *Field) queryCode() jen.Code {
+	if len(f.Type) > 0 {
+		f.Type, _ = getModQual(f.Type)
+	}
 	st := f.preCode()
 
 	tags := f.Tags.Copy()

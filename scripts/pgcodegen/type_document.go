@@ -45,6 +45,8 @@ type Document struct {
 	lock    sync.Mutex
 	methods map[string]Method
 
+	modtypes map[string]empty
+
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
 	Qualified Maps    `yaml:"depends"` // imports name
@@ -76,6 +78,7 @@ func NewDoc(docfile string) (*Document, error) {
 	doc.dirsto = path.Join("pkg", "services", "stores")
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
 	doc.methods = make(map[string]Method)
+	doc.modtypes = make(map[string]empty)
 
 	log.Printf("loaded %d models, out name %q", len(doc.Models), doc.name)
 
@@ -149,7 +152,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	// if err != nil {
 	// 	log.Printf("get package fail: %s", err)
 	// }
-	log.Printf("loaded mpkg: %s name %q: path %q", mpkg.ID, mpkg.Types.Name(), mpkg.Types.Path())
+	log.Printf("loaded mpkg: %s name %q: files %q,%q", mpkg.ID, mpkg.Types.Name(), mpkg.GoFiles, mpkg.CompiledGoFiles)
 	log.Printf("types: %+v, ", mpkg.Types)
 
 	sgf := jen.NewFile(storepkg)
@@ -158,16 +161,21 @@ func (doc *Document) genStores(dropfirst bool) error {
 	sgf.ImportName(mpkg.ID, doc.ModelPkg)
 	doc.lock.Lock()
 	doc.Qualified[doc.ModelPkg] = mpkg.ID
-	doc.lock.Unlock()
 
 	var aliases []string
 	for _, f := range mpkg.Syntax {
 		for k, o := range f.Scope.Objects {
-			if o.Kind == ast.Typ && doc.modelAliasable(k) {
-				aliases = append(aliases, k)
+			if o.Kind == ast.Typ {
+				doc.modtypes[k] = empty{}
+				if doc.modelAliasable(k) {
+					aliases = append(aliases, k)
+				}
 			}
+
 		}
 	}
+	doc.lock.Unlock()
+
 	sort.Strings(aliases)
 	for _, k := range aliases {
 		sgf.Type().Id(k).Op("=").Qual(mpkg.ID, k)
