@@ -4,10 +4,7 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
-	"strings"
 
-	"golang.org/x/tools/go/packages"
 	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
@@ -78,6 +75,15 @@ func getQual(k string) (string, bool) {
 	return "", false
 }
 
+func getModQual(k string) (string, bool) {
+	if doc != nil {
+		if _, ok := doc.modtypes[k]; ok {
+			return doc.ModelPkg + "." + k, true
+		}
+	}
+	return k, false
+}
+
 func getTableName(mn string) string {
 	if doc != nil {
 		if model, ok := doc.modelWithName(mn); ok {
@@ -95,36 +101,6 @@ func getModel(name string) *Model {
 	}
 
 	return &Model{}
-}
-
-func loadPackage(path string) *packages.Package {
-	if !strings.HasPrefix(path, "./") {
-		path = "./" + path
-	}
-	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedSyntax | packages.NeedImports}
-	pkgs, err := packages.Load(cfg, path)
-	if err != nil {
-		log.Fatalf("loading packages for inspection: %v", err)
-	}
-	if packages.PrintErrors(pkgs) > 0 {
-		os.Exit(1)
-	}
-
-	return pkgs[0]
-}
-
-func checkPackageObject(pkg *packages.Package, name string) bool {
-	for _, f := range pkg.Syntax {
-		// log.Printf("Decls %+v", f.Decls)
-		// log.Printf("Scope %+v", f.Scope)
-		for k := range f.Scope.Objects {
-			// log.Printf("object %s: %v", k, obj)
-			if k == name {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func cutMethod(s string) (act string, tgt string, ok bool) {
