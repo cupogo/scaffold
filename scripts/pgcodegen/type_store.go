@@ -3,6 +3,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 
@@ -167,6 +168,14 @@ func (s *Store) GetIName() string {
 		return s.IName
 	}
 	return utils.CamelCased(s.Name)
+}
+
+func (s *Store) ShortIName() string {
+	in := s.GetIName()
+	if strings.HasSuffix(in, "Store") {
+		in = in[0 : len(in)-5]
+	}
+	return in
 }
 
 func (s *Store) Codes(modelpkg string) jen.Code {
