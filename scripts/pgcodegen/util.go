@@ -74,19 +74,126 @@ func loadTypes(name string) (objs []ast.Object) {
 	return
 }
 
-func rewriteAST(name string, pre, post astutil.ApplyFunc) ([]byte, bool) {
+type wast struct {
+	name string
+	fset *token.FileSet
+	file *ast.File
+
+	body []byte
+}
+
+func newAST(name string) (*wast, error) {
 	fset := token.NewFileSet()
+	var err error
 	file, err := parser.ParseFile(fset, name, nil, parser.ParseComments|parser.DeclarationErrors)
 	if err != nil {
 		log.Printf("parse %s fail %s", name, err)
-		return nil, false
+		return nil, err
+	}
+	o := &wast{
+		name: name,
+		fset: fset,
+		file: file,
 	}
 
-	n := astutil.Apply(file, pre, post)
+	return o, nil
+}
+
+func (w *wast) rewrite(pre, post astutil.ApplyFunc) (ok bool) {
+	n := astutil.Apply(w.file, pre, post)
 	var buf bytes.Buffer
-	if err := format.Node(&buf, fset, n); err != nil {
-		log.Printf("format %s fail %s", name, err)
-		return nil, false
+	if err := format.Node(&buf, w.fset, n); err != nil {
+		log.Printf("format fail %s", err)
+		return
 	}
-	return buf.Bytes(), true
+	w.body = buf.Bytes()
+	ok = true
+	return
+}
+
+func existVarField(list *ast.FieldList, name string) bool {
+	for _, field := range list.List {
+		for _, id := range field.Names {
+			if id.Obj.Kind == ast.Var && id.Name == name {
+				log.Printf("exist field %s", name)
+				return true
+			}
+		}
+
+	}
+
+	return false
+}
+
+func valspec(name, typ string) *ast.ValueSpec {
+	return &ast.ValueSpec{Names: []*ast.Ident{ast.NewIdent(name)},
+		Type: ast.NewIdent(typ),
+	}
+}
+
+func vardecl(name, typ string) *ast.GenDecl {
+	return &ast.GenDecl{
+		Tok:   token.VAR,
+		Specs: []ast.Spec{valspec(name, typ)},
+	}
+}
+
+func fieldecl(name, typ string) *ast.Field {
+	return &ast.Field{
+		Names:   []*ast.Ident{ast.NewIdent(name)},
+		Type:    &ast.StarExpr{X: ast.NewIdent(typ)},
+		Comment: &ast.CommentGroup{List: []*ast.Comment{{Text: "// with gen"}}},
+	}
+}
+
+func showNode(n ast.Node) []byte {
+	var buf bytes.Buffer
+	fset := token.NewFileSet()
+
+	if err := format.Node(&buf, fset, n); err != nil {
+		log.Printf("show node fail %s", err)
+		return nil
+	}
+	return buf.Bytes()
+}
+
+func wnasstmt(name string) *ast.AssignStmt {
+	return &ast.AssignStmt{
+		Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("w"), Sel: ast.NewIdent(name)}},
+		Tok: token.ASSIGN,
+		Rhs: []ast.Expr{&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
+			Type: ast.NewIdent(name),
+			Elts: []ast.Expr{ast.NewIdent("w")},
+		}}},
+	}
+}
+
+func wnfunc(s *Store) *ast.FuncDecl {
+	return &ast.FuncDecl{
+		Recv: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("w")},
+			Type:  &ast.StarExpr{X: ast.NewIdent(storewn)},
+		}}},
+		Name: ast.NewIdent(s.ShortIName()),
+		Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{
+			{Type: ast.NewIdent(s.IName)},
+		}}},
+		Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ReturnStmt{Results: []ast.Expr{
+			&ast.SelectorExpr{X: ast.NewIdent("w"), Sel: ast.NewIdent(s.Name)},
+		}}}},
+	}
+}
+
+func existBlockAssign(block *ast.BlockStmt, name string) bool {
+	for _, st := range block.List {
+		if as, ok := st.(*ast.AssignStmt); ok {
+			if len(as.Lhs) > 0 && len(as.Rhs) > 0 {
+				if se, ok := as.Lhs[0].(*ast.SelectorExpr); ok && se.Sel.Name == name {
+					log.Printf("exist assign %s", name)
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

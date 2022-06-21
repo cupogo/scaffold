@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/dave/jennifer/jen"
+	"golang.org/x/tools/go/ast/astutil"
 	"gopkg.in/yaml.v3"
 
 	"daxv.cn/gopak/lib/osutil"
@@ -22,6 +24,8 @@ const (
 	headerComment = "This file is generated - Do Not Edit."
 
 	storepkg = "stores"
+	storewf  = "wrap.go"
+	storewn  = "Wrap"
 )
 
 type Unmarshaler = yaml.Unmarshaler
@@ -45,6 +49,7 @@ type Document struct {
 	lock    sync.Mutex
 	methods map[string]Method
 
+	modipath string
 	modtypes map[string]empty
 
 	ModelPkg  string  `yaml:"modelpkg"`
@@ -147,27 +152,28 @@ func (doc *Document) modelAliasable(name string) bool {
 	return false
 }
 
-func (doc *Document) genStores(dropfirst bool) error {
+func (doc *Document) loadModPkg() (ipath string, aliases []string) {
 	mpkg := loadPackage(doc.dirmod)
 	// if err != nil {
 	// 	log.Printf("get package fail: %s", err)
 	// }
 	log.Printf("loaded mpkg: %s name %q: files %q,%q", mpkg.ID, mpkg.Types.Name(), mpkg.GoFiles, mpkg.CompiledGoFiles)
 	log.Printf("types: %+v, ", mpkg.Types)
+	doc.modipath = mpkg.ID
+	ipath = mpkg.ID
 
-	sgf := jen.NewFile(storepkg)
-	sgf.HeaderComment(headerComment)
-
-	sgf.ImportName(mpkg.ID, doc.ModelPkg)
 	doc.lock.Lock()
 	doc.Qualified[doc.ModelPkg] = mpkg.ID
-
-	var aliases []string
-	for _, f := range mpkg.Syntax {
+	for i, f := range mpkg.Syntax {
+		// log.Printf("gofile: %s,", mpkg.CompiledGoFiles[i])
+		var ismods bool
+		if path.Base(mpkg.CompiledGoFiles[i]) == doc.name {
+			ismods = true
+		}
 		for k, o := range f.Scope.Objects {
 			if o.Kind == ast.Typ {
 				doc.modtypes[k] = empty{}
-				if doc.modelAliasable(k) {
+				if ismods && doc.modelAliasable(k) {
 					aliases = append(aliases, k)
 				}
 			}
@@ -177,8 +183,20 @@ func (doc *Document) genStores(dropfirst bool) error {
 	doc.lock.Unlock()
 
 	sort.Strings(aliases)
+
+	return
+}
+
+func (doc *Document) genStores(dropfirst bool) error {
+	ipath, aliases := doc.loadModPkg()
+
+	sgf := jen.NewFile(storepkg)
+	sgf.HeaderComment(headerComment)
+
+	sgf.ImportName(ipath, doc.ModelPkg)
+
 	for _, k := range aliases {
-		sgf.Type().Id(k).Op("=").Qual(mpkg.ID, k)
+		sgf.Type().Id(k).Op("=").Qual(ipath, k)
 	}
 	sgf.Line()
 
@@ -196,9 +214,6 @@ func (doc *Document) genStores(dropfirst bool) error {
 		}
 	}
 
-	// spkg := loadPackage(doc.dirsto)
-	// log.Printf("loaded spkg: %s name %q", spkg.ID, spkg.Types.Name())
-
 	for _, store := range doc.Stores {
 		sgf.Add(store.Codes(doc.ModelPkg)).Line()
 	}
@@ -209,7 +224,91 @@ func (doc *Document) genStores(dropfirst bool) error {
 		return err
 	}
 	log.Printf("generated for %s ok", doc.dirsto)
-	return nil
+
+	// TODO: rewrite wrap.go
+	sfile := path.Join(doc.dirsto, storewf)
+
+	// spkg := loadPackage(doc.dirsto)
+	// log.Printf("loaded spkg: %s name %q", spkg.ID, spkg.Types.Name())
+
+	w, err := newAST(sfile)
+	if err != nil {
+		return err
+	}
+	var lastWM string
+	foundWM := make(map[string]bool)
+	_ = w.rewrite(func(c *astutil.Cursor) bool {
+		return true
+	}, func(c *astutil.Cursor) bool {
+		for _, store := range doc.Stores {
+			if pn, ok := c.Parent().(*ast.TypeSpec); ok && pn.Name.Obj.Name == storewn {
+				if cn, ok := c.Node().(*ast.StructType); ok {
+					if existVarField(cn.Fields, store.Name) {
+						continue
+					}
+					cn.Fields.List = append(cn.Fields.List, fieldecl(store.Name, store.Name))
+					// c.Replace(cn)
+					// log.Printf("block: %s", showNode(cn))
+				}
+				continue
+			}
+			if pn, ok := c.Parent().(*ast.FuncDecl); ok && pn.Name.Name == "NewWithDB" {
+				if cn, ok := c.Node().(*ast.BlockStmt); ok {
+					if existBlockAssign(cn, store.Name) {
+						continue
+					}
+					nst := wnasstmt(store.Name)
+					var arr []ast.Stmt
+					n := len(cn.List)
+					arr = append(arr, cn.List[0:n-1]...)
+					arr = append(arr, nst, cn.List[n-1])
+					log.Printf("new list %+s", arr)
+					cn.List = arr
+					// c.Replace(cn)
+					// log.Printf("nst: %s", showNode(nst))
+					// log.Printf("block: %s", showNode(cn))
+				}
+				continue
+			}
+
+			if cn, ok := c.Node().(*ast.FuncDecl); ok {
+				siname := store.ShortIName()
+				lastWM = cn.Name.Name
+				if lastWM == siname {
+					foundWM[siname] = true
+				}
+			}
+
+		}
+		return true
+	})
+	log.Printf("foundWM %+v,lastWM: %s", foundWM, lastWM)
+	if len(foundWM) == 0 {
+		w.rewrite(nil, func(c *astutil.Cursor) bool {
+			if cn, ok := c.Node().(*ast.FuncDecl); ok && cn.Name.Name == lastWM {
+				// TODO: insertAfter
+
+				for _, store := range doc.Stores {
+
+					c.InsertAfter(wnfunc(&store))
+					log.Printf("insert func %s", store.IName)
+				}
+
+			}
+			return true
+		})
+	}
+	log.Printf("rewrite: %s", string(w.body))
+	err = ioutil.WriteFile(sfile, w.body, 0644)
+	if err != nil {
+		log.Printf("write fail %s", err)
+	}
+
+	return err
+}
+
+func (doc *Document) encureStoFunc(sto *Store) {
+	// TODO
 }
 
 func (doc *Document) getMethod(name string) (m Method, ok bool) {
