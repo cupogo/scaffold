@@ -74,7 +74,7 @@ func loadTypes(name string) (objs []ast.Object) {
 	return
 }
 
-type wast struct {
+type vast struct {
 	name string
 	fset *token.FileSet
 	file *ast.File
@@ -82,7 +82,7 @@ type wast struct {
 	body []byte
 }
 
-func newAST(name string) (*wast, error) {
+func newAST(name string) (*vast, error) {
 	fset := token.NewFileSet()
 	var err error
 	file, err := parser.ParseFile(fset, name, nil, parser.ParseComments|parser.DeclarationErrors)
@@ -90,7 +90,7 @@ func newAST(name string) (*wast, error) {
 		log.Printf("parse %s fail %s", name, err)
 		return nil, err
 	}
-	o := &wast{
+	o := &vast{
 		name: name,
 		fset: fset,
 		file: file,
@@ -99,7 +99,7 @@ func newAST(name string) (*wast, error) {
 	return o, nil
 }
 
-func (w *wast) rewrite(pre, post astutil.ApplyFunc) (ok bool) {
+func (w *vast) rewrite(pre, post astutil.ApplyFunc) (ok bool) {
 	n := astutil.Apply(w.file, pre, post)
 	var buf bytes.Buffer
 	if err := format.Node(&buf, w.fset, n); err != nil {
@@ -109,6 +109,34 @@ func (w *wast) rewrite(pre, post astutil.ApplyFunc) (ok bool) {
 	w.body = buf.Bytes()
 	ok = true
 	return
+}
+
+func (w *vast) addStructField(fields *ast.FieldList, name, typ string) {
+	// prevField := fields.List[fields.NumFields()-1]
+
+	c := &ast.Comment{Text: "// " + name + " gened" /*Slash: prevField.End() + 1*/}
+	cg := &ast.CommentGroup{List: []*ast.Comment{c}}
+	o := ast.NewObj(ast.Var, name)
+	f := &ast.Field{
+		Comment: cg,
+		Names:   []*ast.Ident{{Name: name, Obj: o, NamePos: cg.End() + 1}},
+	}
+	o.Decl = f
+	f.Type = &ast.StarExpr{X: &ast.Ident{Name: typ, NamePos: f.Names[0].End() + 1}}
+
+	w.fset.File(c.End()).AddLine(int(c.End()))
+	w.fset.File(f.End()).AddLine(int(f.End()))
+
+	fields.List = append(fields.List, f)
+	// w.file.Comments = append(w.file.Comments, cg)
+}
+
+func fieldecl(name, typ string) *ast.Field {
+	return &ast.Field{
+		Names:   []*ast.Ident{ast.NewIdent(name)},
+		Type:    &ast.StarExpr{X: ast.NewIdent(typ)},
+		Comment: &ast.CommentGroup{List: []*ast.Comment{{Text: "// with gen"}}},
+	}
 }
 
 func existVarField(list *ast.FieldList, name string) bool {
@@ -138,14 +166,6 @@ func vardecl(name, typ string) *ast.GenDecl {
 	}
 }
 
-func fieldecl(name, typ string) *ast.Field {
-	return &ast.Field{
-		Names:   []*ast.Ident{ast.NewIdent(name)},
-		Type:    &ast.StarExpr{X: ast.NewIdent(typ)},
-		Comment: &ast.CommentGroup{List: []*ast.Comment{{Text: "// with gen"}}},
-	}
-}
-
 func showNode(n ast.Node) []byte {
 	var buf bytes.Buffer
 	fset := token.NewFileSet()
@@ -168,13 +188,17 @@ func wnasstmt(name string) *ast.AssignStmt {
 	}
 }
 
-func wnfunc(s *Store) *ast.FuncDecl {
+func wrapNewFunc(s *Store, prev ast.Node) *ast.FuncDecl {
+	siname := s.ShortIName()
+	c := &ast.Comment{Text: "// " + siname + " gened", Slash: prev.End() + 1}
+	cg := &ast.CommentGroup{List: []*ast.Comment{c}}
 	return &ast.FuncDecl{
+		Doc: cg,
 		Recv: &ast.FieldList{List: []*ast.Field{{
 			Names: []*ast.Ident{ast.NewIdent("w")},
 			Type:  &ast.StarExpr{X: ast.NewIdent(storewn)},
 		}}},
-		Name: ast.NewIdent(s.ShortIName()),
+		Name: ast.NewIdent(siname),
 		Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{
 			{Type: ast.NewIdent(s.IName)},
 		}}},
