@@ -231,13 +231,13 @@ func (doc *Document) genStores(dropfirst bool) error {
 	// spkg := loadPackage(doc.dirsto)
 	// log.Printf("loaded spkg: %s name %q", spkg.ID, spkg.Types.Name())
 
-	w, err := newAST(sfile)
+	wva, err := newAST(sfile)
 	if err != nil {
 		return err
 	}
 	var lastWM string
 	foundWM := make(map[string]bool)
-	_ = w.rewrite(func(c *astutil.Cursor) bool {
+	_ = wva.rewrite(func(c *astutil.Cursor) bool {
 		return true
 	}, func(c *astutil.Cursor) bool {
 		for _, store := range doc.Stores {
@@ -247,6 +247,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 						continue
 					}
 					cn.Fields.List = append(cn.Fields.List, fieldecl(store.Name, store.Name))
+					// wva.addStructField(cn.Fields, store.Name, store.Name)
 					// c.Replace(cn)
 					// log.Printf("block: %s", showNode(cn))
 				}
@@ -284,13 +285,10 @@ func (doc *Document) genStores(dropfirst bool) error {
 	})
 	log.Printf("foundWM %+v,lastWM: %s", foundWM, lastWM)
 	if len(foundWM) == 0 {
-		w.rewrite(nil, func(c *astutil.Cursor) bool {
+		wva.rewrite(nil, func(c *astutil.Cursor) bool {
 			if cn, ok := c.Node().(*ast.FuncDecl); ok && cn.Name.Name == lastWM {
-				// TODO: insertAfter
-
 				for _, store := range doc.Stores {
-
-					c.InsertAfter(wnfunc(&store))
+					c.InsertAfter(wrapNewFunc(&store, cn))
 					log.Printf("insert func %s", store.IName)
 				}
 
@@ -298,8 +296,8 @@ func (doc *Document) genStores(dropfirst bool) error {
 			return true
 		})
 	}
-	log.Printf("rewrite: %s", string(w.body))
-	err = ioutil.WriteFile(sfile, w.body, 0644)
+	log.Printf("rewrite: %s", string(wva.body))
+	err = ioutil.WriteFile(sfile, wva.body, 0644)
 	if err != nil {
 		log.Printf("write fail %s", err)
 	}
