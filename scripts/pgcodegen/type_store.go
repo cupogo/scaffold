@@ -116,7 +116,9 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			nap = append(nap, false)
 		} else if act == "Put" {
 			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
-			if !mth.Simple {
+			if mth.Simple {
+				rets = append(rets, jen.Id("nid").String())
+			} else {
 				rets = append(rets, jen.Id("isnew").Bool())
 			}
 			rets = append(rets, jen.Err().Error())
@@ -128,15 +130,20 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					g.Err().Op("=").Id("dbStoreSimple").Call(
 						jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"), jen.Id("cs..."),
 					)
+					g.Id("nid").Op("=").Id("obj").Dot("StringID").Call()
 				} else {
 					g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
 					g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
-					g.Id("isnew").Op(",").Id("err").Op("=").Id("dbStoreWithCall").Call(
+					cpms := []jen.Code{
 						jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("obj"),
 						jen.Func().Params().Index().String().Block(
 							jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
 						),
-					)
+					}
+					if fn, cn, isuniq := getModel(mname).Uniques(); isuniq {
+						cpms = append(cpms, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
+					}
+					g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
 				}
 				g.Return()
 			}))

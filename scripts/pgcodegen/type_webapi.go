@@ -26,6 +26,7 @@ const swagTags = "默认 文档生成"
 
 var replPkg = strings.NewReplacer("_", "", "-", "")
 var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
+var replPath = strings.NewReplacer("{", ":", "}", "")
 
 type WebAPI struct {
 	Pkg     string   `yaml:"pkg"`
@@ -78,6 +79,26 @@ func (h *Handle) GenID() string {
 	return strings.TrimSpace(s)
 }
 
+func (h *Handle) GetPermID() string {
+	if len(h.ID) > 0 {
+		return h.ID
+	}
+	if h.NeedPerm {
+		return h.GenID()
+	}
+	return ""
+}
+
+func (h *Handle) GenPathMethod() (string, string) {
+	s := h.Route
+	if strings.HasPrefix(s, "/api/") && len(s) > 13 { // '/api/v1/x [xxx]'
+		if a, b, ok := strings.Cut(s[7:], " "); ok {
+			return replPath.Replace(a), strings.ToUpper(strings.Trim(b, "[]"))
+		}
+	}
+	panic("invalid route: " + s)
+}
+
 func (h *Handle) GetTags() string {
 	if len(h.Tags) > 0 {
 		return h.Tags
@@ -104,11 +125,8 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	st := jen.Empty()
 	st.Comment("@Tags " + h.GetTags()).Line()
 
-	if len(h.ID) > 0 || h.NeedPerm {
-		if len(h.ID) == 0 {
-			h.ID = h.GenID()
-		}
-		st.Comment("@ID " + h.ID).Line()
+	if hid := h.GetPermID(); len(hid) > 0 {
+		st.Comment("@ID " + hid).Line()
 	}
 	st.Comment("@Summary " + h.Summary).Line()
 	st.Comment("@Accept " + h.GetAccept()).Line()
@@ -217,13 +235,20 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			} else if (act == "Put" || act == "Update") && len(mth.Args) > 2 {
 				g.Var().Id("in").Add(qual(mth.Args[2].Type))
 				g.Add(jbind("in"))
-				g.Err().Add(jmcc).Call(
-					jctx, jen.Id("id"), jen.Op("&").Id("in"),
-				)
+				if act == "Put" {
+					g.Id("nid").Op(",").Err().Add(jmcc).Call(
+						jctx, jen.Id("id"), jen.Op("&").Id("in"),
+					)
+				} else {
+					g.Err().Add(jmcc).Call(
+						jctx, jen.Id("id"), jen.Op("&").Id("in"),
+					)
+				}
 				g.If(jen.Err().Op("!=").Nil()).Block(
 					jfail(503)...,
 				).Line()
-				g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+
+				g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("nid")))
 			} else if act == "Delete" {
 				g.Err().Add(jmcc).Call(
 					jctx, jen.Id("id"),
@@ -265,6 +290,18 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 func (wa *WebAPI) Codes(doc *Document) jen.Code {
 	st := jen.Empty()
+
+	st.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
+		for _, h := range wa.Handles {
+			uri, method := h.GenPathMethod()
+			g.Id("regHI").Call(
+				jen.Lit(h.NeedAuth), jen.Lit(method), jen.Lit(uri), jen.Lit(h.GetPermID()),
+				jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("gin.HandlerFunc").Block(
+					jen.Return(jen.Id("a."+h.Name)),
+				),
+			)
+		}
+	}).Line()
 
 	for _, h := range wa.Handles {
 		st.Add(h.Codes(doc)).Line()
