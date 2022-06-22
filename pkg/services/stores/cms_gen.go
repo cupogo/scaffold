@@ -8,6 +8,10 @@ import (
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 
+func init() {
+	alltables = append(alltables, &cms1.Article{}, &cms1.Clause{})
+}
+
 // type Article = cms1.Article
 // type ArticleBasic = cms1.ArticleBasic
 // type ArticleSet = cms1.ArticleSet

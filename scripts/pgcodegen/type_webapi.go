@@ -248,7 +248,11 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					jfail(503)...,
 				).Line()
 
-				g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("nid")))
+				if act == "Put" {
+					g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("nid")))
+				} else {
+					g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+				}
 			} else if act == "Delete" {
 				g.Err().Add(jmcc).Call(
 					jctx, jen.Id("id"),

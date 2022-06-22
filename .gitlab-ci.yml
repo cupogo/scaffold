@@ -1,0 +1,44 @@
+image: fhyx/golang:edge
+
+stages:
+  - lint
+
+variables:
+  CGO_ENABLED: '0'
+  GO111MODULE: 'on'
+  GOPATH: /cache/go
+  GOPRIVATE: daxv.cn,fhyx.tech,hyyl.xyz
+  GOPROXY: https://goproxy.cn,direct
+  NAME: celeste
+  ROOF: hyyl.xyz/cupola/celeste
+
+before_script:
+  # SSH
+  - mkdir -p ~/.ssh
+  - test -f /secret/sa_id_ecdsa && cp /secret/sa_id_ecdsa ~/.ssh/id_ecdsa || (echo "$SSH_PRIVATE_KEY") > ~/.ssh/id_ecdsa
+  - chmod 0600 ~/.ssh/id_ecdsa
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+  # - ls -al ~/.ssh/
+  - eval $(ssh-agent -s)
+
+  - git config --global url."git@git.hyyl.xyz:".insteadOf "https://git.hyyl.xyz/"
+  # - nslookup git.hyyl.xyz
+
+  # Go Environments
+  - go env
+
+  - cd ../
+  # - ls -al . */*
+  - test -d aurora && git -C aurora pull --rebase origin main || git clone -b main https://git.hyyl.xyz/cupola/aurora.git
+  - test -e go.work || go work init ./aurora ./scaffold
+  - cd ${CI_PROJECT_DIR}
+  - ls -al ../*
+
+
+test-lint:
+  stage: lint
+  services: []
+  script:
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    - go vet ./pkg/... && ${GOPATH}/bin/golangci-lint run --disable structcheck ./pkg/...
+
