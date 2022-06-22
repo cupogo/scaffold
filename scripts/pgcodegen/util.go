@@ -11,6 +11,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dave/dst"
+	"github.com/dave/dst/decorator"
+	"github.com/dave/dst/dstutil"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 )
@@ -220,4 +223,72 @@ func existBlockAssign(block *ast.BlockStmt, name string) bool {
 		}
 	}
 	return false
+}
+
+type vdst struct {
+	name string
+	fset *token.FileSet
+	file *dst.File
+
+	body []byte
+}
+
+func newDST(name string) (*vdst, error) {
+	fset := token.NewFileSet()
+	var err error
+	file, err := decorator.ParseFile(fset, name, nil, parser.ParseComments|parser.DeclarationErrors)
+	if err != nil {
+		log.Printf("parse %s fail %s", name, err)
+		return nil, err
+	}
+
+	o := &vdst{
+		name: name,
+		fset: fset,
+		file: file,
+	}
+
+	return o, nil
+
+}
+
+func (w *vdst) rewrite(pre, post dstutil.ApplyFunc) (ok bool) {
+	n := dstutil.Apply(w.file, pre, post).(*dst.File)
+	var buf bytes.Buffer
+	if err := decorator.Fprint(&buf, n); err != nil {
+		log.Printf("format fail %s", err)
+		return
+	}
+	w.body = buf.Bytes()
+	ok = true
+	return
+}
+
+func existInterfaceMethod(it *dst.InterfaceType, name string) bool {
+	for _, field := range it.Methods.List {
+		for _, id := range field.Names {
+			if id.Name == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func newStoInterfaceMethod(name, ret string) *dst.Field {
+	id := dst.NewIdent(name)
+	id.Obj = dst.NewObj(dst.Fun, name)
+	f := &dst.Field{
+		Names: []*dst.Ident{id},
+		Type: &dst.FuncType{
+			Results: &dst.FieldList{
+				List: []*dst.Field{
+					{Type: dst.NewIdent(ret)},
+				},
+			},
+		},
+	}
+	f.Decorations().End.Append("// gened")
+
+	return f
 }

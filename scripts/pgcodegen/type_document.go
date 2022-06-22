@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/dave/dst"
+	"github.com/dave/dst/dstutil"
 	"github.com/dave/jennifer/jen"
 	"golang.org/x/tools/go/ast/astutil"
 	"gopkg.in/yaml.v3"
@@ -26,6 +28,7 @@ const (
 	storepkg = "stores"
 	storewf  = "wrap.go"
 	storewn  = "Wrap"
+	storein  = "Storage"
 )
 
 type Unmarshaler = yaml.Unmarshaler
@@ -296,17 +299,44 @@ func (doc *Document) genStores(dropfirst bool) error {
 			return true
 		})
 	}
-	log.Printf("rewrite: %s", string(wva.body))
+	// log.Printf("rewrite: %s", string(wva.body))
 	err = ioutil.WriteFile(sfile, wva.body, 0644)
 	if err != nil {
-		log.Printf("write fail %s", err)
+		log.Printf("write w fail %s", err)
+	}
+
+	iffile := path.Join(doc.dirsto, "interfaces.go")
+	vd, err := newDST(iffile)
+	if err != nil {
+		// TODO: new file
+		return err
+	}
+
+	if doc.encureStoMethod(vd) {
+		err = ioutil.WriteFile(iffile, vd.body, 0644)
+		if err != nil {
+			log.Printf("write i fail %s", err)
+		}
 	}
 
 	return err
 }
 
-func (doc *Document) encureStoFunc(sto *Store) {
-	// TODO
+func (doc *Document) encureStoMethod(vd *vdst) bool {
+	return vd.rewrite(func(c *dstutil.Cursor) bool { return true }, func(c *dstutil.Cursor) bool {
+		for _, sto := range doc.Stores {
+			if pn, ok := c.Parent().(*dst.TypeSpec); ok && pn.Name.Obj.Name == storein {
+				if cn, ok := c.Node().(*dst.InterfaceType); ok {
+					siname := sto.ShortIName()
+					if !existInterfaceMethod(cn, siname) {
+						log.Printf("generate interface method: %q", siname)
+						cn.Methods.List = append(cn.Methods.List, newStoInterfaceMethod(siname, sto.IName))
+					}
+				}
+			}
+		}
+		return true
+	})
 }
 
 func (doc *Document) getMethod(name string) (m Method, ok bool) {
