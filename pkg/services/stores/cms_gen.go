@@ -8,14 +8,14 @@ import (
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 
-type Article = cms1.Article
-type ArticleBasic = cms1.ArticleBasic
-type ArticleSet = cms1.ArticleSet
-type Articles = cms1.Articles
-type Clause = cms1.Clause
-type ClauseBasic = cms1.ClauseBasic
-type ClauseSet = cms1.ClauseSet
-type Clauses = cms1.Clauses
+// type Article = cms1.Article
+// type ArticleBasic = cms1.ArticleBasic
+// type ArticleSet = cms1.ArticleSet
+// type Articles = cms1.Articles
+// type Clause = cms1.Clause
+// type ClauseBasic = cms1.ClauseBasic
+// type ClauseSet = cms1.ClauseSet
+// type Clauses = cms1.Clauses
 
 type ContantStore interface {
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data []cms1.Article, total int, err error)
@@ -26,7 +26,7 @@ type ContantStore interface {
 
 	ListClause(ctx context.Context, spec *ClauseSpec) (data []cms1.Clause, total int, err error)
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
-	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error)
+	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error)
 	DeleteClause(ctx context.Context, id string) error
 }
 
@@ -95,11 +95,12 @@ func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clau
 	err = getModelWithPKOID(s.w.db, obj, id)
 	return
 }
-func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (err error) {
+func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error) {
 	obj := new(cms1.Clause)
 	obj.SetID(id)
 	cs := obj.SetWith(in)
 	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
+	nid = obj.StringID()
 	return
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {

@@ -3,7 +3,7 @@ module hyyl.xyz/cupola/scaffold
 go 1.18
 
 require (
-	daxv.cn/gopak/lib v0.3.15
+	daxv.cn/gopak/lib v0.3.19
 	github.com/dave/dst v0.27.0
 	github.com/dave/jennifer v1.5.0
 	github.com/gin-gonic/gin v1.7.7
@@ -16,6 +16,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	hyyl.xyz/cupola/aurora v0.0.0-20220426095910-e20a4a915df3
 )
+
+replace hyyl.xyz/cupola/aurora => ../aurora
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

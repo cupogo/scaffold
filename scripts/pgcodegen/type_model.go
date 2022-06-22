@@ -38,9 +38,12 @@ type Field struct {
 	Type    string `yaml:"type,omitempty"`
 	Tags    Maps   `yaml:"tags,flow,omitempty"`
 	Qual    string `yaml:"qual,omitempty"`
+	IsBasic bool   `yaml:"basic,omitempty"`
 	IsSet   bool   `yaml:"isset,omitempty"`
 	Comment string `yaml:"comment,omitempty"`
 	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
+
+	isOid bool
 }
 
 func (f *Field) preCode() (st *jen.Statement) {
@@ -90,13 +93,17 @@ func (f *Field) Code() jen.Code {
 	return st
 }
 
-func (f *Field) ColName() string {
+// return column name and is unquie
+func (f *Field) ColName() (string, bool) {
 	if s, ok := f.Tags["pg"]; ok && len(s) > 0 {
-		if a, _, ok := strings.Cut(s, ","); ok && len(a) > 0 {
-			return a
+		if a, b, ok := strings.Cut(s, ","); ok {
+			if len(a) == 0 {
+				a = utils.Underscore(f.Name)
+			}
+			return a, strings.Contains(b, "unique")
 		}
 	}
-	return utils.Underscore(f.Name)
+	return utils.Underscore(f.Name), false
 }
 
 func (f *Field) queryCode() jen.Code {
@@ -128,7 +135,7 @@ type Fields []Field
 // Codes return fields code of main and basic
 func (f Fields) Codes() (mcs, bcs []jen.Code) {
 	for _, field := range f {
-		if field.IsSet {
+		if field.IsSet || field.IsBasic {
 			bcs = append(bcs, field.Code())
 		} else {
 			mcs = append(mcs, field.Code())
@@ -172,12 +179,25 @@ func (m *Model) TableField() jen.Code {
 	return jen.Id("tableName").Add(jen.Struct()).Tag(Maps{"pg": tt}).Line()
 }
 
+func (m *Model) Uniques() (name, col string, ok bool) {
+	var count int
+	for _, field := range m.Fields {
+		name = field.Name
+		if col, ok = field.ColName(); ok {
+			count++
+		}
+	}
+	ok = count == 1
+	return
+}
+
 func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	for _, field := range m.Fields {
-		if !field.IsSet || field.Type == "" {
+		if !field.IsSet || field.Type == "" || field.Name == "" {
 			continue
 		}
 		code := jen.Id(field.Name)
+		cn, _ := field.ColName()
 		tn := field.Type
 		if len(tn) == 0 {
 			tn = field.Name
@@ -196,7 +216,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).Block(
 			jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name),
-			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(field.ColName())),
+			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn)),
 		))
 	}
 	return
@@ -288,6 +308,10 @@ func (m *Model) hasHooks() (bool, string) {
 func (m *Model) specFields() (out Fields) {
 	for _, f := range m.Fields {
 		if f.Query != "" {
+			if f.Type == "oid.OID" {
+				f.Type = "string"
+				f.isOid = true
+			}
 			out = append(out, f)
 		}
 	}
@@ -314,9 +338,14 @@ func (m *Model) getSpecCodes() jen.Code {
 		st.BlockFunc(func(g *jen.Group) {
 			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("MDftSpec").Dot("Sift").Call(jen.Id("q"))
 			for _, field := range specFields {
+				cfn := "siftEquel"
+				if field.isOid {
+					cfn = "siftOID"
+				}
 				// TODO: set text wildcard
-				g.Id("q").Op(",").Id("_").Op("=").Id("siftEquel").Call(
-					jen.Id("q"), jen.Lit(field.ColName()), jen.Id("spec").Dot(field.Name), jen.False(),
+				cn, _ := field.ColName()
+				g.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(
+					jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name), jen.False(),
 				)
 			}
 			g.Line()

@@ -1,6 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-daxv.cn/gopak/lib v0.3.15 h1:4D1RdQzF67MTnrWm5+HKL/Gd8PYI2c5i8oKfVRYb38c=
-daxv.cn/gopak/lib v0.3.15/go.mod h1:7jTD11iF2tFY9PZpbDMH1c0bSoq/1zAeeEWm1bXF9ps=
+daxv.cn/gopak/lib v0.3.19 h1:tqT649SEfGXPiw/YY8ZdzcDN+FIgH5M87J14imzi+4g=
+daxv.cn/gopak/lib v0.3.19/go.mod h1:KwonXti55u5JrmMxfV7dXxEvRAez0ILLURB5WVIx/pw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
@@ -296,7 +296,5 @@ gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
-hyyl.xyz/cupola/aurora v0.0.0-20220426095910-e20a4a915df3 h1:iOB+wFQvIaonDQ/npvb0I7VlR/QdOZXW64/idDvaEe4=
-hyyl.xyz/cupola/aurora v0.0.0-20220426095910-e20a4a915df3/go.mod h1:fCWsSHt4XdtCaWDeK8+3+3RUuKM60gor18IQYLlF0uI=
 mellium.im/sasl v0.2.1 h1:nspKSRg7/SyO0cRGY71OkfHab8tf9kCts6a6oTDut0w=
 mellium.im/sasl v0.2.1/go.mod h1:ROaEDLQNuf9vjKqE1SrAfnsobm2YKXT1gnN1uDp1PjQ=

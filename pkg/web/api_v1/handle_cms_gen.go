@@ -8,6 +8,21 @@ import (
 	"hyyl.xyz/cupola/scaffold/pkg/services/stores"
 )
 
+func init() {
+	regHI(true, "GET", "/cms/clauses/:id", "", func(a *api) gin.HandlerFunc {
+		return a.getCmsClause
+	})
+	regHI(true, "PUT", "/cms/clauses/:id", "v1-cms-clauses-id-put", func(a *api) gin.HandlerFunc {
+		return a.putCmsClause
+	})
+	regHI(true, "GET", "/cms/clauses", "", func(a *api) gin.HandlerFunc {
+		return a.getCmsClauses
+	})
+	regHI(true, "DELETE", "/cms/clauses/:id", "v1-cms-clauses-id-delete", func(a *api) gin.HandlerFunc {
+		return a.deleteCmsClause
+	})
+}
+
 // @Tags 默认 文档生成
 // @Summary 获取内容条款
 // @Accept json
@@ -53,13 +68,13 @@ func (a *api) putCmsClause(c *gin.Context) {
 		return
 	}
 
-	err := a.sto.Contant().PutClause(c.Request.Context(), id, &in)
+	nid, err := a.sto.Contant().PutClause(c.Request.Context(), id, &in)
 	if err != nil {
 		fail(c, 503, err)
 		return
 	}
 
-	success(c, "ok")
+	success(c, idResult(nid))
 }
 
 // @Tags 默认 文档生成

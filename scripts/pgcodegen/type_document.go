@@ -199,7 +199,8 @@ func (doc *Document) genStores(dropfirst bool) error {
 	sgf.ImportName(ipath, doc.ModelPkg)
 
 	for _, k := range aliases {
-		sgf.Type().Id(k).Op("=").Qual(ipath, k)
+		// sgf.Type().Id(k).Op("=").Qual(ipath, k)
+		sgf.Comment(jen.Type().Id(k).Op("=").Qual(ipath, k).GoString())
 	}
 	sgf.Line()
 
