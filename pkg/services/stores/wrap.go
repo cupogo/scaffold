@@ -7,10 +7,6 @@ import (
 	"hyyl.xyz/cupola/aurora/pkg/settings"
 )
 
-type Storage interface {
-	Contant() ContantStore
-}
-
 // Wrap implements Storages
 type Wrap struct {
 	db *pgx.DB
