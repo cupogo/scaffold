@@ -44,6 +44,10 @@ var (
 	siftOID   = pgx.SiftOID   //nolint
 )
 
+var (
+	alltables []any
+)
+
 //nolint
 type applier func(query *orm.Query) (*orm.Query, error)
 

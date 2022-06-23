@@ -24,6 +24,7 @@ func regHI(auth bool, method string, path string, rid string, hafn haFunc) {
 	handles = append(handles, handleIn{auth, method, path, rid, hafn})
 }
 
+//nolint
 func route(r gin.IRoutes, method, path string, hs ...gin.HandlerFunc) {
 	switch method {
 	case http.MethodPost:

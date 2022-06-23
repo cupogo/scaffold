@@ -204,6 +204,15 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 	sgf.Line()
 
+	sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
+		args := []jen.Code{jen.Id("alltables")}
+		for _, model := range doc.Models {
+			name, _ := getModQual(model.Name)
+			args = append(args, jen.Op("&").Id(name).Block())
+		}
+		g.Id("alltables").Op("=").Append(args...)
+	})
+
 	if !osutil.IsDir(doc.dirsto) {
 		if err := os.Mkdir(doc.dirsto, 0755); err != nil {
 			log.Printf("mkdir %s fail: %s", doc.dirsto, err)
