@@ -80,15 +80,18 @@ func (f *Field) preCode() (st *jen.Statement) {
 }
 
 func (f *Field) Code() jen.Code {
-	st := f.preCode()
+	var st *jen.Statement
+	if len(f.Comment) > 0 {
+		st = jen.Comment(f.Comment).Line()
+	} else {
+		st = jen.Empty()
+	}
+
+	st.Add(f.preCode())
 
 	if len(f.Tags) > 0 {
 		// log.Printf("%s: %+v", f.Name, f.Tags)
 		st.Tag(f.Tags)
-	}
-
-	if len(f.Comment) > 0 {
-		st.Comment(f.Comment)
 	}
 
 	if len(f.Name) == 0 {
@@ -216,6 +219,11 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		tn := field.Type
 		if len(tn) == 0 {
 			tn = field.Name
+		} else if field.Type == "oid.OID" {
+			field.Type = "string"
+			field.isOid = true
+			field.Qual = ""
+			tn = field.Type
 		}
 		if len(field.Qual) > 0 {
 			code.Op("*").Qual(field.Qual, tn)
@@ -229,10 +237,16 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code.Comment(field.Comment)
 		}
 		ccs = append(ccs, code)
-		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).Block(
-			jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name),
-			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn)),
-		))
+		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
+			csst := jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn))
+			if field.isOid {
+				g.If(jen.Id("id").Op(",").Err().Op(":=").Id("oid").Dot("CheckID").Call(jen.Op("*").Id("o").Dot(field.Name)).Op(";").Err().Op("==").Nil().Block(
+					jen.Id("z").Dot(field.Name).Op("=").Id("id"), csst,
+				))
+			} else {
+				g.Add(jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name).Line(), csst)
+			}
+		}))
 	}
 	if hasMeta {
 		name := "MetaUp"
@@ -348,6 +362,8 @@ func (m *Model) getSpecCodes() jen.Code {
 	if len(specFields) > 0 {
 		fcs = append(fcs, jen.Empty())
 		for _, field := range specFields {
+			delete(field.Tags, "binding")
+			delete(field.Tags, "extensions")
 			fcs = append(fcs, field.queryCode())
 		}
 	}
@@ -379,8 +395,8 @@ func (m *Model) getSpecCodes() jen.Code {
 }
 
 func metaUpCode() jen.Code {
-	code := jen.Id("MetaUp").Op("*").Add(qual("comm.MetaUp"))
+	code := jen.Comment("for meta update").Line()
+	code.Id("MetaUp").Op("*").Add(qual("comm.MetaUp"))
 	code.Tag(Maps{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
-	code.Comment("for meta update")
 	return code
 }

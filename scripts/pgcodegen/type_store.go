@@ -51,17 +51,20 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 		// log.Printf("act %s, %s, %v", act, mname, ok)
 		if act == "List" {
 			tname := mname + "Spec"
+			var slicename string
 			var tspec jen.Code
 			if m, ok := doc.modelWithName(mname); ok {
+				slicename = m.GetPlural()
 				tspec = m.getSpecCodes()
 			} else {
+				slicename = mname + "s"
 				comm, _ := getQual("comm")
 				tspec = jen.Type().Id(tname).Struct(jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec")).Line()
 			}
 
 			tcs = append(tcs, tspec)
 			args = append(args, jen.Id("spec").Op("*").Id(tname))
-			rets = append(rets, jen.Id("data").Index().Qual(modpkg, mname),
+			rets = append(rets, jen.Id("data").Qual(modpkg, slicename),
 				jen.Id("total").Int(), jen.Id("err").Error())
 			bcs = append(bcs, jen.Block(
 				jen.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
