@@ -26,6 +26,7 @@ type Store struct {
 	Name    string   `yaml:"name"`
 	IName   string   `yaml:"iname,omitempty"`
 	Methods []Method `yaml:"methods"`
+	Embed   string   `yaml:"embed,omitempty"`
 
 	mnames []string // TODO: aliases
 }
@@ -98,9 +99,11 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 							jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
 					}
 				}
-				g.Id("err").Op("=").Id("dbInsert").Call(
-					jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"),
-				)
+				targs := []jen.Code{jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj")}
+				if fn, cn, isuniq := getModel(mname).Uniques(); isuniq {
+					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
+				}
+				g.Id("err").Op("=").Id("dbInsert").Call(targs...)
 				g.Return()
 			}))
 			nap = append(nap, false)
@@ -201,6 +204,9 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	}
 	tcs, mcs, nap, bcs := s.Interfaces(modelpkg)
 	var ics []jen.Code
+	if len(s.Embed) > 0 {
+		ics = append(ics, jen.Id(s.Embed))
+	}
 	for i := range mcs {
 		ics = append(ics, mcs[i])
 		if nap[i] {

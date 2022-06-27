@@ -107,10 +107,13 @@ func (doc *Document) genModels(dropfirst bool) error {
 	mgf := jen.NewFile(doc.ModelPkg)
 	mgf.HeaderComment(headerComment)
 
+	var mods []string
 	for _, model := range doc.Models {
-		log.Printf("found model %s", model.Name)
+		mods = append(mods, model.Name)
+		// log.Printf("found model %s", model.Name)
 		mgf.Add(model.Codes())
 	}
+	log.Printf("found models %v", mods)
 	mgf.Line()
 
 	if !osutil.IsDir(doc.dirmod) {
@@ -296,7 +299,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 		}
 		return true
 	})
-	log.Printf("foundWM %+v,lastWM: %s", foundWM, lastWM)
+	log.Printf("found %+v,last wrap method: %s", foundWM, lastWM)
 	if len(foundWM) == 0 {
 		wva.rewrite(nil, func(c *astutil.Cursor) bool {
 			if cn, ok := c.Node().(*ast.FuncDecl); ok && cn.Name.Name == lastWM {
