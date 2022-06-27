@@ -319,6 +319,15 @@ func (m *Model) Codes() jen.Code {
 	return st
 }
 
+func (m *Model) hasMeta() bool {
+	for i := range m.Fields {
+		if m.Fields[i].isMeta() {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *Model) hasHooks() (bool, string) {
 	var hasDefaultModel bool
 	var hasIDField bool

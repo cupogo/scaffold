@@ -17,9 +17,12 @@ type Article struct {
 } // @name Article
 
 type ArticleBasic struct {
-	Author  string `json:"author" pg:",notnull"`  // 作者
-	Title   string `json:"title" pg:",notnull"`   // 标题
-	Contant string `json:"content" pg:",notnull"` // 内容
+	// 作者
+	Author string `json:"author" pg:",notnull"`
+	// 标题
+	Title string `json:"title" pg:",notnull"`
+	// 内容
+	Contant string `json:"content" pg:",notnull"`
 } // @name ArticleBasic
 
 type Articles []Article

@@ -83,7 +83,7 @@ func (a *api) putCmsClause(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   query  formData   stores.ClauseSpec  true   "Object"
-// @Success 200 {object} resp.Done{result=resp.ResultData{cms1.Clause}}
+// @Success 200 {object} resp.Done{result=resp.ResultData{cms1.Clauses}}
 // @Failure 400 {object} resp.Failure "请求或参数错误"
 // @Failure 401 {object} resp.Failure "未登录"
 // @Failure 404 {object} resp.Failure "目标未找到"
