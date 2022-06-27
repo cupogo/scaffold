@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	oidQual = "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	oidQual   = "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	metaField = "comm.MetaField"
 )
 
 func qual(args ...string) jen.Code {
@@ -44,6 +45,10 @@ type Field struct {
 	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 
 	isOid bool
+}
+
+func (f *Field) isMeta() bool {
+	return f.Name == metaField || f.Type == metaField
 }
 
 func (f *Field) preCode() (st *jen.Statement) {
@@ -134,13 +139,19 @@ type Fields []Field
 
 // Codes return fields code of main and basic
 func (f Fields) Codes() (mcs, bcs []jen.Code) {
+	var hasMeta bool
 	for _, field := range f {
 		if field.IsSet || field.IsBasic {
 			bcs = append(bcs, field.Code())
 		} else {
 			mcs = append(mcs, field.Code())
 		}
-
+		if field.isMeta() {
+			hasMeta = true
+		}
+	}
+	if hasMeta {
+		bcs = append(bcs, metaUpCode())
 	}
 	return
 }
@@ -192,8 +203,12 @@ func (m *Model) Uniques() (name, col string, ok bool) {
 }
 
 func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
+	var hasMeta bool
 	for _, field := range m.Fields {
 		if !field.IsSet || field.Type == "" || field.Name == "" {
+			if field.isMeta() {
+				hasMeta = true
+			}
 			continue
 		}
 		code := jen.Id(field.Name)
@@ -217,6 +232,13 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).Block(
 			jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name),
 			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn)),
+		))
+	}
+	if hasMeta {
+		name := "MetaUp"
+		ccs = append(ccs, metaUpCode())
+		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("UpMeta").Call(jen.Id("o").Dot(name))).Block(
+			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("meta")),
 		))
 	}
 	return
@@ -354,4 +376,11 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 
 	return st
+}
+
+func metaUpCode() jen.Code {
+	code := jen.Id("MetaUp").Op("*").Add(qual("comm.MetaUp"))
+	code.Tag(Maps{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
+	code.Comment("for meta update")
+	return code
 }
