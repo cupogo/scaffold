@@ -168,6 +168,10 @@ type Model struct {
 	OIDCat   string `json:"oidcat,omitempty"`
 }
 
+func (m *Model) String() string {
+	return m.Name
+}
+
 func (m *Model) GetPlural() string {
 	if m.Plural != "" {
 		return m.Plural
@@ -279,7 +283,7 @@ func (m *Model) Codes() jen.Code {
 	st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
 
 	if hasHooks, field := m.hasHooks(); hasHooks {
-		log.Print("has hooks")
+		log.Printf("model %s has hooks", m.Name)
 		oidcat := utils.CamelCased(m.OIDCat)
 		if oidcat == "" {
 			oidcat = "Default"
