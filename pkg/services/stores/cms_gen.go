@@ -8,10 +8,6 @@ import (
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 
-func init() {
-	alltables = append(alltables, &cms1.Article{}, &cms1.Clause{})
-}
-
 // type Article = cms1.Article
 // type ArticleBasic = cms1.ArticleBasic
 // type ArticleSet = cms1.ArticleSet
@@ -21,14 +17,18 @@ func init() {
 // type ClauseSet = cms1.ClauseSet
 // type Clauses = cms1.Clauses
 
+func init() {
+	alltables = append(alltables, &cms1.Article{}, &cms1.Clause{})
+}
+
 type ContantStore interface {
-	ListArticle(ctx context.Context, spec *ArticleSpec) (data []cms1.Article, total int, err error)
+	ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error)
 	GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error)
 	CreateArticle(ctx context.Context, in *cms1.ArticleBasic) (obj *cms1.Article, err error)
 	UpdateArticle(ctx context.Context, id string, in *cms1.ArticleSet) (err error)
 	DeleteArticle(ctx context.Context, id string) error
 
-	ListClause(ctx context.Context, spec *ClauseSpec) (data []cms1.Clause, total int, err error)
+	ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error)
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
 	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error)
 	DeleteClause(ctx context.Context, id string) error
@@ -57,7 +57,7 @@ type contentStore struct {
 	w *Wrap
 }
 
-func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data []cms1.Article, total int, err error) {
+func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
 	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
 	return
 }
@@ -90,7 +90,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 	return s.w.db.OpDelete(ctx, "cms_article", id)
 }
 
-func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data []cms1.Clause, total int, err error) {
+func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error) {
 	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
 	return
 }

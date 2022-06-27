@@ -90,13 +90,19 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			tname := mname + "Basic"
 			args = append(args, jen.Id("in").Op("*").Qual(modpkg, tname))
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
-			bcs = append(bcs, jen.Block(
-				jen.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Op("*").Id("in").Op(",")),
-				jen.Id("err").Op("=").Id("dbInsert").Call(
+			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				g.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Op("*").Id("in").Op(","))
+				if m, ok := doc.modelWithName(mname); ok {
+					if m.hasMeta() {
+						g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
+							jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
+					}
+				}
+				g.Id("err").Op("=").Id("dbInsert").Call(
 					jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"),
-				),
-				jen.Return(),
-			))
+				)
+				g.Return()
+			}))
 			nap = append(nap, false)
 		} else if act == "Update" {
 			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))

@@ -2,10 +2,13 @@
 package stores
 
 import (
+	"context"
+
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 
 	"hyyl.xyz/cupola/aurora/pkg/models"
+	"hyyl.xyz/cupola/aurora/pkg/models/comm"
 	"hyyl.xyz/cupola/aurora/pkg/models/oid"
 	"hyyl.xyz/cupola/aurora/pkg/services/utils/pgx"
 )
@@ -53,3 +56,11 @@ type applier func(query *orm.Query) (*orm.Query, error)
 
 type Model = models.Model
 type OID = oid.OID
+
+// opModelMeta prepare values from Context
+func (w *Wrap) opModelMeta(ctx context.Context, obj models.ModelCreator, ups ...*comm.MetaUp) {
+
+	if mm, ok := obj.(interface{ UpMeta(*comm.MetaUp) bool }); ok && len(ups) > 0 {
+		_ = mm.UpMeta(ups[0])
+	}
+}
