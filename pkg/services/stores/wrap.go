@@ -55,6 +55,6 @@ func OpenBases(args ...string) (db *pgx.DB, rc *redis.Client, err error) {
 	return
 }
 
-func (w *Wrap) Contant() ContantStore {
+func (w *Wrap) Content() ContentStore {
 	return w.contentStore
 }

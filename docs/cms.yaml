@@ -21,7 +21,7 @@ models:
         isset: true
         query: 'equal' # '', 'equal', 'wildcard'
         comment: 标题
-      - name: Contant
+      - name: Content
         type: string
         tags: {json: 'content', pg: ',notnull'}
         isset: true
@@ -43,7 +43,6 @@ models:
 
 stores:
   - name: contentStore
-    iname: ContantStore
     hodBread: [ Article ]
     methods:
       - name: ListClause
@@ -59,13 +58,13 @@ webapi:
       prefix: '/api/v1/cms'
   handles:
     - name: getCmsClause
-      store: Contant
+      store: Content
       method: GetClause
       summary: 获取内容条款
       route: '/api/v1/cms/clauses/{id} [get]'
       needAuth: true
     - name: putCmsClause
-      store: Contant
+      store: Content
       method: PutClause
       bindobj: cms1.ClauseSet
       summary: 录入内容条款
@@ -73,14 +72,14 @@ webapi:
       needAuth: true
       needPerm: true
     - name: getCmsClauses
-      store: Contant
+      store: Content
       method: ListClause
       bindobj: stores.ClauseSpec
       summary: 列出内容条款
       route: '/api/v1/cms/clauses [get]'
       needAuth: true
     - name: deleteCmsClause
-      store: Contant
+      store: Content
       method: DeleteClause
       summary: 删除内容条款
       route: '/api/v1/cms/clauses/{id} [delete]'
