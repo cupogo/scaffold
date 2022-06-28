@@ -52,7 +52,7 @@ func init() {
 // @Router /api/v1/cms/clauses/{id} [get]
 func (a *api) getCmsClause(c *gin.Context) {
 	id := c.Param("id")
-	obj, err := a.sto.Contant().GetClause(c.Request.Context(), id)
+	obj, err := a.sto.Content().GetClause(c.Request.Context(), id)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -83,7 +83,7 @@ func (a *api) putCmsClause(c *gin.Context) {
 		return
 	}
 
-	nid, err := a.sto.Contant().PutClause(c.Request.Context(), id, &in)
+	nid, err := a.sto.Content().PutClause(c.Request.Context(), id, &in)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -111,7 +111,7 @@ func (a *api) getCmsClauses(c *gin.Context) {
 		return
 	}
 
-	data, total, err := a.sto.Contant().ListClause(c.Request.Context(), &spec)
+	data, total, err := a.sto.Content().ListClause(c.Request.Context(), &spec)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -135,7 +135,7 @@ func (a *api) getCmsClauses(c *gin.Context) {
 // @Router /api/v1/cms/clauses/{id} [delete]
 func (a *api) deleteCmsClause(c *gin.Context) {
 	id := c.Param("id")
-	err := a.sto.Contant().DeleteClause(c.Request.Context(), id)
+	err := a.sto.Content().DeleteClause(c.Request.Context(), id)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -162,7 +162,7 @@ func (a *api) getArticles(c *gin.Context) {
 		return
 	}
 
-	data, total, err := a.sto.Contant().ListArticle(c.Request.Context(), &spec)
+	data, total, err := a.sto.Content().ListArticle(c.Request.Context(), &spec)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -184,7 +184,7 @@ func (a *api) getArticles(c *gin.Context) {
 // @Router /api/v1/cms/articles/{id} [get]
 func (a *api) getArticle(c *gin.Context) {
 	id := c.Param("id")
-	obj, err := a.sto.Contant().GetArticle(c.Request.Context(), id)
+	obj, err := a.sto.Content().GetArticle(c.Request.Context(), id)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -213,7 +213,7 @@ func (a *api) postArticle(c *gin.Context) {
 		return
 	}
 
-	obj, err := a.sto.Contant().CreateArticle(c.Request.Context(), &in)
+	obj, err := a.sto.Content().CreateArticle(c.Request.Context(), &in)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -244,7 +244,7 @@ func (a *api) putArticle(c *gin.Context) {
 		return
 	}
 
-	err := a.sto.Contant().UpdateArticle(c.Request.Context(), id, &in)
+	err := a.sto.Content().UpdateArticle(c.Request.Context(), id, &in)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -268,7 +268,7 @@ func (a *api) putArticle(c *gin.Context) {
 // @Router /api/v1/cms/articles/{id} [delete]
 func (a *api) deleteArticle(c *gin.Context) {
 	id := c.Param("id")
-	err := a.sto.Contant().DeleteArticle(c.Request.Context(), id)
+	err := a.sto.Content().DeleteArticle(c.Request.Context(), id)
 	if err != nil {
 		fail(c, 503, err)
 		return

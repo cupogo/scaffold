@@ -203,7 +203,7 @@ func wrapNewFunc(s *Store, prev ast.Node) *ast.FuncDecl {
 		}}},
 		Name: ast.NewIdent(siname),
 		Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{
-			{Type: ast.NewIdent(s.IName)},
+			{Type: ast.NewIdent(s.GetIName())},
 		}}},
 		Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ReturnStmt{Results: []ast.Expr{
 			&ast.SelectorExpr{X: ast.NewIdent("w"), Sel: ast.NewIdent(s.Name)},

@@ -21,7 +21,7 @@ func init() {
 	alltables = append(alltables, &cms1.Article{}, &cms1.Clause{})
 }
 
-type ContantStore interface {
+type ContentStore interface {
 	ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error)
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
 	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error)

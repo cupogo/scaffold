@@ -22,7 +22,7 @@ type ArticleBasic struct {
 	// 标题
 	Title string `json:"title" pg:",notnull"`
 	// 内容
-	Contant string `json:"content" pg:",notnull"`
+	Content string `json:"content" pg:",notnull"`
 } // @name ArticleBasic
 
 type Articles []Article
@@ -44,7 +44,7 @@ func (z *Article) Saving() error {
 type ArticleSet struct {
 	Author  *string `json:"author"`  // 作者
 	Title   *string `json:"title"`   // 标题
-	Contant *string `json:"content"` // 内容
+	Content *string `json:"content"` // 内容
 } // @name ArticleSet
 
 func (z *Article) SetWith(o *ArticleSet) (cs []string) {
@@ -56,9 +56,9 @@ func (z *Article) SetWith(o *ArticleSet) (cs []string) {
 		z.Title = *o.Title
 		cs = append(cs, "title")
 	}
-	if o.Contant != nil {
-		z.Contant = *o.Contant
-		cs = append(cs, "contant")
+	if o.Content != nil {
+		z.Content = *o.Content
+		cs = append(cs, "content")
 	}
 	return
 }

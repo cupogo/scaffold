@@ -353,7 +353,7 @@ func (doc *Document) encureStoMethod(vd *vdst) bool {
 					siname := sto.ShortIName()
 					if !existInterfaceMethod(cn, siname) {
 						log.Printf("generate interface method: %q", siname)
-						cn.Methods.List = append(cn.Methods.List, newStoInterfaceMethod(siname, sto.IName))
+						cn.Methods.List = append(cn.Methods.List, newStoInterfaceMethod(siname, sto.GetIName()))
 					}
 				}
 			}
