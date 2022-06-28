@@ -44,12 +44,8 @@ models:
 stores:
   - name: contentStore
     iname: ContantStore
+    hodBread: [ Article ]
     methods:
-      - name: ListArticle
-      - name: GetArticle
-      - name: CreateArticle
-      - name: UpdateArticle
-      - name: DeleteArticle
       - name: ListClause
       - name: GetClause
       - name: PutClause
@@ -58,6 +54,9 @@ stores:
 
 webapi:
   pkg: api_v1
+  uris:
+    - model: Article
+      prefix: '/api/v1/cms'
   handles:
     - name: getCmsClause
       store: Contant

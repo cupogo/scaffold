@@ -59,7 +59,7 @@ type Document struct {
 	Models    []Model `yaml:"models"`
 	Qualified Maps    `yaml:"depends"` // imports name
 	Stores    []Store `yaml:"stores"`
-	WebAPI    WebAPI  `yaml:"webapi"`
+	WebAPI    *WebAPI `yaml:"webapi"`
 }
 
 func (doc *Document) getQual(k string) (string, bool) {
@@ -89,8 +89,18 @@ func NewDoc(docfile string) (*Document, error) {
 	doc.modtypes = make(map[string]empty)
 
 	log.Printf("loaded %d models, out name %q", len(doc.Models), doc.name)
+	log.Printf("loaded webapi uris %+v", doc.WebAPI.URIs)
 
 	return doc, nil
+}
+
+func (doc *Document) prepare() {
+	for i := range doc.Stores {
+		doc.Stores[i].doc = doc
+		doc.Stores[i].prepareMethods()
+	}
+	doc.WebAPI.doc = doc
+	doc.WebAPI.prepareHandles()
 }
 
 func getOutName(docfile string) string {
@@ -392,7 +402,7 @@ func (doc *Document) genWebAPI() error {
 	if obj == nil {
 		log.Fatalf("%s not found in declared types of %s", stoName, spkg)
 	}
-	log.Printf("lookuped: %+v", obj)
+	// log.Printf("lookuped: %+v", obj)
 	if _, ok := obj.(*types.TypeName); !ok {
 		log.Fatalf("%v is not a named type", obj)
 	}
@@ -405,7 +415,7 @@ func (doc *Document) genWebAPI() error {
 	for i := 0; i < objType.NumMethods(); i++ {
 		smt := objType.Method(i)
 		if sig, ok := smt.Type().(*types.Signature); ok {
-			log.Printf("method sign: params %s %+v, result: %+v", smt.Name(), sig.Params(), sig.Results())
+			// log.Printf("method sign: params %s %+v, result: %+v", smt.Name(), sig.Params(), sig.Results())
 			var args []Var
 			var rets []Var
 			for j := 0; j < sig.Params().Len(); j++ {

@@ -22,18 +22,22 @@ func init() {
 }
 
 type ContantStore interface {
+	ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error)
+	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
+	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error)
+	DeleteClause(ctx context.Context, id string) error
+
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error)
 	GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error)
 	CreateArticle(ctx context.Context, in *cms1.ArticleBasic) (obj *cms1.Article, err error)
 	UpdateArticle(ctx context.Context, id string, in *cms1.ArticleSet) (err error)
 	DeleteArticle(ctx context.Context, id string) error
-
-	ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error)
-	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
-	PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error)
-	DeleteClause(ctx context.Context, id string) error
 }
 
+type ClauseSpec struct {
+	comm.PageSpec
+	MDftSpec
+}
 type ArticleSpec struct {
 	comm.PageSpec
 	MDftSpec
@@ -48,13 +52,29 @@ func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	return q, nil
 }
 
-type ClauseSpec struct {
-	comm.PageSpec
-	MDftSpec
-}
-
 type contentStore struct {
 	w *Wrap
+}
+
+func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error) {
+	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
+	return
+}
+func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
+	obj = new(cms1.Clause)
+	err = getModelWithPKOID(s.w.db, obj, id)
+	return
+}
+func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error) {
+	obj := new(cms1.Clause)
+	obj.SetID(id)
+	cs := obj.SetWith(in)
+	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
+	nid = obj.StringID()
+	return
+}
+func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
+	return s.w.db.OpDelete(ctx, "cms_clause", id)
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
@@ -88,25 +108,4 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in *cms1.Ar
 }
 func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 	return s.w.db.OpDelete(ctx, "cms_article", id)
-}
-
-func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error) {
-	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
-	return
-}
-func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
-	obj = new(cms1.Clause)
-	err = getModelWithPKOID(s.w.db, obj, id)
-	return
-}
-func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error) {
-	obj := new(cms1.Clause)
-	obj.SetID(id)
-	cs := obj.SetWith(in)
-	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
-	nid = obj.StringID()
-	return
-}
-func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
-	return s.w.db.OpDelete(ctx, "cms_clause", id)
 }

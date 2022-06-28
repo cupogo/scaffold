@@ -2,8 +2,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/dave/jennifer/jen"
 )
@@ -21,6 +23,24 @@ var preFails = map[int]string{
 	503: `503 {object} resp.Failure "服务端错误"`,
 }
 
+var msmethods = map[string]string{
+	"List":   "GET",
+	"Get":    "GET",
+	"Create": "POST",
+	"Update": "PUT",
+	"Put":    "PUT",
+	"Delete": "DELETE",
+}
+
+var mslabels = map[string]string{
+	"List":   "列出",
+	"Get":    "获取",
+	"Create": "录入",
+	"Update": "更新",
+	"Put":    "录入/更新",
+	"Delete": "删除",
+}
+
 const paramAuth = `token    header   string  true "登录票据凭证"`
 const swagTags = "默认 文档生成"
 
@@ -28,13 +48,75 @@ var replPkg = strings.NewReplacer("_", "", "-", "")
 var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
 var replPath = strings.NewReplacer("{", ":", "}", "")
 
+type UriSpot struct {
+	Model  string `yaml:"model"`
+	Prefix string `yaml:"prefix"`
+}
+
 type WebAPI struct {
-	Pkg     string   `yaml:"pkg"`
-	Handles []Handle `yaml:"handles"`
+	Pkg     string    `yaml:"pkg"`
+	Handles []Handle  `yaml:"handles"`
+	URIs    []UriSpot `yaml:"uris"`
+
+	once sync.Once
+
+	doc *Document
+}
+
+func (us *UriSpot) getRoute(act string) (route string, name string, summary string) {
+	mod := getModel(us.Model)
+	plural := mod.GetPlural()
+	if len(plural) == 0 {
+		log.Printf("WARN: empty name of %s[%s]", us.Model, mod.Name)
+	}
+	uri := us.Prefix + "/" + strings.ToLower(plural)
+	method := msmethods[act]
+	fct := strings.ToLower(method)
+	name = fct + mod.Name
+	switch act {
+	case "Get", "Update", "Put", "Delete":
+		uri = uri + "/{id}"
+	case "List":
+		name = fct + plural
+	}
+
+	route = fmt.Sprintf("%s [%s]", uri, strings.ToLower(method))
+	cname := mod.Comment
+	if a, _, ok := strings.Cut(cname, " "); ok {
+		cname = a
+	}
+	summary = mslabels[act] + cname
+
+	return
 }
 
 func (wa *WebAPI) getPkgName() string {
 	return replPkg.Replace(wa.Pkg)
+}
+
+func (wa *WebAPI) prepareHandles() {
+	if wa.doc == nil {
+		log.Printf("doc is nil")
+		return
+	}
+	for _, u := range wa.URIs {
+		for _, sto := range wa.doc.Stores {
+			for _, mth := range sto.Methods {
+				if u.Model == mth.model {
+					hdl := Handle{
+						Method: mth.Name,
+						Store:  sto.ShortIName(),
+					}
+					hdl.Route, hdl.Name, hdl.Summary = u.getRoute(mth.action)
+					hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
+						mth.action == "Put" || mth.action == "Delete"
+					hdl.NeedAuth = hdl.NeedPerm
+					wa.Handles = append(wa.Handles, hdl)
+				}
+			}
+		}
+	}
+	log.Printf("inited webapi handles: %d", len(wa.Handles))
 }
 
 type Handle struct {
@@ -115,11 +197,11 @@ func (h *Handle) GetFails(act string) []int {
 
 func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if len(h.Summary) == 0 {
-		log.Printf("empty handle summary of %s", h.Name)
+		log.Printf("WARN: empty handle summary of %s", h.Name)
 		return nil
 	}
 	if len(h.Route) == 0 {
-		log.Printf("empty handle route of %s", h.Name)
+		log.Printf("WARN: empty handle route of %s", h.Name)
 		return nil
 	}
 	st := jen.Empty()
@@ -207,7 +289,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		log.Printf("cut method %s fail", h.Method)
 		return nil
 	}
-	log.Printf("gen act %s, name %s, call %s", act, h.Name, mth.Name)
+	// log.Printf("gen act %s, name %s, call %s", act, h.Name, mth.Name)
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
 	jmcc := jen.Op(":=").Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
 	jfail := func(st int) []jen.Code {
@@ -287,7 +369,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 	})
 
-	log.Printf("generate handle %s done", h.Name)
+	log.Printf("generate handle %s => %s done", h.Name, mth.Name)
 
 	return st
 }
