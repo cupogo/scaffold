@@ -20,15 +20,46 @@ type Method struct {
 	Simple bool   `yaml:"simple"`
 	Args   []Var  `yaml:"args,omitempty"`
 	Rets   []Var  `yaml:"rets,omitempty"`
+
+	action string
+	model  string
+}
+
+func newMethod(act, mod string) Method {
+	return Method{Name: act + mod, action: act, model: mod}
 }
 
 type Store struct {
-	Name    string   `yaml:"name"`
-	IName   string   `yaml:"iname,omitempty"`
-	Methods []Method `yaml:"methods"`
-	Embed   string   `yaml:"embed,omitempty"`
+	Name     string   `yaml:"name"`
+	IName    string   `yaml:"iname,omitempty"`
+	Methods  []Method `yaml:"methods"`
+	Embed    string   `yaml:"embed,omitempty"`
+	HodBread []string `yaml:"hodBread,omitempty"`
+	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
 
 	mnames []string // TODO: aliases
+
+	doc *Document
+}
+
+func (s *Store) prepareMethods() {
+	for _, m := range s.HodBread {
+		for _, a := range []string{"List", "Get", "Create", "Update", "Delete"} {
+			s.Methods = append(s.Methods, newMethod(a, m))
+		}
+	}
+	for _, m := range s.HodPrdb {
+		for _, a := range []string{"List", "Get", "Put", "Delete"} {
+			s.Methods = append(s.Methods, newMethod(a, m))
+		}
+	}
+
+	for i := range s.Methods {
+		if s.Methods[i].model == "" {
+			s.Methods[i].action, s.Methods[i].model, _ = cutMethod(s.Methods[i].Name)
+		}
+	}
+	log.Printf("inited store methods: %d", len(s.Methods))
 }
 
 func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bcs []*jen.Statement) {

@@ -21,6 +21,21 @@ func init() {
 	regHI(true, "DELETE", "/cms/clauses/:id", "v1-cms-clauses-id-delete", func(a *api) gin.HandlerFunc {
 		return a.deleteCmsClause
 	})
+	regHI(false, "GET", "/cms/articles", "", func(a *api) gin.HandlerFunc {
+		return a.getArticles
+	})
+	regHI(false, "GET", "/cms/articles/:id", "", func(a *api) gin.HandlerFunc {
+		return a.getArticle
+	})
+	regHI(true, "POST", "/cms/articles", "v1-cms-articles-post", func(a *api) gin.HandlerFunc {
+		return a.postArticle
+	})
+	regHI(true, "PUT", "/cms/articles/:id", "v1-cms-articles-id-put", func(a *api) gin.HandlerFunc {
+		return a.putArticle
+	})
+	regHI(true, "DELETE", "/cms/articles/:id", "v1-cms-articles-id-delete", func(a *api) gin.HandlerFunc {
+		return a.deleteArticle
+	})
 }
 
 // @Tags 默认 文档生成
@@ -121,6 +136,139 @@ func (a *api) getCmsClauses(c *gin.Context) {
 func (a *api) deleteCmsClause(c *gin.Context) {
 	id := c.Param("id")
 	err := a.sto.Contant().DeleteClause(c.Request.Context(), id)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, "ok")
+}
+
+// @Tags 默认 文档生成
+// @Summary 列出文章
+// @Accept json
+// @Produce json
+// @Param   query  formData   stores.ArticleSpec  true   "Object"
+// @Success 200 {object} resp.Done{result=resp.ResultData{cms1.Articles}}
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 404 {object} resp.Failure "目标未找到"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/articles [get]
+func (a *api) getArticles(c *gin.Context) {
+	var spec stores.ArticleSpec
+	if err := c.Bind(&spec); err != nil {
+		fail(c, 400, err)
+		return
+	}
+
+	data, total, err := a.sto.Contant().ListArticle(c.Request.Context(), &spec)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, dtResult(data, total))
+}
+
+// @Tags 默认 文档生成
+// @Summary 获取文章
+// @Accept json
+// @Produce json
+// @Param   id    path   string  true   "编号"
+// @Success 200 {object} resp.Done{result=cms1.Article}
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 404 {object} resp.Failure "目标未找到"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/articles/{id} [get]
+func (a *api) getArticle(c *gin.Context) {
+	id := c.Param("id")
+	obj, err := a.sto.Contant().GetArticle(c.Request.Context(), id)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, obj)
+}
+
+// @Tags 默认 文档生成
+// @ID v1-cms-articles-post
+// @Summary 录入文章
+// @Accept json
+// @Produce json
+// @Param token    header   string  true "登录票据凭证"
+// @Param   query  formData   cms1.ArticleBasic  true   "Object"
+// @Success 200 {object} resp.Done{result=resp.ResultID}
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 403 {object} resp.Failure "无权限"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/articles [post]
+func (a *api) postArticle(c *gin.Context) {
+	var in cms1.ArticleBasic
+	if err := c.Bind(&in); err != nil {
+		fail(c, 400, err)
+		return
+	}
+
+	obj, err := a.sto.Contant().CreateArticle(c.Request.Context(), &in)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, idResult(obj.ID))
+}
+
+// @Tags 默认 文档生成
+// @ID v1-cms-articles-id-put
+// @Summary 更新文章
+// @Accept json
+// @Produce json
+// @Param token    header   string  true "登录票据凭证"
+// @Param   id    path   string  true   "编号"
+// @Param   query  formData   cms1.ArticleSet  true   "Object"
+// @Success 200 {object} resp.Done{result=string}
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 403 {object} resp.Failure "无权限"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/articles/{id} [put]
+func (a *api) putArticle(c *gin.Context) {
+	id := c.Param("id")
+	var in cms1.ArticleSet
+	if err := c.Bind(&in); err != nil {
+		fail(c, 400, err)
+		return
+	}
+
+	err := a.sto.Contant().UpdateArticle(c.Request.Context(), id, &in)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, "ok")
+}
+
+// @Tags 默认 文档生成
+// @ID v1-cms-articles-id-delete
+// @Summary 删除文章
+// @Accept json
+// @Produce json
+// @Param token    header   string  true "登录票据凭证"
+// @Param   id    path   string  true   "编号"
+// @Success 200 {object} resp.Done
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 403 {object} resp.Failure "无权限"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/articles/{id} [delete]
+func (a *api) deleteArticle(c *gin.Context) {
+	id := c.Param("id")
+	err := a.sto.Contant().DeleteArticle(c.Request.Context(), id)
 	if err != nil {
 		fail(c, 503, err)
 		return

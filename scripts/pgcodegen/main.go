@@ -43,6 +43,7 @@ func main() {
 		log.Printf("load fail: %s", err)
 		return
 	}
+	doc.prepare()
 
 	if genSpec&tgModel > 0 {
 		if err = doc.genModels(dropfirst); err != nil {
