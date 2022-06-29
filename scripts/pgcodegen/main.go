@@ -50,21 +50,21 @@ func main() {
 			log.Printf("output fail: %s", err)
 			return
 		}
-		log.Print("generated models ok")
+		// log.Print("generated models ok")
 	}
 	if genSpec&tgStore > 0 {
 		if err = doc.genStores(dropfirst); err != nil {
 			log.Printf("output fail: %s", err)
 			return
 		}
-		log.Print("generated stores ok")
+		// log.Print("generated stores ok")
 	}
 	if genSpec&tgWeb > 0 {
 		if err = doc.genWebAPI(); err != nil {
 			log.Printf("output fail: %s", err)
 			return
 		}
-		log.Print("generated webapi ok")
+		// log.Print("generated webapi ok")
 	}
 
 }
@@ -78,9 +78,7 @@ func getQual(k string) (string, bool) {
 
 func getModQual(k string) (string, bool) {
 	if doc != nil {
-		if _, ok := doc.modtypes[k]; ok {
-			return doc.ModelPkg + "." + k, true
-		}
+		return doc.getModQual(k)
 	}
 	return k, false
 }
@@ -102,26 +100,4 @@ func getModel(name string) *Model {
 	}
 
 	return &Model{}
-}
-
-func cutMethod(s string) (act string, tgt string, ok bool) {
-	var foundLow bool
-	var foundUp bool
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if utils.IsUpper(c) {
-			if foundUp && foundLow || i > 2 { // PutObject, putObject
-				act = s[0:i]
-				tgt = s[i:]
-				ok = len(tgt) > 0
-				return
-			}
-			foundUp = true
-		}
-		if utils.IsLower(c) {
-			foundLow = true
-		}
-	}
-
-	return
 }

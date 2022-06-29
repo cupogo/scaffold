@@ -68,6 +68,13 @@ func (doc *Document) getQual(k string) (string, bool) {
 	return v, ok
 }
 
+func (doc *Document) getModQual(k string) (string, bool) {
+	if _, ok := doc.modtypes[k]; ok {
+		return doc.ModelPkg + "." + k, true
+	}
+	return k, false
+}
+
 func NewDoc(docfile string) (*Document, error) {
 	yf, err := os.Open(docfile)
 	if err != nil {
@@ -89,7 +96,7 @@ func NewDoc(docfile string) (*Document, error) {
 	doc.modtypes = make(map[string]empty)
 
 	log.Printf("loaded %d models, out name %q", len(doc.Models), doc.name)
-	log.Printf("loaded webapi uris %+v", doc.WebAPI.URIs)
+	// log.Printf("loaded webapi uris %+v", doc.WebAPI.URIs)
 
 	return doc, nil
 }
@@ -146,7 +153,7 @@ func (doc *Document) genModels(dropfirst bool) error {
 		log.Fatalf("generate models fail: %s", err)
 		return err
 	}
-	log.Printf("generated for %s ok", doc.dirmod)
+	log.Printf("generated '%s/%s' ok", doc.dirmod, doc.name)
 	return nil
 }
 
@@ -170,11 +177,8 @@ func (doc *Document) modelAliasable(name string) bool {
 
 func (doc *Document) loadModPkg() (ipath string, aliases []string) {
 	mpkg := loadPackage(doc.dirmod)
-	// if err != nil {
-	// 	log.Printf("get package fail: %s", err)
-	// }
-	log.Printf("loaded mpkg: %s name %q: files %q,%q", mpkg.ID, mpkg.Types.Name(), mpkg.GoFiles, mpkg.CompiledGoFiles)
-	log.Printf("types: %+v, ", mpkg.Types)
+	// log.Printf("loaded mpkg: %s name %q: files %q,%q", mpkg.ID, mpkg.Types.Name(), mpkg.GoFiles, mpkg.CompiledGoFiles)
+	// log.Printf("types: %+v, ", mpkg.Types)
 	doc.modipath = mpkg.ID
 	ipath = mpkg.ID
 
@@ -249,7 +253,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
 	}
-	log.Printf("generated for %s ok", doc.dirsto)
+	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.name)
 
 	// TODO: rewrite wrap.go
 	sfile := path.Join(doc.dirsto, storewf)
@@ -289,7 +293,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 					n := len(cn.List)
 					arr = append(arr, cn.List[0:n-1]...)
 					arr = append(arr, nst, cn.List[n-1])
-					log.Printf("new list %+s", arr)
+					// log.Printf("new list %+s", arr)
 					cn.List = arr
 					// c.Replace(cn)
 					// log.Printf("nst: %s", showNode(nst))
@@ -309,15 +313,14 @@ func (doc *Document) genStores(dropfirst bool) error {
 		}
 		return true
 	})
-	log.Printf("found %+v,last wrap method: %s", foundWM, lastWM)
+	// log.Printf("found %+v,last wrap method: %s", foundWM, lastWM)
 	if len(foundWM) == 0 {
 		wva.rewrite(nil, func(c *astutil.Cursor) bool {
 			if cn, ok := c.Node().(*ast.FuncDecl); ok && cn.Name.Name == lastWM {
 				for _, store := range doc.Stores {
 					c.InsertAfter(wrapNewFunc(&store, cn))
-					log.Printf("insert func %s", store.IName)
+					log.Printf("insert func %s", store.GetIName())
 				}
-
 			}
 			return true
 		})
@@ -325,7 +328,9 @@ func (doc *Document) genStores(dropfirst bool) error {
 	// log.Printf("rewrite: %s", string(wva.body))
 	err = ioutil.WriteFile(sfile, wva.body, 0644)
 	if err != nil {
-		log.Printf("write w fail %s", err)
+		log.Printf("write %s fail %s", storewf, err)
+	} else {
+		log.Printf("write %s OK", storewf)
 	}
 
 	iffile := path.Join(doc.dirsto, "interfaces.go")
@@ -339,6 +344,8 @@ func (doc *Document) genStores(dropfirst bool) error {
 		err = ioutil.WriteFile(iffile, vd.body, 0644)
 		if err != nil {
 			log.Printf("write i fail %s", err)
+		} else {
+			log.Printf("patch interfaces OK")
 		}
 	}
 
@@ -410,7 +417,7 @@ func (doc *Document) genWebAPI() error {
 	if !ok {
 		log.Fatalf("type %v is not a struct", obj)
 	}
-	log.Printf("NumMethods: %d", objType.NumMethods())
+	// log.Printf("NumMethods: %d", objType.NumMethods())
 	doc.lock.Lock()
 	for i := 0; i < objType.NumMethods(); i++ {
 		smt := objType.Method(i)
@@ -439,7 +446,7 @@ func (doc *Document) genWebAPI() error {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
 	}
-	log.Printf("generated for %s ok", doc.dirweb)
+	log.Printf("generated '%s/%s' ok", doc.dirweb, "handle_"+doc.name)
 	return nil
 }
 

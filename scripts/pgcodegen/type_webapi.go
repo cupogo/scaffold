@@ -54,9 +54,11 @@ type UriSpot struct {
 }
 
 type WebAPI struct {
-	Pkg     string    `yaml:"pkg"`
-	Handles []Handle  `yaml:"handles"`
-	URIs    []UriSpot `yaml:"uris"`
+	Pkg      string    `yaml:"pkg"`
+	Handles  []Handle  `yaml:"handles"`
+	URIs     []UriSpot `yaml:"uris"`
+	NeedAuth bool      `yaml:"needAuth,omitempty"`
+	TagLabel string    `yaml:"tagLabel,omitempty"`
 
 	once sync.Once
 
@@ -110,7 +112,10 @@ func (wa *WebAPI) prepareHandles() {
 					hdl.Route, hdl.Name, hdl.Summary = u.getRoute(mth.action)
 					hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
 						mth.action == "Put" || mth.action == "Delete"
-					hdl.NeedAuth = hdl.NeedPerm
+					hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth
+					if len(wa.TagLabel) > 0 {
+						hdl.Tags = wa.TagLabel
+					}
 					wa.Handles = append(wa.Handles, hdl)
 				}
 			}
@@ -369,7 +374,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 	})
 
-	log.Printf("generate handle %s => %s done", h.Name, mth.Name)
+	// log.Printf("generate handle %s => %s done", h.Name, mth.Name)
 
 	return st
 }
