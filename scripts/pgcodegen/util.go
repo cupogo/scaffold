@@ -16,6 +16,8 @@ import (
 	"github.com/dave/dst/dstutil"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
+
+	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
 type empty struct{}
@@ -291,4 +293,26 @@ func newStoInterfaceMethod(name, ret string) *dst.Field {
 	f.Decorations().End.Append("// gened")
 
 	return f
+}
+
+func cutMethod(s string) (act string, tgt string, ok bool) {
+	var foundLow bool
+	var foundUp bool
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if utils.IsUpper(c) {
+			if foundUp && foundLow || i > 2 { // PutObject, putObject
+				act = s[0:i]
+				tgt = s[i:]
+				ok = len(tgt) > 0
+				return
+			}
+			foundUp = true
+		}
+		if utils.IsLower(c) {
+			foundLow = true
+		}
+	}
+
+	return
 }
