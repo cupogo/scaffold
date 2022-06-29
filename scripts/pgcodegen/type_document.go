@@ -62,10 +62,13 @@ type Document struct {
 	WebAPI    *WebAPI `yaml:"webapi"`
 }
 
-func (doc *Document) getQual(k string) (string, bool) {
-	v, ok := doc.Qualified[k]
-	// log.Printf("get qual: k %s, v %s, ok %v", k, v, ok)
-	return v, ok
+func (doc *Document) getQual(k string) (qu string, ok bool) {
+	if len(k) > 0 && k[0] == '*' {
+		k = k[1:]
+	}
+	qu, ok = doc.Qualified[k]
+	log.Printf("get qual: k %s, v %s, ok %v", k, qu, ok)
+	return
 }
 
 func (doc *Document) getModQual(k string) (string, bool) {
