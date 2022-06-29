@@ -66,9 +66,13 @@ func (f *Field) preCode() (st *jen.Statement) {
 
 	if len(f.Qual) > 0 {
 		st.Qual(f.Qual, f.Type)
-	} else if pos := strings.Index(f.Type, "."); pos > 0 {
-		if qual, ok := getQual(f.Type[0:pos]); ok {
-			st.Qual(qual, f.Type[pos+1:])
+	} else if a, b, ok := strings.Cut(f.Type, "."); ok {
+		if len(a) > 0 && a[0] == '*' {
+			st.Op("*")
+		}
+		log.Printf("field %s qual: %s", f.Name, f.Type)
+		if qual, ok := getQual(a); ok {
+			st.Qual(qual, b)
 		} else {
 			log.Printf("get qual %s fail", f.Type)
 		}
@@ -112,6 +116,15 @@ func (f *Field) ColName() (string, bool) {
 		}
 	}
 	return utils.Underscore(f.Name), false
+}
+
+func (f *Field) relMode() (string, bool) {
+	if s, ok := f.Tags["pg"]; ok && len(s) > 0 {
+		if s == "rel:has-one" {
+			return "has-one", true
+		}
+	}
+	return "", false
 }
 
 func (f *Field) queryCode() jen.Code {
@@ -159,6 +172,18 @@ func (f Fields) Codes() (mcs, bcs []jen.Code) {
 	return
 }
 
+func (z Fields) relHasOne() (col string, ok bool) {
+	for i := range z {
+		if _, ok := z[i].relMode(); ok && i > 0 {
+			// 上一个字段必须指向关联的主键
+			if z[i-1].Name == z[i].Name+"ID" {
+				return z[i].Name, true
+			}
+		}
+	}
+	return "", false
+}
+
 type Model struct {
 	Comment  string `yaml:"comment,omitempty"`
 	Name     string `yaml:"name"`
@@ -166,6 +191,7 @@ type Model struct {
 	Fields   Fields `yaml:"fields"`
 	Plural   string `json:"plural"`
 	OIDCat   string `json:"oidcat,omitempty"`
+	RelSift  bool   `yaml:"relSift,omitempty"`
 }
 
 func (m *Model) String() string {
@@ -400,6 +426,9 @@ func (m *Model) getSpecCodes() jen.Code {
 				)
 			}
 			g.Line()
+			if col, ok := m.Fields.relHasOne(); ok && m.RelSift {
+				g.Id("q").Dot("Relation").Call(jen.Lit(col)).Line()
+			}
 			g.Return(jen.Id("q"), jen.Nil())
 		}).Line()
 	}
