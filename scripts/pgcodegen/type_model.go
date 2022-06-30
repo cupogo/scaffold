@@ -70,7 +70,7 @@ func (f *Field) preCode() (st *jen.Statement) {
 		if len(a) > 0 && a[0] == '*' {
 			st.Op("*")
 		}
-		log.Printf("field %s qual: %s", f.Name, f.Type)
+		// log.Printf("field %s qual: %s", f.Name, f.Type)
 		if qual, ok := getQual(a); ok {
 			st.Qual(qual, b)
 		} else {
@@ -187,10 +187,11 @@ func (z Fields) relHasOne() (col string, ok bool) {
 type Model struct {
 	Comment  string `yaml:"comment,omitempty"`
 	Name     string `yaml:"name"`
-	TableTag string `yaml:"tableTag"`
+	TableTag string `yaml:"tableTag,omitempty"`
 	Fields   Fields `yaml:"fields"`
-	Plural   string `json:"plural"`
-	OIDCat   string `json:"oidcat,omitempty"`
+	Plural   string `yaml:"plural,omitempty"`
+	OIDCat   string `yaml:"oidcat,omitempty"`
+	Hooks    Maps   `yaml:"hooks,omitempty"`
 }
 
 func (m *Model) String() string {
@@ -447,6 +448,11 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 
 	return st
+}
+
+func (m *Model) hasHook(k string) (v string, ok bool) {
+	v, ok = m.Hooks[k]
+	return
 }
 
 func metaUpCode() jen.Code {

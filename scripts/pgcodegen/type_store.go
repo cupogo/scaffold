@@ -10,6 +10,10 @@ import (
 	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
+const (
+	afterSaving = "afterSaving"
+)
+
 type Var struct {
 	Name string `yaml:"name"`
 	Type string `yaml:"type"`
@@ -17,7 +21,7 @@ type Var struct {
 
 type Method struct {
 	Name   string `yaml:"name"`
-	Simple bool   `yaml:"simple"`
+	Simple bool   `yaml:"simple,omitempty"`
 	Args   []Var  `yaml:"args,omitempty"`
 	Rets   []Var  `yaml:"rets,omitempty"`
 
@@ -80,19 +84,16 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			log.Fatalf("inalid method: %s", mth.Name)
 			return
 		}
+		mod, modok := doc.modelWithName(mname)
+		if !modok {
+			panic("invalid model: " + mname)
+		}
+		swdb := jen.Id("s").Dot("w").Dot("db")
 		// log.Printf("act %s, %s, %v", act, mname, ok)
 		if act == "List" {
 			tname := mname + "Spec"
-			var slicename string
-			var tspec jen.Code
-			if m, ok := doc.modelWithName(mname); ok {
-				slicename = m.GetPlural()
-				tspec = m.getSpecCodes()
-			} else {
-				slicename = mname + "s"
-				comm, _ := getQual("comm")
-				tspec = jen.Type().Id(tname).Struct(jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec")).Line()
-			}
+			slicename := mod.GetPlural()
+			tspec := mod.getSpecCodes()
 
 			tcs = append(tcs, tspec)
 			args = append(args, jen.Id("spec").Op("*").Id(tname))
@@ -101,7 +102,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			bcs = append(bcs, jen.Block(
 				jen.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
 					jen.Id("spec"),
-					jen.Id("s").Dot("w").Dot("db").Dot("Model").
+					jen.Add(swdb).Dot("Model").
 						Call(jen.Op("&").Id("data")).Dot("Apply").
 						Call(jen.Id("spec").Dot("Sift")),
 				),
@@ -114,7 +115,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			bcs = append(bcs, jen.Block(
 				jen.Id("obj").Op("=").New(jen.Qual(modpkg, mname)),
 				jen.Id("err").Op("=").Id("getModelWithPKOID").Call(
-					jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"), jen.Id("id")), //err = getModelWithPKOID(s.w.db, obj, id)
+					swdb, jen.Id("obj"), jen.Id("id")), //err = getModelWithPKOID(s.w.db, obj, id)
 				jen.Return(),
 			))
 			nap = append(nap, false)
@@ -124,38 +125,51 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Op("*").Id("in").Op(","))
-				if m, ok := doc.modelWithName(mname); ok {
-					if m.hasMeta() {
-						g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
-							jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
-					}
+
+				if mod.hasMeta() {
+					g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
+						jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
 				}
-				targs := []jen.Code{jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj")}
+				targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 				if fn, cn, isuniq := getModel(mname).Uniques(); isuniq {
 					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 				}
 				g.Id("err").Op("=").Id("dbInsert").Call(targs...)
+
+				if hk, ok := mod.hasHook(afterSaving); ok {
+					g.If(jen.Err().Op("==")).Nil().Block(
+						jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
+					)
+				}
+
 				g.Return()
 			}))
 			nap = append(nap, false)
 		} else if act == "Update" {
 			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
 			rets = append(rets, jen.Id("err").Error())
-			bcs = append(bcs, jen.Block(
-				jen.Id("exist").Op(":=").New(jen.Qual(modpkg, mname)),
-				jen.Id("err").Op("=").Id("getModelWithPKOID").Call(
-					jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("id"),
-				),
-				jen.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return()),
-				jen.Id("cs").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in")),
-				jen.If(jen.Len(jen.Id("cs")).Op("==").Lit(0)).Block(
+			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
+				g.Id("err").Op("=").Id("getModelWithPKOID").Call(
+					swdb, jen.Id("exist"), jen.Id("id"),
+				)
+				g.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return())
+				g.Id("cs").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+				g.If(jen.Len(jen.Id("cs")).Op("==").Lit(0)).Block(
 					jen.Return(),
-				),
-				jen.Err().Op("=").Id("dbUpdate").Call(
-					jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("cs..."),
-				),
-				jen.Return(),
-			))
+				)
+				g.Err().Op("=").Id("dbUpdate").Call(
+					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
+				)
+
+				if hk, ok := mod.hasHook(afterSaving); ok {
+					g.If(jen.Err().Op("==")).Nil().Block(
+						jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+					)
+				}
+
+				g.Return()
+			}))
 			nap = append(nap, false)
 		} else if act == "Put" {
 			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
@@ -171,14 +185,14 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				if mth.Simple {
 					g.Id("cs").Op(":=").Id("obj").Dot("SetWith").Call(jen.Id("in"))
 					g.Err().Op("=").Id("dbStoreSimple").Call(
-						jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("obj"), jen.Id("cs..."),
+						jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("cs..."),
 					)
 					g.Id("nid").Op("=").Id("obj").Dot("StringID").Call()
 				} else {
 					g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
 					g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
 					cpms := []jen.Code{
-						jen.Id("ctx"), jen.Id("s").Dot("w").Dot("db"), jen.Id("exist"), jen.Id("obj"),
+						jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("obj"),
 						jen.Func().Params().Index().String().Block(
 							jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
 						),
