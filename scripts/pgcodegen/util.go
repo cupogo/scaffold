@@ -148,7 +148,7 @@ func existVarField(list *ast.FieldList, name string) bool {
 	for _, field := range list.List {
 		for _, id := range field.Names {
 			if id.Obj.Kind == ast.Var && id.Name == name {
-				log.Printf("exist field %s", name)
+				// log.Printf("exist field %s", name)
 				return true
 			}
 		}
@@ -218,7 +218,7 @@ func existBlockAssign(block *ast.BlockStmt, name string) bool {
 		if as, ok := st.(*ast.AssignStmt); ok {
 			if len(as.Lhs) > 0 && len(as.Rhs) > 0 {
 				if se, ok := as.Lhs[0].(*ast.SelectorExpr); ok && se.Sel.Name == name {
-					log.Printf("exist assign %s", name)
+					// log.Printf("exist assign %s", name)
 					return true
 				}
 			}

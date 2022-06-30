@@ -55,8 +55,8 @@ type UriSpot struct {
 
 type WebAPI struct {
 	Pkg      string    `yaml:"pkg"`
-	Handles  []Handle  `yaml:"handles"`
-	URIs     []UriSpot `yaml:"uris"`
+	Handles  []Handle  `yaml:"handles,omitempty"`
+	URIs     []UriSpot `yaml:"uris,omitempty"`
 	NeedAuth bool      `yaml:"needAuth,omitempty"`
 	TagLabel string    `yaml:"tagLabel,omitempty"`
 

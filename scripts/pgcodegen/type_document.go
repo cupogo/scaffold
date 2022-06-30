@@ -98,7 +98,7 @@ func NewDoc(docfile string) (*Document, error) {
 	doc.methods = make(map[string]Method)
 	doc.modtypes = make(map[string]empty)
 
-	log.Printf("loaded %d models, out name %q", len(doc.Models), doc.name)
+	log.Printf("loaded %d models", len(doc.Models))
 	// log.Printf("loaded webapi uris %+v", doc.WebAPI.URIs)
 
 	return doc, nil
@@ -144,7 +144,7 @@ func (doc *Document) genModels(dropfirst bool) error {
 	}
 
 	outname := path.Join(doc.dirmod, doc.name)
-	log.Printf("%s: %s", doc.ModelPkg, outname)
+	// log.Printf("%s: %s", doc.ModelPkg, outname)
 	if dropfirst && osutil.CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
