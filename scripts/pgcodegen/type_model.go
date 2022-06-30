@@ -191,7 +191,6 @@ type Model struct {
 	Fields   Fields `yaml:"fields"`
 	Plural   string `json:"plural"`
 	OIDCat   string `json:"oidcat,omitempty"`
-	RelSift  bool   `yaml:"relSift,omitempty"`
 }
 
 func (m *Model) String() string {
@@ -407,6 +406,18 @@ func (m *Model) getSpecCodes() jen.Code {
 		}
 	}
 
+	var withRel string
+	relName, relOk := m.Fields.relHasOne()
+	if relOk {
+		withRel = "WithRel"
+		jtag := "rel"
+		field := &Field{
+			Name: withRel,
+			Type: "bool", Tags: Maps{"json": jtag},
+			Comment: "include relation column"}
+		fcs = append(fcs, jen.Empty(), field.queryCode())
+	}
+
 	tname := m.Name + "Spec"
 	st := jen.Type().Id(tname).Struct(fcs...).Line()
 	if len(fcs) > 2 {
@@ -426,8 +437,10 @@ func (m *Model) getSpecCodes() jen.Code {
 				)
 			}
 			g.Line()
-			if col, ok := m.Fields.relHasOne(); ok && m.RelSift {
-				g.Id("q").Dot("Relation").Call(jen.Lit(col)).Line()
+			if relOk {
+				g.If(jen.Id("spec").Dot(withRel)).Block(
+					jen.Id("q").Dot("Relation").Call(jen.Lit(relName)),
+				).Line()
 			}
 			g.Return(jen.Id("q"), jen.Nil())
 		}).Line()

@@ -67,7 +67,7 @@ func (doc *Document) getQual(k string) (qu string, ok bool) {
 		k = k[1:]
 	}
 	qu, ok = doc.Qualified[k]
-	log.Printf("get qual: k %s, v %s, ok %v", k, qu, ok)
+	// log.Printf("get qual: k %s, v %s, ok %v", k, qu, ok)
 	return
 }
 
