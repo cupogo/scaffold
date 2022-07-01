@@ -131,15 +131,28 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 						jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
 				}
 				targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
-				if fn, cn, isuniq := getModel(mname).Uniques(); isuniq {
+				if fn, cn, isuniq := mod.Uniques(); isuniq {
 					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 				}
-				g.Id("err").Op("=").Id("dbInsert").Call(targs...)
 
-				if hk, ok := mod.hasHook(afterSaving); ok {
-					g.If(jen.Err().Op("==")).Nil().Block(
-						jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
-					)
+				if len(mod.Hooks) > 0 {
+					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+						g1.Id("ctx")
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Error()).BlockFunc(func(g2 *jen.Group) {
+							g2.Id("err").Op(":=").Id("dbInsert").Call(targs...)
+							if hk, ok := mod.hasHook(afterSaving); ok {
+								g2.If(jen.Err().Op("==")).Nil().Block(
+									jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
+								)
+							}
+
+							g2.Return(jen.Err())
+						})
+
+					})
+
+				} else {
+					g.Id("err").Op("=").Id("dbInsert").Call(targs...)
 				}
 
 				g.Return()
@@ -158,13 +171,29 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				g.If(jen.Len(jen.Id("cs")).Op("==").Lit(0)).Block(
 					jen.Return(),
 				)
-				g.Err().Op("=").Id("dbUpdate").Call(
-					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
-				)
 
-				if hk, ok := mod.hasHook(afterSaving); ok {
-					g.If(jen.Err().Op("==")).Nil().Block(
-						jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+				if len(mod.Hooks) > 0 {
+					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+						g1.Id("ctx")
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Error()).BlockFunc(func(g2 *jen.Group) {
+							g2.Err().Op(":=").Id("dbUpdate").Call(
+								jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
+							)
+
+							if hk, ok := mod.hasHook(afterSaving); ok {
+								g2.If(jen.Err().Op("==")).Nil().Block(
+									jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+								)
+							}
+
+							g2.Return(jen.Err())
+						})
+
+					})
+
+				} else {
+					g.Err().Op("=").Id("dbUpdate").Call(
+						jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
 					)
 				}
 
@@ -197,7 +226,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 							jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
 						),
 					}
-					if fn, cn, isuniq := getModel(mname).Uniques(); isuniq {
+					if fn, cn, isuniq := mod.Uniques(); isuniq {
 						cpms = append(cpms, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 					}
 					g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
