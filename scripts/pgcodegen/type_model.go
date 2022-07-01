@@ -172,16 +172,16 @@ func (f Fields) Codes() (mcs, bcs []jen.Code) {
 	return
 }
 
-func (z Fields) relHasOne() (col string, ok bool) {
+func (z Fields) relHasOne() (cols []string) {
 	for i := range z {
 		if _, ok := z[i].relMode(); ok && i > 0 {
 			// 上一个字段必须指向关联的主键
 			if z[i-1].Name == z[i].Name+"ID" {
-				return z[i].Name, true
+				cols = append(cols, z[i].Name)
 			}
 		}
 	}
-	return "", false
+	return
 }
 
 type Model struct {
@@ -408,8 +408,8 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 
 	var withRel string
-	relName, relOk := m.Fields.relHasOne()
-	if relOk {
+	relNames := m.Fields.relHasOne()
+	if len(relNames) > 0 {
 		withRel = "WithRel"
 		jtag := "rel"
 		field := &Field{
@@ -438,10 +438,13 @@ func (m *Model) getSpecCodes() jen.Code {
 				)
 			}
 			g.Line()
-			if relOk {
-				g.If(jen.Id("spec").Dot(withRel)).Block(
-					jen.Id("q").Dot("Relation").Call(jen.Lit(relName)),
-				).Line()
+			if len(relNames) > 0 {
+				log.Printf("%s relNames %+v", m.Name, relNames)
+				g.If(jen.Id("spec").Dot(withRel)).BlockFunc(func(g *jen.Group) {
+					for _, relName := range relNames {
+						g.Id("q").Dot("Relation").Call(jen.Lit(relName))
+					}
+				}).Line()
 			}
 			g.Return(jen.Id("q"), jen.Nil())
 		}).Line()
