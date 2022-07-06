@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	afterSaving = "afterSaving"
+	afterSaving    = "afterSaving"
+	beforeCreating = "beforeCreating"
+	afterDeleting  = "afterDeleting"
 )
 
 type Var struct {
@@ -138,8 +140,13 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				if len(mod.Hooks) > 0 {
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
-						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Error()).BlockFunc(func(g2 *jen.Group) {
-							g2.Id("err").Op(":=").Id("dbInsert").Call(targs...)
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+							if hk, ok := mod.hasHook(beforeCreating); ok {
+								g2.If(jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+									jen.Return(jen.Err()),
+								)
+							}
+							g2.Id("err").Op("=").Id("dbInsert").Call(targs...)
 							if hk, ok := mod.hasHook(afterSaving); ok {
 								g2.If(jen.Err().Op("==")).Nil().Block(
 									jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")),

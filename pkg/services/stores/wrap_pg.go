@@ -31,8 +31,9 @@ var (
 	ErrNoRows = pg.ErrNoRows
 
 	queryPager         = pgx.QueryPager
-	getModelWherePK    = pgx.ModelWherePK //nolint
-	getModelWithPKOID  = pgx.ModelWithPKOID
+	getModelWherePK    = pgx.ModelWherePK    //nolint
+	getModelWithPKID   = pgx.ModelWithPKID   //nolint
+	getModelWithPKOID  = pgx.ModelWithPKID   //nolint
 	getModelWithUnique = pgx.ModelWithUnique //nolint
 	dbInsert           = pgx.DoInsert
 	dbUpdate           = pgx.DoUpdate
