@@ -80,8 +80,7 @@ func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.Clause
 func (s *contentStore) DeleteClause(ctx context.Context, id string) (err error) {
 	obj := new(cms1.Clause)
 	if !obj.SetID(id) {
-		err = errors.NewErrInvalidID(id)
-		return
+		return errors.NewErrInvalidID(id)
 	}
 	return s.w.db.OpDeleteAny(ctx, "cms_clause", obj.ID)
 }
