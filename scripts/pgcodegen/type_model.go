@@ -13,6 +13,7 @@ import (
 
 const (
 	oidQual   = "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	errsQual  = "hyyl.xyz/cupola/aurora/pkg/services/errors"
 	metaField = "comm.MetaField"
 )
 

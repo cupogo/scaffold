@@ -217,7 +217,10 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Err().Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
-				g.Id("obj").Dot("SetID").Call(jen.Id("id"))
+				g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
+					jen.Err().Op("=").Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
+					jen.Return(),
+				)
 				if mth.Simple {
 					g.Id("cs").Op(":=").Id("obj").Dot("SetWith").Call(jen.Id("in"))
 					g.Err().Op("=").Id("dbStoreSimple").Call(
@@ -246,8 +249,8 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			args = append(args, jen.Id("id").String())
 			rets = append(rets, jen.Err().Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
 				if hk, ok := mod.hasHook(afterDeleting); ok {
-					g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
 					g.If(jen.Id("err").Op("=").Id("getModelWithPKID").Call(
 						swdb, jen.Id("obj"), jen.Id("id"),
 					).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return())
@@ -259,7 +262,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 							g2.If(jen.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), swdb,
 								jen.Add(swdb).Dot("Schema").Call(),
 								jen.Add(swdb).Dot("SchemaCrap").Call(),
-								jen.Lit(mod.tableName()), jen.Id("id")).Op(";").Err().Op("!=").Nil()).Block(
+								jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID")).Op(";").Err().Op("!=").Nil()).Block(
 								jen.Return(),
 							)
 							g2.Return(jen.Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")))
@@ -268,8 +271,12 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					})
 					g.Return()
 				} else {
-					g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteOID").Call(
-						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("id"),
+					g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
+						jen.Err().Op("=").Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
+						jen.Return(),
+					)
+					g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
+						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
 					))
 				}
 

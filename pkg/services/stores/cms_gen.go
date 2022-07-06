@@ -5,6 +5,7 @@ package stores
 import (
 	"context"
 	comm "hyyl.xyz/cupola/aurora/pkg/models/comm"
+	errors "hyyl.xyz/cupola/aurora/pkg/services/errors"
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 
@@ -67,14 +68,22 @@ func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clau
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error) {
 	obj := new(cms1.Clause)
-	obj.SetID(id)
+	if !obj.SetID(id) {
+		err = errors.NewErrInvalidID(id)
+		return
+	}
 	cs := obj.SetWith(in)
 	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
 	nid = obj.StringID()
 	return
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) (err error) {
-	return s.w.db.OpDeleteOID(ctx, "cms_clause", id)
+	obj := new(cms1.Clause)
+	if !obj.SetID(id) {
+		err = errors.NewErrInvalidID(id)
+		return
+	}
+	return s.w.db.OpDeleteAny(ctx, "cms_clause", obj.ID)
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
@@ -112,7 +121,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) (err error)
 		return
 	}
 	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
-		if err = dbDeleteT(ctx, s.w.db, s.w.db.Schema(), s.w.db.SchemaCrap(), "cms_article", id); err != nil {
+		if err = dbDeleteT(ctx, s.w.db, s.w.db.Schema(), s.w.db.SchemaCrap(), "cms_article", obj.ID); err != nil {
 			return
 		}
 		return dbAfterDeleteArticle(ctx, s.w.db, obj)
