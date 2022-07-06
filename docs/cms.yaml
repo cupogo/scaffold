@@ -27,6 +27,8 @@ models:
         isset: true
         comment: 内容
     oidcat: article
+    hooks:
+      afterDeleting: dbAfterDeleteArticle
 
   - name: Clause
     comment: '条款'

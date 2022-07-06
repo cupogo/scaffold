@@ -37,6 +37,7 @@ var (
 	getModelWithUnique = pgx.ModelWithUnique //nolint
 	dbInsert           = pgx.DoInsert
 	dbUpdate           = pgx.DoUpdate
+	dbDeleteT          = pgx.DoDeleteT     //nolint
 	dbStoreSimple      = pgx.StoreSimple   //nolint
 	dbStoreWithCall    = pgx.StoreWithCall //nolint
 

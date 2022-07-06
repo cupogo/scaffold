@@ -116,8 +116,8 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.Block(
 				jen.Id("obj").Op("=").New(jen.Qual(modpkg, mname)),
-				jen.Id("err").Op("=").Id("getModelWithPKOID").Call(
-					swdb, jen.Id("obj"), jen.Id("id")), //err = getModelWithPKOID(s.w.db, obj, id)
+				jen.Id("err").Op("=").Id("getModelWithPKID").Call(
+					swdb, jen.Id("obj"), jen.Id("id")),
 				jen.Return(),
 			))
 			nap = append(nap, false)
@@ -137,19 +137,21 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 				}
 
-				if len(mod.Hooks) > 0 {
+				hk1, ok1 := mod.hasHook(beforeCreating)
+				hk2, ok2 := mod.hasHook(afterSaving)
+				if ok1 || ok2 {
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
-							if hk, ok := mod.hasHook(beforeCreating); ok {
-								g2.If(jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+							if ok1 {
+								g2.If(jen.Err().Op("=").Id(hk1).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(jen.Err()),
 								)
 							}
 							g2.Id("err").Op("=").Id("dbInsert").Call(targs...)
-							if hk, ok := mod.hasHook(afterSaving); ok {
+							if ok2 {
 								g2.If(jen.Err().Op("==")).Nil().Block(
-									jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
+									jen.Err().Op("=").Id(hk2).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
 								)
 							}
 
@@ -170,7 +172,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
-				g.Id("err").Op("=").Id("getModelWithPKOID").Call(
+				g.Id("err").Op("=").Id("getModelWithPKID").Call(
 					swdb, jen.Id("exist"), jen.Id("id"),
 				)
 				g.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return())
@@ -179,7 +181,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					jen.Return(),
 				)
 
-				if len(mod.Hooks) > 0 {
+				if hk, ok := mod.hasHook(afterSaving); ok {
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Error()).BlockFunc(func(g2 *jen.Group) {
@@ -187,11 +189,9 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 								jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
 							)
 
-							if hk, ok := mod.hasHook(afterSaving); ok {
-								g2.If(jen.Err().Op("==")).Nil().Block(
-									jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
-								)
-							}
+							g2.If(jen.Err().Op("==")).Nil().Block(
+								jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+							)
 
 							g2.Return(jen.Err())
 						})
@@ -244,12 +244,36 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 
 		} else if act == "Delete" {
 			args = append(args, jen.Id("id").String())
-			rets = append(rets, jen.Error())
-			bcs = append(bcs, jen.Block(
-				jen.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDelete").Call(
-					jen.Id("ctx"), jen.Lit(getTableName(mname)), jen.Id("id"),
-				)), // dbOpDelete(ctx, tableClause, id)
-			).Line())
+			rets = append(rets, jen.Err().Error())
+			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				if hk, ok := mod.hasHook(afterDeleting); ok {
+					g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
+					g.If(jen.Id("err").Op("=").Id("getModelWithPKID").Call(
+						swdb, jen.Id("obj"), jen.Id("id"),
+					).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return())
+
+					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+						g1.Id("ctx")
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+
+							g2.If(jen.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), swdb,
+								jen.Add(swdb).Dot("Schema").Call(),
+								jen.Add(swdb).Dot("SchemaCrap").Call(),
+								jen.Lit(mod.tableName()), jen.Id("id")).Op(";").Err().Op("!=").Nil()).Block(
+								jen.Return(),
+							)
+							g2.Return(jen.Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")))
+						})
+
+					})
+					g.Return()
+				} else {
+					g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteOID").Call(
+						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("id"),
+					))
+				}
+
+			}).Line())
 			nap = append(nap, true)
 		} else {
 			log.Printf("unknown action: %s", act)

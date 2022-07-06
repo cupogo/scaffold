@@ -94,8 +94,14 @@ func (f *Field) Code() jen.Code {
 	st.Add(f.preCode())
 
 	if len(f.Tags) > 0 {
-		// log.Printf("%s: %+v", f.Name, f.Tags)
-		st.Tag(f.Tags)
+		tags := f.Tags.Copy()
+		if j, ok := tags["json"]; ok && !strings.Contains(j, ",omitempty") {
+			if strings.HasSuffix(f.Type, "DateTime") {
+				tags["json"] = j + ",omitempty"
+			}
+		}
+		// log.Printf("%s: %+v", f.Name, tags)
+		st.Tag(tags)
 	}
 
 	if len(f.Name) == 0 {
