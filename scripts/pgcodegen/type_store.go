@@ -272,8 +272,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					g.Return()
 				} else {
 					g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
-						jen.Err().Op("=").Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
-						jen.Return(),
+						jen.Return().Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
 					)
 					g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
 						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
