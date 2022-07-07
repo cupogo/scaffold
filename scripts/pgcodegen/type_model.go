@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	oidQual   = "hyyl.xyz/cupola/aurora/pkg/models/oid"
-	errsQual  = "hyyl.xyz/cupola/aurora/pkg/services/errors"
-	metaField = "comm.MetaField"
+	oidQual    = "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	errsQual   = "hyyl.xyz/cupola/aurora/pkg/services/errors"
+	metaField  = "comm.MetaField"
+	auditField = "evnt.AuditFields"
 )
 
 func qual(args ...string) jen.Code {
@@ -50,6 +51,10 @@ type Field struct {
 
 func (f *Field) isMeta() bool {
 	return f.Name == metaField || f.Type == metaField
+}
+
+func (f *Field) isAudit() bool {
+	return f.Name == auditField || f.Type == auditField
 }
 
 func (f *Field) preCode() (st *jen.Statement) {
@@ -365,6 +370,15 @@ func (m *Model) hasMeta() bool {
 	return false
 }
 
+func (m *Model) hasAudit() bool {
+	for i := range m.Fields {
+		if m.Fields[i].isAudit() {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *Model) hasHooks() (bool, string) {
 	var hasDefaultModel bool
 	var hasIDField bool
@@ -404,6 +418,9 @@ func (m *Model) getSpecCodes() jen.Code {
 	comm, _ := getQual("comm")
 	var fcs []jen.Code
 	fcs = append(fcs, jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec"))
+	if m.hasAudit() {
+		fcs = append(fcs, jen.Id("AuditSpec"))
+	}
 	specFields := m.specFields()
 	if len(specFields) > 0 {
 		fcs = append(fcs, jen.Empty())
@@ -433,6 +450,9 @@ func (m *Model) getSpecCodes() jen.Code {
 			Params(jen.Op("*").Id("ormQuery"), jen.Error())
 		st.BlockFunc(func(g *jen.Group) {
 			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("MDftSpec").Dot("Sift").Call(jen.Id("q"))
+			if m.hasAudit() {
+				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
+			}
 			for _, field := range specFields {
 				cfn := "siftEquel"
 				if field.isOid {

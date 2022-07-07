@@ -11,8 +11,10 @@ import (
 )
 
 const (
+	beforeSaving   = "beforeSaving"
 	afterSaving    = "afterSaving"
 	beforeCreating = "beforeCreating"
+	beforeUpdating = "beforeUpdating"
 	afterDeleting  = "afterDeleting"
 )
 
@@ -137,21 +139,26 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 				}
 
-				hk1, ok1 := mod.hasHook(beforeCreating)
-				hk2, ok2 := mod.hasHook(afterSaving)
-				if ok1 || ok2 {
+				hkBC, okBC := mod.hasHook(beforeCreating)
+				hkBS, okBS := mod.hasHook(beforeSaving)
+				hkAS, okAS := mod.hasHook(afterSaving)
+				if okBC || okBS || okAS {
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
-							if ok1 {
-								g2.If(jen.Err().Op("=").Id(hk1).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+							if okBC {
+								g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+									jen.Return(jen.Err()),
+								)
+							} else if okBS {
+								g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(jen.Err()),
 								)
 							}
 							g2.Id("err").Op("=").Id("dbInsert").Call(targs...)
-							if ok2 {
+							if okAS {
 								g2.If(jen.Err().Op("==")).Nil().Block(
-									jen.Err().Op("=").Id(hk2).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
+									jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
 								)
 							}
 
@@ -181,19 +188,33 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					jen.Return(),
 				)
 
-				if hk, ok := mod.hasHook(afterSaving); ok {
+				hkBU, okBU := mod.hasHook(beforeUpdating)
+				hkBS, okBS := mod.hasHook(beforeSaving)
+				hkAS, okAS := mod.hasHook(afterSaving)
+				if okBU || okBS || okAS {
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
-						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Error()).BlockFunc(func(g2 *jen.Group) {
-							g2.Err().Op(":=").Id("dbUpdate").Call(
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+							if okBU {
+								g2.If(jen.Id("cs").Op(",").Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs")).Op(";").Err().Op("!=")).Nil().Block(
+									jen.Return(),
+								)
+							} else if okBS {
+								g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), swdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
+									jen.Return(),
+								)
+							}
+							g2.Err().Op("=").Id("dbUpdate").Call(
 								jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
 							)
 
-							g2.If(jen.Err().Op("==")).Nil().Block(
-								jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
-							)
+							if okBS {
+								g2.If(jen.Err().Op("==")).Nil().Block(
+									jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+								)
+							}
 
-							g2.Return(jen.Err())
+							g2.Return()
 						})
 
 					})
