@@ -192,7 +192,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				hkBS, okBS := mod.hasHook(beforeSaving)
 				hkAS, okAS := mod.hasHook(afterSaving)
 				if okBU || okBS || okAS {
-					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+					g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 							if okBU {
@@ -204,28 +204,29 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 									jen.Return(),
 								)
 							}
-							g2.Err().Op("=").Id("dbUpdate").Call(
+							jup := jen.Id("dbUpdate").Call(
 								jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
 							)
 
-							if okBS {
-								g2.If(jen.Err().Op("==")).Nil().Block(
-									jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+							if okAS {
+								g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
+									jen.Return().Id(hkAS).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
 								)
+								g2.Return()
+							} else {
+								g2.Return(jup)
 							}
 
-							g2.Return()
 						})
 
 					})
 
 				} else {
-					g.Err().Op("=").Id("dbUpdate").Call(
+					g.Return().Id("dbUpdate").Call(
 						jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
 					)
 				}
 
-				g.Return()
 			}))
 			nap = append(nap, false)
 		} else if act == "Put" {
