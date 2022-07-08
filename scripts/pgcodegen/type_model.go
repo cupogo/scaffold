@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	oidQual    = "hyyl.xyz/cupola/aurora/pkg/models/oid"
-	errsQual   = "hyyl.xyz/cupola/aurora/pkg/services/errors"
+	oidQual  = "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	errsQual = "hyyl.xyz/cupola/aurora/pkg/services/errors"
+
 	metaField  = "comm.MetaField"
 	auditField = "evnt.AuditFields"
 )
@@ -204,6 +205,8 @@ type Model struct {
 	Plural   string `yaml:"plural,omitempty"`
 	OIDCat   string `yaml:"oidcat,omitempty"`
 	Hooks    Maps   `yaml:"hooks,omitempty"`
+
+	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 }
 
 func (m *Model) String() string {
@@ -231,6 +234,9 @@ func (m *Model) TableField() jen.Code {
 	tt := m.TableTag
 	if tt == "" {
 		tt = utils.Underscore(m.GetPlural())
+	}
+	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
+		tt += ",discard_unknown_columns"
 	}
 	return jen.Id("tableName").Add(jen.Struct()).Tag(Maps{"pg": tt}).Line()
 }
