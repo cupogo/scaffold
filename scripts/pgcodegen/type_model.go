@@ -14,6 +14,7 @@ import (
 const (
 	oidQual  = "hyyl.xyz/cupola/aurora/pkg/models/oid"
 	errsQual = "hyyl.xyz/cupola/aurora/pkg/services/errors"
+	utilQual = "hyyl.xyz/cupola/aurora/pkg/services/utils"
 
 	metaField  = "comm.MetaField"
 	auditField = "evnt.AuditFields"
