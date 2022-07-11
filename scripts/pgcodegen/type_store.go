@@ -125,7 +125,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					g.If(jen.Err().Op("==").Nil()).Block(
 						jen.Err().Op("=").Id(hkAL).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
 					)
-				}
+				} // else TODO: load all relations
 				g.Return()
 			}))
 			nap = append(nap, false)

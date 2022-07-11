@@ -289,10 +289,14 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		log.Printf("unknown method: %s", h.Method)
 		return nil
 	}
-	act, _, ok := cutMethod(h.Method)
+	act, mname, ok := cutMethod(h.Method)
 	if !ok {
 		log.Printf("cut method %s fail", h.Method)
 		return nil
+	}
+	mod, modok := doc.modelWithName(mname)
+	if !modok {
+		panic("invalid model: " + mname)
 	}
 	// log.Printf("gen act %s, name %s, call %s", act, h.Name, mth.Name)
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
@@ -312,10 +316,31 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 			if act == "Get" {
-				// TODO: relation query
-				g.Id("obj").Op(",").Err().Add(jmcc).Call(
-					jctx, jen.Id("id"),
-				)
+				if rels := mod.Fields.relHasOne(); len(rels) > 0 {
+					jrels := jen.Id("rels")
+					g.Id("ctx").Op(":=").Add(jctx)
+					g.If(
+						jen.Id("rels").Op(",").Id("ok").Op(":=").Id("c").Dot("GetQueryArray").Call(jen.Lit("rel")).
+							Op(";").Id("ok").Op("&&").Len(jen.Id("rels")).Op(">").Lit(0)).
+						Block(
+							jen.If(jen.Id("rels").Op("=").Qual(utilQual, "FilterStrs").Call(jen.Index().String().ValuesFunc(func(g2 *jen.Group) {
+								for _, s := range rels {
+									g2.Lit(s)
+								}
+							}), jen.Id("rels")).Op(";").Len(jrels).Op(">").Lit(0)).Block(jen.Id("ctx").Op("=").Id("stores").Dot("ContextWithRelation").Call(
+								jen.Id("ctx"), jen.Id("rels").Op("..."),
+							),
+							),
+						)
+
+					g.Id("obj").Op(",").Err().Add(jmcc).Call(jen.Id("ctx"), jen.Id("id"))
+
+				} else {
+					g.Id("obj").Op(",").Err().Add(jmcc).Call(
+						jctx, jen.Id("id"),
+					)
+				}
+
 				g.If(jen.Err().Op("!=").Nil()).Block(
 					jfail(503)...,
 				).Line()
