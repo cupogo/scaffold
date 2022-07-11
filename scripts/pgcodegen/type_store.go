@@ -16,6 +16,7 @@ const (
 	beforeCreating = "beforeCreating"
 	beforeUpdating = "beforeUpdating"
 	afterDeleting  = "afterDeleting"
+	afterLoad      = "afterLoad"
 )
 
 type Var struct {
@@ -116,12 +117,17 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 		} else if act == "Get" {
 			args = append(args, jen.Id("id").String())
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
-			bcs = append(bcs, jen.Block(
-				jen.Id("obj").Op("=").New(jen.Qual(modpkg, mname)),
-				jen.Id("err").Op("=").Id("getModelWithPKID").Call(
-					swdb, jen.Id("obj"), jen.Id("id")),
-				jen.Return(),
-			))
+			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				g.Id("obj").Op("=").New(jen.Qual(modpkg, mname))
+				g.Id("err").Op("=").Id("getModelWithPKID").Call(
+					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
+				if hkAL, okAL := mod.hasHook(afterLoad); okAL {
+					g.If(jen.Err().Op("==").Nil()).Block(
+						jen.Err().Op("=").Id(hkAL).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+					)
+				}
+				g.Return()
+			}))
 			nap = append(nap, false)
 		} else if act == "Create" {
 			tname := mname + "Basic"
@@ -180,7 +186,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
 				g.Id("err").Op("=").Id("getModelWithPKID").Call(
-					swdb, jen.Id("exist"), jen.Id("id"),
+					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
 				)
 				g.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return())
 				g.Id("cs").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
@@ -274,7 +280,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
 				if hk, ok := mod.hasHook(afterDeleting); ok {
 					g.If(jen.Id("err").Op("=").Id("getModelWithPKID").Call(
-						swdb, jen.Id("obj"), jen.Id("id"),
+						jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
 					).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return())
 
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {

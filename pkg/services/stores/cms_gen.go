@@ -63,7 +63,7 @@ func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data c
 }
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
-	err = getModelWithPKID(s.w.db, obj, id)
+	err = getModelWithPKID(ctx, s.w.db, obj, id)
 	return
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in *cms1.ClauseSet) (nid string, err error) {
@@ -91,7 +91,7 @@ func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
 	obj = new(cms1.Article)
-	err = getModelWithPKID(s.w.db, obj, id)
+	err = getModelWithPKID(ctx, s.w.db, obj, id)
 	return
 }
 func (s *contentStore) CreateArticle(ctx context.Context, in *cms1.ArticleBasic) (obj *cms1.Article, err error) {
@@ -103,7 +103,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in *cms1.ArticleBasic)
 }
 func (s *contentStore) UpdateArticle(ctx context.Context, id string, in *cms1.ArticleSet) (err error) {
 	exist := new(cms1.Article)
-	err = getModelWithPKID(s.w.db, exist, id)
+	err = getModelWithPKID(ctx, s.w.db, exist, id)
 	if err != nil {
 		return
 	}
@@ -111,12 +111,11 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in *cms1.Ar
 	if len(cs) == 0 {
 		return
 	}
-	err = dbUpdate(ctx, s.w.db, exist, cs...)
-	return
+	return dbUpdate(ctx, s.w.db, exist, cs...)
 }
 func (s *contentStore) DeleteArticle(ctx context.Context, id string) (err error) {
 	obj := new(cms1.Article)
-	if err = getModelWithPKID(s.w.db, obj, id); err != nil {
+	if err = getModelWithPKID(ctx, s.w.db, obj, id); err != nil {
 		return
 	}
 	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {

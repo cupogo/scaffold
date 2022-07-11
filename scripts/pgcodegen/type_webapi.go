@@ -312,6 +312,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 			if act == "Get" {
+				// TODO: relation query
 				g.Id("obj").Op(",").Err().Add(jmcc).Call(
 					jctx, jen.Id("id"),
 				)
