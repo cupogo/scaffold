@@ -3,8 +3,7 @@ package main
 
 import (
 	"bytes"
-	"go/ast"
-	"go/format"
+	"fmt"
 	"go/parser"
 	"go/token"
 	"log"
@@ -14,7 +13,6 @@ import (
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
 	"github.com/dave/dst/dstutil"
-	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 
 	"hyyl.xyz/cupola/scaffold/pkg/utils"
@@ -53,101 +51,20 @@ func checkPackageObject(pkg *packages.Package, name string) bool {
 	return false
 }
 
-type Cursor = astutil.Cursor
-
-func loadTypes(name string) (objs []ast.Object) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, name, nil, parser.ParseComments|parser.DeclarationErrors)
-	if err != nil {
-		log.Printf("parse %s fail %s", name, err)
-		return
+func fieldecl(name, typ string) *dst.Field {
+	f := &dst.Field{
+		Names: []*dst.Ident{dst.NewIdent(name)},
+		Type:  &dst.StarExpr{X: dst.NewIdent(typ)},
 	}
-	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.TypeSpec:
-			if _, ok := x.Type.(*ast.StructType); ok {
-				objs = append(objs, *x.Name.Obj)
-			}
-			if _, ok := x.Type.(*ast.ArrayType); ok {
-				objs = append(objs, *x.Name.Obj)
-			}
-		}
+	f.Decorations().End.Append("// gened")
 
-		return true
-	})
-
-	return
+	return f
 }
 
-type vast struct {
-	name string
-	fset *token.FileSet
-	file *ast.File
-
-	body []byte
-}
-
-func newAST(name string) (*vast, error) {
-	fset := token.NewFileSet()
-	var err error
-	file, err := parser.ParseFile(fset, name, nil, parser.ParseComments|parser.DeclarationErrors)
-	if err != nil {
-		log.Printf("parse %s fail %s", name, err)
-		return nil, err
-	}
-	o := &vast{
-		name: name,
-		fset: fset,
-		file: file,
-	}
-
-	return o, nil
-}
-
-func (w *vast) rewrite(pre, post astutil.ApplyFunc) (ok bool) {
-	n := astutil.Apply(w.file, pre, post)
-	var buf bytes.Buffer
-	if err := format.Node(&buf, w.fset, n); err != nil {
-		log.Printf("format fail %s", err)
-		return
-	}
-	w.body = buf.Bytes()
-	ok = true
-	return
-}
-
-func (w *vast) addStructField(fields *ast.FieldList, name, typ string) {
-	// prevField := fields.List[fields.NumFields()-1]
-
-	c := &ast.Comment{Text: "// " + name + " gened" /*Slash: prevField.End() + 1*/}
-	cg := &ast.CommentGroup{List: []*ast.Comment{c}}
-	o := ast.NewObj(ast.Var, name)
-	f := &ast.Field{
-		Comment: cg,
-		Names:   []*ast.Ident{{Name: name, Obj: o, NamePos: cg.End() + 1}},
-	}
-	o.Decl = f
-	f.Type = &ast.StarExpr{X: &ast.Ident{Name: typ, NamePos: f.Names[0].End() + 1}}
-
-	w.fset.File(c.End()).AddLine(int(c.End()))
-	w.fset.File(f.End()).AddLine(int(f.End()))
-
-	fields.List = append(fields.List, f)
-	// w.file.Comments = append(w.file.Comments, cg)
-}
-
-func fieldecl(name, typ string) *ast.Field {
-	return &ast.Field{
-		Names:   []*ast.Ident{ast.NewIdent(name)},
-		Type:    &ast.StarExpr{X: ast.NewIdent(typ)},
-		Comment: &ast.CommentGroup{List: []*ast.Comment{{Text: "// with gen"}}},
-	}
-}
-
-func existVarField(list *ast.FieldList, name string) bool {
+func existVarField(list *dst.FieldList, name string) bool {
 	for _, field := range list.List {
 		for _, id := range field.Names {
-			if id.Obj.Kind == ast.Var && id.Name == name {
+			if id.Obj.Kind == dst.Var && id.Name == name {
 				// log.Printf("exist field %s", name)
 				return true
 			}
@@ -158,66 +75,84 @@ func existVarField(list *ast.FieldList, name string) bool {
 	return false
 }
 
-func valspec(name, typ string) *ast.ValueSpec {
-	return &ast.ValueSpec{Names: []*ast.Ident{ast.NewIdent(name)},
-		Type: ast.NewIdent(typ),
+func showNode(node dst.Node) string {
+	before, after, points := dstutil.Decorations(node)
+	var info string
+	if before != dst.None {
+		info += fmt.Sprintf("- Before: %s\n", before)
 	}
+	for _, point := range points {
+		if len(point.Decs) == 0 {
+			continue
+		}
+		info += fmt.Sprintf("- %s: [", point.Name)
+		for i, dec := range point.Decs {
+			if i > 0 {
+				info += ", "
+			}
+			info += fmt.Sprintf("%q", dec)
+		}
+		info += "]\n"
+	}
+	if after != dst.None {
+		info += fmt.Sprintf("- After: %s\n", after)
+	}
+	if info != "" {
+		fmt.Printf("%T\n%s\n", node, info)
+	}
+	return info
 }
 
-func vardecl(name, typ string) *ast.GenDecl {
-	return &ast.GenDecl{
-		Tok:   token.VAR,
-		Specs: []ast.Spec{valspec(name, typ)},
-	}
-}
-
-func showNode(n ast.Node) []byte {
-	var buf bytes.Buffer
-	fset := token.NewFileSet()
-
-	if err := format.Node(&buf, fset, n); err != nil {
-		log.Printf("show node fail %s", err)
-		return nil
-	}
-	return buf.Bytes()
-}
-
-func wnasstmt(name string) *ast.AssignStmt {
-	return &ast.AssignStmt{
-		Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("w"), Sel: ast.NewIdent(name)}},
+func wnasstmt(name string) *dst.AssignStmt {
+	st := &dst.AssignStmt{
+		Lhs: []dst.Expr{&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(name)}},
 		Tok: token.ASSIGN,
-		Rhs: []ast.Expr{&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
-			Type: ast.NewIdent(name),
-			Elts: []ast.Expr{ast.NewIdent("w")},
+		Rhs: []dst.Expr{&dst.UnaryExpr{Op: token.AND, X: &dst.CompositeLit{
+			Type: dst.NewIdent(name),
+			Elts: []dst.Expr{&dst.KeyValueExpr{Key: dst.NewIdent("w"), Value: dst.NewIdent("w")}},
 		}}},
+	}
+	st.Decs.Before = dst.None
+	st.Decs.After = dst.None
+	st.Decorations().End.Append("// gened")
+	return st
+}
+
+func shim(n dst.Node) {
+	if n.Decorations().After == dst.EmptyLine {
+		n.Decorations().After = dst.NewLine
+	}
+	if n.Decorations().Before == dst.EmptyLine {
+		n.Decorations().Before = dst.NewLine
 	}
 }
 
-func wrapNewFunc(s *Store, prev ast.Node) *ast.FuncDecl {
+func wrapNewFunc(s *Store, prev dst.Node) *dst.FuncDecl {
 	siname := s.ShortIName()
-	c := &ast.Comment{Text: "// " + siname + " gened", Slash: prev.End() + 1}
-	cg := &ast.CommentGroup{List: []*ast.Comment{c}}
-	return &ast.FuncDecl{
-		Doc: cg,
-		Recv: &ast.FieldList{List: []*ast.Field{{
-			Names: []*ast.Ident{ast.NewIdent("w")},
-			Type:  &ast.StarExpr{X: ast.NewIdent(storewn)},
+	f := &dst.FuncDecl{
+		Recv: &dst.FieldList{List: []*dst.Field{{
+			Names: []*dst.Ident{dst.NewIdent("w")},
+			Type:  &dst.StarExpr{X: dst.NewIdent(storewn)},
 		}}},
-		Name: ast.NewIdent(siname),
-		Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{
-			{Type: ast.NewIdent(s.GetIName())},
+		Name: dst.NewIdent(siname),
+		Type: &dst.FuncType{Results: &dst.FieldList{List: []*dst.Field{
+			{Type: dst.NewIdent(s.GetIName())},
 		}}},
-		Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ReturnStmt{Results: []ast.Expr{
-			&ast.SelectorExpr{X: ast.NewIdent("w"), Sel: ast.NewIdent(s.Name)},
+		Body: &dst.BlockStmt{List: []dst.Stmt{&dst.ReturnStmt{Results: []dst.Expr{
+			&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(s.Name)},
 		}}}},
 	}
+	// f.Decorations().Start.Prepend("\n")
+	f.Decorations().End.Append("// " + siname + " gened")
+
+	return f
 }
 
-func existBlockAssign(block *ast.BlockStmt, name string) bool {
+func existBlockAssign(block *dst.BlockStmt, name string) bool {
 	for _, st := range block.List {
-		if as, ok := st.(*ast.AssignStmt); ok {
+		if as, ok := st.(*dst.AssignStmt); ok {
 			if len(as.Lhs) > 0 && len(as.Rhs) > 0 {
-				if se, ok := as.Lhs[0].(*ast.SelectorExpr); ok && se.Sel.Name == name {
+				if se, ok := as.Lhs[0].(*dst.SelectorExpr); ok && se.Sel.Name == name {
 					// log.Printf("exist assign %s", name)
 					return true
 				}
