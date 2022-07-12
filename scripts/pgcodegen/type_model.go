@@ -59,6 +59,30 @@ func (f *Field) isAudit() bool {
 	return f.Name == auditField || f.Type == auditField
 }
 
+func (f *Field) typeCode(pkgs ...string) *jen.Statement {
+	typ := f.Type
+	if len(typ) == 0 {
+		typ = f.Name
+	}
+	if len(f.Qual) > 0 {
+		return jen.Qual(f.Qual, typ)
+	}
+	if a, b, ok := strings.Cut(typ, "."); ok {
+		if qual, ok := getQual(a); ok {
+			return jen.Qual(qual, b)
+		}
+		return jen.Qual(a, b)
+	}
+
+	if len(pkgs) == 1 {
+		if typ[0] == '*' {
+			typ = typ[1:]
+		}
+		return jen.Qual(pkgs[0], typ)
+	}
+	return jen.Id(typ)
+}
+
 func (f *Field) preCode() (st *jen.Statement) {
 	if len(f.Type) == 0 {
 		f.Type = f.Name
@@ -196,6 +220,15 @@ func (z Fields) relHasOne() (cols []string) {
 		}
 	}
 	return
+}
+
+func (z Fields) withName(name string) (*Field, bool) {
+	for _, field := range z {
+		if field.Name == name {
+			return &field, true
+		}
+	}
+	return nil, false
 }
 
 type Model struct {
