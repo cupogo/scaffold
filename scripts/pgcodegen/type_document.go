@@ -327,7 +327,7 @@ func (doc *Document) ensureWrapPatch(vd *vdst) bool {
 					arr = append(arr, cn.List[0:n-1]...)
 					arr = append(arr, nst, cn.List[n-1])
 					// log.Printf("new list %+s", (arr))
-					shim(arr[n-2])
+					shimNode(arr[n-2])
 					// log.Printf("new list %+s", (arr))
 					cn.List = arr
 					// c.Replace(cn)

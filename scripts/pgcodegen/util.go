@@ -118,8 +118,8 @@ func wnasstmt(name string) *dst.AssignStmt {
 	return st
 }
 
-func shim(n dst.Node) {
-	if n.Decorations().After == dst.EmptyLine {
+func shimNode(n dst.Node) {
+	if n.Decorations().After == dst.EmptyLine && len(n.Decorations().End) > 0 {
 		n.Decorations().After = dst.NewLine
 	}
 	if n.Decorations().Before == dst.EmptyLine {
