@@ -317,19 +317,13 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 			if act == "Get" {
 				if rels := mod.Fields.relHasOne(); len(rels) > 0 {
-					jrels := jen.Id("rels")
 					g.Id("ctx").Op(":=").Add(jctx)
 					g.If(
 						jen.Id("rels").Op(",").Id("ok").Op(":=").Id("c").Dot("GetQueryArray").Call(jen.Lit("rel")).
 							Op(";").Id("ok").Op("&&").Len(jen.Id("rels")).Op(">").Lit(0)).
 						Block(
-							jen.If(jen.Id("rels").Op("=").Qual(utilQual, "FilterStrs").Call(jen.Index().String().ValuesFunc(func(g2 *jen.Group) {
-								for _, s := range rels {
-									g2.Lit(s)
-								}
-							}), jen.Id("rels")).Op(";").Len(jrels).Op(">").Lit(0)).Block(jen.Id("ctx").Op("=").Id("stores").Dot("ContextWithRelation").Call(
+							jen.Id("ctx").Op("=").Id("stores").Dot("ContextWithRelation").Call(
 								jen.Id("ctx"), jen.Id("rels").Op("..."),
-							),
 							),
 						)
 
