@@ -16,7 +16,6 @@ import (
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 	"github.com/dave/jennifer/jen"
-	"golang.org/x/tools/go/ast/astutil"
 	"gopkg.in/yaml.v3"
 
 	"daxv.cn/gopak/lib/osutil"
@@ -264,39 +263,72 @@ func (doc *Document) genStores(dropfirst bool) error {
 	// spkg := loadPackage(doc.dirsto)
 	// log.Printf("loaded spkg: %s name %q", spkg.ID, spkg.Types.Name())
 
-	wva, err := newAST(sfile)
+	wvd, err := newDST(sfile)
 	if err != nil {
 		return err
 	}
+
+	if doc.ensureWrapPatch(wvd) {
+		// log.Printf("rewrite: %s", string(wvd.body))
+		err = ioutil.WriteFile(sfile, wvd.body, 0644)
+		if err != nil {
+			log.Printf("write %s fail %s", storewf, err)
+		} else {
+			log.Printf("write %s OK", storewf)
+		}
+	}
+
+	iffile := path.Join(doc.dirsto, "interfaces.go")
+	svd, err := newDST(iffile)
+	if err != nil {
+		// TODO: new file
+		return err
+	}
+
+	if doc.encureStoMethod(svd) {
+		err = ioutil.WriteFile(iffile, svd.body, 0644)
+		if err != nil {
+			log.Printf("write i fail %s", err)
+		} else {
+			log.Printf("patch interfaces OK")
+		}
+	}
+
+	return err
+}
+
+func (doc *Document) ensureWrapPatch(vd *vdst) bool {
 	var lastWM string
 	foundWM := make(map[string]bool)
-	_ = wva.rewrite(func(c *astutil.Cursor) bool {
+	_ = vd.rewrite(func(c *dstutil.Cursor) bool {
 		return true
-	}, func(c *astutil.Cursor) bool {
+	}, func(c *dstutil.Cursor) bool {
 		for _, store := range doc.Stores {
-			if pn, ok := c.Parent().(*ast.TypeSpec); ok && pn.Name.Obj.Name == storewn {
-				if cn, ok := c.Node().(*ast.StructType); ok {
+			if pn, ok := c.Parent().(*dst.TypeSpec); ok && pn.Name.Obj.Name == storewn {
+				if cn, ok := c.Node().(*dst.StructType); ok {
 					if existVarField(cn.Fields, store.Name) {
 						continue
 					}
 					cn.Fields.List = append(cn.Fields.List, fieldecl(store.Name, store.Name))
-					// wva.addStructField(cn.Fields, store.Name, store.Name)
+					// vd.addStructField(cn.Fields, store.Name, store.Name)
 					// c.Replace(cn)
 					// log.Printf("block: %s", showNode(cn))
 				}
 				continue
 			}
-			if pn, ok := c.Parent().(*ast.FuncDecl); ok && pn.Name.Name == "NewWithDB" {
-				if cn, ok := c.Node().(*ast.BlockStmt); ok {
+			if pn, ok := c.Parent().(*dst.FuncDecl); ok && pn.Name.Name == "NewWithDB" {
+				if cn, ok := c.Node().(*dst.BlockStmt); ok {
 					if existBlockAssign(cn, store.Name) {
 						continue
 					}
 					nst := wnasstmt(store.Name)
-					var arr []ast.Stmt
+					var arr []dst.Stmt
 					n := len(cn.List)
 					arr = append(arr, cn.List[0:n-1]...)
 					arr = append(arr, nst, cn.List[n-1])
-					// log.Printf("new list %+s", arr)
+					// log.Printf("new list %+s", (arr))
+					shim(arr[n-2])
+					// log.Printf("new list %+s", (arr))
 					cn.List = arr
 					// c.Replace(cn)
 					// log.Printf("nst: %s", showNode(nst))
@@ -305,7 +337,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 				continue
 			}
 
-			if cn, ok := c.Node().(*ast.FuncDecl); ok {
+			if cn, ok := c.Node().(*dst.FuncDecl); ok {
 				siname := store.ShortIName()
 				lastWM = cn.Name.Name
 				if lastWM == siname {
@@ -318,8 +350,8 @@ func (doc *Document) genStores(dropfirst bool) error {
 	})
 	// log.Printf("found %+v,last wrap method: %s", foundWM, lastWM)
 	if len(foundWM) == 0 {
-		wva.rewrite(nil, func(c *astutil.Cursor) bool {
-			if cn, ok := c.Node().(*ast.FuncDecl); ok && cn.Name.Name == lastWM {
+		vd.rewrite(nil, func(c *dstutil.Cursor) bool {
+			if cn, ok := c.Node().(*dst.FuncDecl); ok && cn.Name.Name == lastWM {
 				for _, store := range doc.Stores {
 					c.InsertAfter(wrapNewFunc(&store, cn))
 					log.Printf("insert func %s", store.GetIName())
@@ -328,31 +360,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 			return true
 		})
 	}
-	// log.Printf("rewrite: %s", string(wva.body))
-	err = ioutil.WriteFile(sfile, wva.body, 0644)
-	if err != nil {
-		log.Printf("write %s fail %s", storewf, err)
-	} else {
-		log.Printf("write %s OK", storewf)
-	}
-
-	iffile := path.Join(doc.dirsto, "interfaces.go")
-	vd, err := newDST(iffile)
-	if err != nil {
-		// TODO: new file
-		return err
-	}
-
-	if doc.encureStoMethod(vd) {
-		err = ioutil.WriteFile(iffile, vd.body, 0644)
-		if err != nil {
-			log.Printf("write i fail %s", err)
-		} else {
-			log.Printf("patch interfaces OK")
-		}
-	}
-
-	return err
+	return true
 }
 
 func (doc *Document) encureStoMethod(vd *vdst) bool {
