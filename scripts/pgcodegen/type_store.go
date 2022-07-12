@@ -126,33 +126,20 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 						jen.Err().Op("=").Id(hkAL).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
 					)
 				} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
-					// TODO: load all relations
-					jrels := jen.Id("rels")
-					g.If(jen.Id("rels").Op(":=").Id("RelationFromContext").Call(jen.Id("ctx")).
-						Op(";").Len(jen.Id("rels")).Op(">").Lit(0),
-					).Block(
-						jen.If(jen.Id("rels").Op("=").Qual(utilQual, "FilterStrs").Call(jen.Index().String().ValuesFunc(func(g1 *jen.Group) {
-							for _, s := range rels {
-								g1.Lit(s)
-							}
-						}), jen.Id("rels")).Op(";").Len(jrels).Op(">").Lit(0)).BlockFunc(func(g1 *jen.Group) {
-							g1.For().Op("_,").Id("rn").Op(":=").Range().Id("rels").BlockFunc(func(g2 *jen.Group) {
-								for _, rn := range rels {
-									field, _ := mod.Fields.withName(rn)
-									g2.If(jen.Id("rn").Op("==").Lit(rn)).Block(
-										jen.Id("ro").Op(":=").New(field.typeCode(modpkg)),
-										jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
-											jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(rn+"ID")).Op(";").Err().Op("==").Nil()).Block(
-											jen.Id("obj").Dot(rn).Op("=").Id("ro"),
-											jen.Continue(),
-										),
-									)
+					g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
+						for _, rn := range rels {
+							field, _ := mod.Fields.withName(rn)
+							g2.If(jen.Id("rn").Op("==").Lit(rn)).Block(
+								jen.Id("ro").Op(":=").New(field.typeCode(modpkg)),
+								jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
+									jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(rn+"ID")).Op(";").Err().Op("==").Nil()).Block(
+									jen.Id("obj").Dot(rn).Op("=").Id("ro"),
+									jen.Continue(),
+								),
+							)
+						}
 
-								}
-
-							})
-						}),
-					)
+					})
 				}
 				g.Return()
 			}))
