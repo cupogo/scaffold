@@ -165,21 +165,23 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				hkAS, okAS := mod.hasHook(afterSaving)
 				if okBC || okBS || okAS {
 					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+						jdb := jen.Id("tx")
+						targs[1] = jdb
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 							if okBC {
-								g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+								g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(jen.Err()),
 								)
 							} else if okBS {
-								g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), swdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+								g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(jen.Err()),
 								)
 							}
 							g2.Id("err").Op("=").Id("dbInsert").Call(targs...)
 							if okAS {
 								g2.If(jen.Err().Op("==")).Nil().Block(
-									jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), swdb, jen.Id("obj")),
+									jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
 								)
 							}
 
@@ -214,24 +216,25 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				hkAS, okAS := mod.hasHook(afterSaving)
 				if okBU || okBS || okAS {
 					g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+						jdb := jen.Id("tx")
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 							if okBU {
-								g2.If(jen.Id("cs").Op(",").Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs")).Op(";").Err().Op("!=")).Nil().Block(
+								g2.If(jen.Id("cs").Op(",").Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist"), jen.Id("cs")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(),
 								)
 							} else if okBS {
-								g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), swdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
+								g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(),
 								)
 							}
 							jup := jen.Id("dbUpdate").Call(
-								jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
+								jen.Id("ctx"), jdb, jen.Id("exist"), jen.Id("cs..."),
 							)
 
 							if okAS {
 								g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
-									jen.Return().Id(hkAS).Call(jen.Id("ctx"), swdb, jen.Id("exist")),
+									jen.Return().Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
 								)
 								g2.Return()
 							} else {
@@ -302,13 +305,13 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 
-							g2.If(jen.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), swdb,
+							g2.If(jen.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), jen.Id("tx"),
 								jen.Add(swdb).Dot("Schema").Call(),
 								jen.Add(swdb).Dot("SchemaCrap").Call(),
 								jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID")).Op(";").Err().Op("!=").Nil()).Block(
 								jen.Return(),
 							)
-							g2.Return(jen.Id(hk).Call(jen.Id("ctx"), swdb, jen.Id("obj")))
+							g2.Return(jen.Id(hk).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
 						})
 
 					})
