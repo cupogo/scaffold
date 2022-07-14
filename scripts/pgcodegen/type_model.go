@@ -275,15 +275,16 @@ func (m *Model) TableField() jen.Code {
 	return jen.Id("tableName").Add(jen.Struct()).Tag(Maps{"pg": tt}).Line()
 }
 
-func (m *Model) Uniques() (name, col string, ok bool) {
+func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
 	var count int
 	for _, field := range m.Fields {
-		name = field.Name
-		if col, ok = field.ColName(); ok {
+		if cn, ok := field.ColName(); ok {
 			count++
+			name = field.Name
+			col = cn
 		}
 	}
-	ok = count == 1
+	onlyOne = count == 1
 	return
 }
 
