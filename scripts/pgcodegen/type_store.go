@@ -119,13 +119,22 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op("=").New(jen.Qual(modpkg, mname))
-				g.Id("err").Op("=").Id("getModelWithPKID").Call(
+				jload := jen.Id("err").Op("=").Id("getModelWithPKID").Call(
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
+				if _, cn, isuniq := mod.UniqueOne(); isuniq {
+					g.If(jen.Err().Op("=").Id("getModelWithUnique").Call(
+						swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
+					).Op(";").Err().Op("!=").Nil()).Block(jload)
+				} else {
+					g.Add(jload)
+				}
+
 				if hkAL, okAL := mod.hasHook(afterLoad); okAL {
 					g.If(jen.Err().Op("==").Nil()).Block(
 						jen.Err().Op("=").Id(hkAL).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
 					)
 				} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
+					g.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
 					g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
 						for _, rn := range rels {
 							field, _ := mod.Fields.withName(rn)
@@ -156,7 +165,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 						jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
 				}
 				targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
-				if fn, cn, isuniq := mod.Uniques(); isuniq {
+				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
 					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 				}
 
@@ -205,7 +214,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				g.Id("err").Op("=").Id("getModelWithPKID").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
 				)
-				g.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return())
+				g.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
 				g.Id("cs").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 				g.If(jen.Len(jen.Id("cs")).Op("==").Lit(0)).Block(
 					jen.Return(),
@@ -282,7 +291,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 							jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
 						),
 					}
-					if fn, cn, isuniq := mod.Uniques(); isuniq {
+					if fn, cn, isuniq := mod.UniqueOne(); isuniq {
 						cpms = append(cpms, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 					}
 					g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
