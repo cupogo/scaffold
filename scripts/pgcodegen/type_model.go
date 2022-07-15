@@ -490,6 +490,14 @@ func (m *Model) getSpecCodes() jen.Code {
 		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
 			Params(jen.Op("*").Id("ormQuery"), jen.Error())
 		st.BlockFunc(func(g *jen.Group) {
+			if len(relNames) > 0 {
+				log.Printf("%s relNames %+v", m.Name, relNames)
+				g.If(jen.Id("spec").Dot(withRel)).BlockFunc(func(g *jen.Group) {
+					for _, relName := range relNames {
+						g.Id("q").Dot("Relation").Call(jen.Lit(relName))
+					}
+				}).Line()
+			}
 			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("MDftSpec").Dot("Sift").Call(jen.Id("q"))
 			if m.hasAudit() {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
@@ -506,14 +514,6 @@ func (m *Model) getSpecCodes() jen.Code {
 				)
 			}
 			g.Line()
-			if len(relNames) > 0 {
-				log.Printf("%s relNames %+v", m.Name, relNames)
-				g.If(jen.Id("spec").Dot(withRel)).BlockFunc(func(g *jen.Group) {
-					for _, relName := range relNames {
-						g.Id("q").Dot("Relation").Call(jen.Lit(relName))
-					}
-				}).Line()
-			}
 			g.Return(jen.Id("q"), jen.Nil())
 		}).Line()
 	}
