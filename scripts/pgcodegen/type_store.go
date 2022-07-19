@@ -17,6 +17,7 @@ const (
 	beforeUpdating = "beforeUpdating"
 	afterDeleting  = "afterDeleting"
 	afterLoad      = "afterLoad"
+	afterCreated   = "afterCreated"
 )
 
 type Var struct {
@@ -200,7 +201,13 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					})
 
 				} else {
-					g.Id("err").Op("=").Id("dbInsert").Call(targs...)
+					g.Err().Op("=").Id("dbInsert").Call(targs...)
+				}
+
+				if hk, ok := mod.hasHook(afterCreated); ok {
+					g.If(jen.Err().Op("==").Nil()).Block(
+						jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+					)
 				}
 
 				g.Return()
