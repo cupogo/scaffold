@@ -232,13 +232,14 @@ func (z Fields) withName(name string) (*Field, bool) {
 }
 
 type Model struct {
-	Comment  string `yaml:"comment,omitempty"`
-	Name     string `yaml:"name"`
-	TableTag string `yaml:"tableTag,omitempty"`
-	Fields   Fields `yaml:"fields"`
-	Plural   string `yaml:"plural,omitempty"`
-	OIDCat   string `yaml:"oidcat,omitempty"`
-	Hooks    Maps   `yaml:"hooks,omitempty"`
+	Comment  string   `yaml:"comment,omitempty"`
+	Name     string   `yaml:"name"`
+	TableTag string   `yaml:"tableTag,omitempty"`
+	Fields   Fields   `yaml:"fields"`
+	Plural   string   `yaml:"plural,omitempty"`
+	OIDCat   string   `yaml:"oidcat,omitempty"`
+	Hooks    Maps     `yaml:"hooks,omitempty"`
+	Sifters  []string `yaml:"sifters,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 }
@@ -462,6 +463,9 @@ func (m *Model) getSpecCodes() jen.Code {
 	if m.hasAudit() {
 		fcs = append(fcs, jen.Id("AuditSpec"))
 	}
+	for _, sifter := range m.Sifters {
+		fcs = append(fcs, jen.Id(sifter))
+	}
 	specFields := m.specFields()
 	if len(specFields) > 0 {
 		fcs = append(fcs, jen.Empty())
@@ -501,6 +505,9 @@ func (m *Model) getSpecCodes() jen.Code {
 			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("MDftSpec").Dot("Sift").Call(jen.Id("q"))
 			if m.hasAudit() {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
+			}
+			for _, sifter := range m.Sifters {
+				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
 			}
 			for _, field := range specFields {
 				cfn := "siftEquel"

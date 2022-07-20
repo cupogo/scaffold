@@ -46,7 +46,6 @@ type Store struct {
 	Embed    string   `yaml:"embed,omitempty"`
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
-	Speces   []string `yaml:"speces,omitempty"`
 
 	mnames []string // TODO: aliases
 
