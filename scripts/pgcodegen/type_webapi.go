@@ -344,11 +344,11 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				g.Add(jbind("in"))
 				if act == "Put" {
 					g.Id("nid").Op(",").Err().Add(jmcc).Call(
-						jctx, jen.Id("id"), jen.Op("&").Id("in"),
+						jctx, jen.Id("id"), jen.Id("in"),
 					)
 				} else {
 					g.Err().Add(jmcc).Call(
-						jctx, jen.Id("id"), jen.Op("&").Id("in"),
+						jctx, jen.Id("id"), jen.Id("in"),
 					)
 				}
 				g.If(jen.Err().Op("!=").Nil()).Block(
@@ -383,7 +383,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			g.Var().Id("in").Add(qual(mth.Args[1].Type))
 			g.Add(jbind("in"))
 			g.Id("obj").Op(",").Err().Add(jmcc).Call(
-				jctx, jen.Op("&").Id("in"),
+				jctx, jen.Id("in"),
 			)
 			g.If(jen.Err().Op("!=").Nil()).Block(
 				jfail(503)...,

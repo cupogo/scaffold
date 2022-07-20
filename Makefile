@@ -9,7 +9,9 @@ GO=$(shell which go)
 GOMOD=$(shell echo "$${GO111MODULE:-auto}")
 
 
-MDs=account.md
+MDs=account.md # deprecated
+YAML=$(shell find docs -type f \( -name "*.yaml" ! -name "swagger.yaml" \) -print )
+SPEC=7
 
 help:
 	echo "make modcodegen"
@@ -17,10 +19,17 @@ help:
 docs:
 	$(info docs: $(MDs))
 
+codegen:
+	mkdir -p ./pkg/models ./pkg/services/stores ./pkg/web
+	for name in $(YAML); do \
+		echo $${name}; \
+		GO111MODULE=on $(GO) run -tags=codegen ./scripts/pgcodegen -spec $(SPEC) $${name} ; \
+	done
+
 generate:
 	GO111MODULE=$(GOMOD) $(GO) generate ./...
 
-modcodegen:
+modcodegen: # deprecated
 	mkdir -p ./pkg/models
 	for name in $(MDs); do \
 		echo $${name}; \
