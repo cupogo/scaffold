@@ -86,7 +86,7 @@ func (a *api) putCmsClause(c *gin.Context) {
 		return
 	}
 
-	nid, err := a.sto.Content().PutClause(c.Request.Context(), id, &in)
+	nid, err := a.sto.Content().PutClause(c.Request.Context(), id, in)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -216,7 +216,7 @@ func (a *api) postArticle(c *gin.Context) {
 		return
 	}
 
-	obj, err := a.sto.Content().CreateArticle(c.Request.Context(), &in)
+	obj, err := a.sto.Content().CreateArticle(c.Request.Context(), in)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -247,7 +247,7 @@ func (a *api) putArticle(c *gin.Context) {
 		return
 	}
 
-	err := a.sto.Content().UpdateArticle(c.Request.Context(), id, &in)
+	err := a.sto.Content().UpdateArticle(c.Request.Context(), id, in)
 	if err != nil {
 		fail(c, 503, err)
 		return

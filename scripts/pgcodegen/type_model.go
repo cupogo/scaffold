@@ -393,7 +393,7 @@ func (m *Model) Codes() jen.Code {
 		scs = append(scs, jen.Return())
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
-		).Id("SetWith").Params(jen.Id("o").Op("*").Id(changeSetName)).Params(
+		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params(
 			jen.Id("cs").Index().String(),
 		).Block(
 			scs...,

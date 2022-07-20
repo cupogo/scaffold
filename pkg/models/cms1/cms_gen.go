@@ -47,7 +47,7 @@ type ArticleSet struct {
 	Content *string `json:"content"` // 内容
 } // @name ArticleSet
 
-func (z *Article) SetWith(o *ArticleSet) (cs []string) {
+func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	if o.Author != nil {
 		z.Author = *o.Author
 		cs = append(cs, "author")
@@ -96,7 +96,7 @@ type ClauseSet struct {
 	Text *string `json:"text"`
 } // @name ClauseSet
 
-func (z *Clause) SetWith(o *ClauseSet) (cs []string) {
+func (z *Clause) SetWith(o ClauseSet) (cs []string) {
 	if o.Text != nil {
 		z.Text = *o.Text
 		cs = append(cs, "text")

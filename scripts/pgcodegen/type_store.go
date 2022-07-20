@@ -46,6 +46,7 @@ type Store struct {
 	Embed    string   `yaml:"embed,omitempty"`
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
+	Speces   []string `yaml:"speces,omitempty"`
 
 	mnames []string // TODO: aliases
 
@@ -156,10 +157,10 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			nap = append(nap, false)
 		} else if act == "Create" {
 			tname := mname + "Basic"
-			args = append(args, jen.Id("in").Op("*").Qual(modpkg, tname))
+			args = append(args, jen.Id("in").Qual(modpkg, tname))
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
-				g.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Op("*").Id("in").Op(","))
+				g.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Id("in").Op(","))
 
 				if mod.hasMeta() {
 					g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
@@ -167,7 +168,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				}
 				targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-					targs = append(targs, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
+					targs = append(targs, jen.Lit(cn), jen.Id("in").Dot(fn))
 				}
 
 				hkBC, okBC := mod.hasHook(beforeCreating)
@@ -214,7 +215,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			}))
 			nap = append(nap, false)
 		} else if act == "Update" {
-			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
+			args = append(args, jen.Id("id").String(), jen.Id("in").Qual(modpkg, mname+"Set"))
 			rets = append(rets, jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
@@ -270,7 +271,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			}))
 			nap = append(nap, false)
 		} else if act == "Put" {
-			args = append(args, jen.Id("id").String(), jen.Id("in").Op("*").Qual(modpkg, mname+"Set"))
+			args = append(args, jen.Id("id").String(), jen.Id("in").Qual(modpkg, mname+"Set"))
 			if mth.Simple {
 				rets = append(rets, jen.Id("nid").String())
 			} else {
