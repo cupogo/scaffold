@@ -58,7 +58,7 @@ type Document struct {
 	Models    []Model `yaml:"models"`
 	Qualified Maps    `yaml:"depends"` // imports name
 	Stores    []Store `yaml:"stores"`
-	WebAPI    *WebAPI `yaml:"webapi"`
+	WebAPI    WebAPI  `yaml:"webapi"`
 }
 
 func (doc *Document) getQual(k string) (qu string, ok bool) {

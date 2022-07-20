@@ -240,6 +240,7 @@ type Model struct {
 	OIDCat   string   `yaml:"oidcat,omitempty"`
 	Hooks    Maps     `yaml:"hooks,omitempty"`
 	Sifters  []string `yaml:"sifters,omitempty"`
+	SpecUp   string   `yaml:"specUp,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 }

@@ -50,7 +50,8 @@ var replPath = strings.NewReplacer("{", ":", "}", "")
 
 type UriSpot struct {
 	Model  string `yaml:"model"`
-	Prefix string `yaml:"prefix"`
+	Prefix string `yaml:"prefix,omitempty"`
+	URI    string `yaml:"uri,omitempty"`
 }
 
 type WebAPI struct {
@@ -71,7 +72,11 @@ func (us *UriSpot) getRoute(act string) (route string, name string, summary stri
 	if len(plural) == 0 {
 		log.Printf("WARN: empty name of %s[%s]", us.Model, mod.Name)
 	}
-	uri := us.Prefix + "/" + strings.ToLower(plural)
+	uri := us.URI
+	if len(uri) == 0 {
+		uri = us.Prefix + "/" + strings.ToLower(plural)
+	}
+
 	method := msmethods[act]
 	fct := strings.ToLower(method)
 	name = fct + mod.Name
@@ -372,8 +377,12 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		} else if act == "List" && len(mth.Args) > 1 {
 			g.Var().Id("spec").Add(qual(mth.Args[1].Type))
 			g.Add(jbind("spec"))
+			g.Id("ctx").Op(":=").Add(jctx)
+			if len(mod.SpecUp) > 0 {
+				g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mname))
+			}
 			g.Id("data").Op(",").Id("total").Op(",").Err().Add(jmcc).Call(
-				jctx, jen.Op("&").Id("spec"),
+				jen.Id("ctx"), jen.Op("&").Id("spec"),
 			)
 			g.If(jen.Err().Op("!=").Nil()).Block(
 				jfail(503)...,
