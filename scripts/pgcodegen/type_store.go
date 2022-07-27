@@ -279,10 +279,11 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Err().Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
-				g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
-					jen.Err().Op("=").Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
-					jen.Return(),
-				)
+				g.Id("_").Op("=").Id("obj").Dot("SetID").Call(jen.Id("id"))
+				// g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
+				// 	jen.Err().Op("=").Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
+				// 	jen.Return(),
+				// )
 				if mth.Simple {
 					g.Id("cs").Op(":=").Id("obj").Dot("SetWith").Call(jen.Id("in"))
 					g.Err().Op("=").Id("dbStoreSimple").Call(

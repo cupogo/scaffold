@@ -59,6 +59,7 @@ type WebAPI struct {
 	Handles  []Handle  `yaml:"handles,omitempty"`
 	URIs     []UriSpot `yaml:"uris,omitempty"`
 	NeedAuth bool      `yaml:"needAuth,omitempty"`
+	NeedPerm bool      `yaml:"needPerm,omitempty"`
 	TagLabel string    `yaml:"tagLabel,omitempty"`
 
 	once sync.Once
@@ -116,7 +117,7 @@ func (wa *WebAPI) prepareHandles() {
 					}
 					hdl.Route, hdl.Name, hdl.Summary = u.getRoute(mth.action)
 					hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
-						mth.action == "Put" || mth.action == "Delete"
+						mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm
 					hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth
 					if len(wa.TagLabel) > 0 {
 						hdl.Tags = wa.TagLabel
