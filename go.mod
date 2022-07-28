@@ -3,7 +3,7 @@ module hyyl.xyz/cupola/scaffold
 go 1.18
 
 require (
-	daxv.cn/gopak/lib v0.3.19
+	daxv.cn/gopak/lib v0.3.21
 	github.com/dave/dst v0.27.0
 	github.com/dave/jennifer v1.5.0
 	github.com/gin-gonic/gin v1.7.7
@@ -20,8 +20,12 @@ require (
 replace hyyl.xyz/cupola/aurora => ../aurora
 
 require (
+	daxv.cn/gopak/branca v0.2.0 // indirect
+	daxv.cn/gopak/security v0.1.6 // indirect
+	github.com/certifi/gocertifi v0.0.0-20180905225744-ee1a9a0726d2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-pg/migrations/v8 v8.1.0 // indirect
 	github.com/go-pg/pg/extra/pgdebug v0.2.0 // indirect
@@ -37,6 +41,9 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/philhofer/fwd v1.0.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/vmihailenco/bufpool v0.1.11 // indirect
