@@ -14,6 +14,8 @@ type Article struct {
 	comm.DefaultModel
 
 	ArticleBasic
+
+	comm.MetaField
 } // @name Article
 
 type ArticleBasic struct {
@@ -23,6 +25,8 @@ type ArticleBasic struct {
 	Title string `form:"title" json:"title" pg:",notnull"`
 	// 内容
 	Content string `form:"content" json:"content" pg:",notnull"`
+	// for meta update
+	MetaUp *comm.MetaUp `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleBasic
 
 type Articles []Article
@@ -40,6 +44,8 @@ type ArticleSet struct {
 	Author  *string `json:"author"`  // 作者
 	Title   *string `json:"title"`   // 标题
 	Content *string `json:"content"` // 内容
+	// for meta update
+	MetaUp *comm.MetaUp `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleSet
 
 func (z *Article) SetWith(o ArticleSet) (cs []string) {
@@ -54,6 +60,9 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	if o.Content != nil {
 		z.Content = *o.Content
 		cs = append(cs, "content")
+	}
+	if o.MetaUp != nil && z.UpMeta(o.MetaUp) {
+		cs = append(cs, "meta")
 	}
 	return
 }

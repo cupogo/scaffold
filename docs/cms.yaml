@@ -26,6 +26,7 @@ models:
         type: string
         tags: {json: 'content', pg: ',notnull'}
         isset: true
+      - type: comm.MetaField
     oidcat: article
     hooks:
       afterDeleting: dbAfterDeleteArticle

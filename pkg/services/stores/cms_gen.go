@@ -95,6 +95,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	obj = &cms1.Article{
 		ArticleBasic: in,
 	}
+	s.w.opModelMeta(ctx, obj, obj.MetaUp)
 	err = dbInsert(ctx, s.w.db, obj)
 	return
 }
