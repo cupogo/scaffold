@@ -18,11 +18,11 @@ type Article struct {
 
 type ArticleBasic struct {
 	// 作者
-	Author string `json:"author" pg:",notnull"`
+	Author string `form:"author" json:"author" pg:",notnull,use_zero"`
 	// 标题
-	Title string `json:"title" pg:",notnull"`
+	Title string `form:"title" json:"title" pg:",notnull"`
 	// 内容
-	Content string `json:"content" pg:",notnull"`
+	Content string `form:"content" json:"content" pg:",notnull"`
 } // @name ArticleBasic
 
 type Articles []Article
@@ -34,11 +34,6 @@ func (z *Article) Creating() error {
 	}
 
 	return z.DefaultModel.Creating()
-}
-
-// Saving function call to it's inner fields defined hooks
-func (z *Article) Saving() error {
-	return z.DefaultModel.Saving()
 }
 
 type ArticleSet struct {
@@ -73,7 +68,7 @@ type Clause struct {
 } // @name Clause
 
 type ClauseBasic struct {
-	Text string `json:"text" pg:"text,notnull"`
+	Text string `form:"text" json:"text" pg:"text,notnull"`
 } // @name ClauseBasic
 
 type Clauses []Clause
@@ -85,11 +80,6 @@ func (z *Clause) Creating() error {
 	}
 
 	return z.DefaultModel.Creating()
-}
-
-// Saving function call to it's inner fields defined hooks
-func (z *Clause) Saving() error {
-	return z.DefaultModel.Saving()
 }
 
 type ClauseSet struct {

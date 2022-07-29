@@ -229,8 +229,8 @@ func (doc *Document) genStores(dropfirst bool) error {
 	sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
 		args := []jen.Code{jen.Id("alltables")}
 		for _, model := range doc.Models {
-			name, _ := doc.getModQual(model.Name)
-			args = append(args, jen.Op("&").Id(name).Block())
+			// name, _ := doc.getModQual(model.Name)
+			args = append(args, jen.Op("&").Qual(ipath, model.Name).Block())
 		}
 		g.Id("alltables").Op("=").Append(args...)
 	})
@@ -249,6 +249,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 		}
 	}
 
+	hasAnyStore := len(doc.Stores) > 0
 	for _, store := range doc.Stores {
 		sgf.Add(store.Codes(doc.ModelPkg)).Line()
 	}
@@ -260,7 +261,11 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.name)
 
-	// TODO: rewrite wrap.go
+	if !hasAnyStore {
+		log.Print("no store found, skip wrap")
+		return nil
+	}
+
 	sfile := path.Join(doc.dirsto, storewf)
 
 	// spkg := loadPackage(doc.dirsto)
@@ -389,6 +394,11 @@ func (doc *Document) getMethod(name string) (m Method, ok bool) {
 }
 
 func (doc *Document) genWebAPI() error {
+
+	if len(doc.WebAPI.Handles) == 0 {
+		log.Print("no handle found, skip api")
+		return nil
+	}
 
 	if !osutil.IsDir(doc.dirweb) {
 		if err := os.Mkdir(doc.dirweb, 0755); err != nil {

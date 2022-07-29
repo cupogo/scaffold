@@ -10,22 +10,22 @@ models:
     tableTag: 'cms_article,alias:a'
     fields:
       - name: comm.DefaultModel
-      - name: Author
+      - comment: 作者
+        name: Author
         type: string
-        tags: {json: 'author', pg: ',notnull'}
+        tags: {json: 'author', pg: ',notnull,use_zero'}
         isset: true
-        comment: 作者
-      - name: Title
+      - comment: 标题
+        name: Title
         type: string
         tags: {json: 'title', pg: ',notnull'}
         isset: true
         query: 'equal' # '', 'equal', 'wildcard'
-        comment: 标题
-      - name: Content
+      - comment: 内容
+        name: Content
         type: string
         tags: {json: 'content', pg: ',notnull'}
         isset: true
-        comment: 内容
     oidcat: article
     hooks:
       afterDeleting: dbAfterDeleteArticle

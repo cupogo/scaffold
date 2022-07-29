@@ -127,9 +127,14 @@ func (f *Field) Code() jen.Code {
 
 	if len(f.Tags) > 0 {
 		tags := f.Tags.Copy()
-		if j, ok := tags["json"]; ok && !strings.Contains(j, ",omitempty") {
-			if strings.HasSuffix(f.Type, "DateTime") {
-				tags["json"] = j + ",omitempty"
+		if j, ok := tags["json"]; ok {
+			if a, b, ok := strings.Cut(j, ","); ok {
+				tags["form"] = a
+				if b == "" && strings.HasSuffix(f.Type, "DateTime") {
+					tags["json"] = a + ",omitempty"
+				}
+			} else {
+				tags["form"] = j
 			}
 		}
 		// log.Printf("%s: %+v", f.Name, tags)
@@ -174,8 +179,12 @@ func (f *Field) queryCode() jen.Code {
 	tags := f.Tags.Copy()
 	if len(tags) > 0 {
 		if _, ok := tags["form"]; !ok {
-			if v, ok := tags["json"]; ok {
-				tags["form"] = v
+			if j, ok := tags["json"]; ok {
+				if a, _, ok := strings.Cut(j, ","); ok {
+					tags["form"] = a
+				} else {
+					tags["form"] = j
+				}
 			}
 		}
 		delete(tags, "pg")
@@ -383,12 +392,12 @@ func (m *Model) Codes() jen.Code {
 			jen.Return(jen.Id("z").Dot(field).Dot("Creating").Call()),
 		).Line()
 
-		st.Comment("Saving function call to it's inner fields defined hooks").Line()
-		st.Func().Params(
-			jen.Id("z").Op("*").Id(m.Name),
-		).Id("Saving").Params().Error().Block(
-			jen.Return(jen.Id("z").Dot(field).Dot("Saving").Call()),
-		).Line()
+		// st.Comment("Saving function call to it's inner fields defined hooks").Line()
+		// st.Func().Params(
+		// 	jen.Id("z").Op("*").Id(m.Name),
+		// ).Id("Saving").Params().Error().Block(
+		// 	jen.Return(jen.Id("z").Dot(field).Dot("Saving").Call()),
+		// ).Line()
 	}
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
