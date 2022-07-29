@@ -59,6 +59,22 @@ func (f *Field) isAudit() bool {
 	return f.Name == auditField || f.Type == auditField
 }
 
+func (f *Field) isScalar() bool {
+	if f.Type == "string" || f.Type == "bool" {
+		return true
+	}
+
+	if strings.HasPrefix(f.Type, "int") || strings.HasPrefix(f.Type, "uint") {
+		return true
+	}
+
+	if strings.Contains(f.Type, "Money") {
+		return true
+	}
+
+	return false
+}
+
 func (f *Field) typeCode(pkgs ...string) *jen.Statement {
 	typ := f.Type
 	if len(typ) == 0 {
@@ -129,11 +145,13 @@ func (f *Field) Code() jen.Code {
 		tags := f.Tags.Copy()
 		if j, ok := tags["json"]; ok {
 			if a, b, ok := strings.Cut(j, ","); ok {
-				tags["form"] = a
+				if f.isScalar() {
+					tags["form"] = a
+				}
 				if b == "" && strings.HasSuffix(f.Type, "DateTime") {
 					tags["json"] = a + ",omitempty"
 				}
-			} else {
+			} else if f.isScalar() {
 				tags["form"] = j
 			}
 		}
@@ -201,11 +219,16 @@ func (f *Field) queryCode() jen.Code {
 type Fields []Field
 
 // Codes return fields code of main and basic
-func (f Fields) Codes() (mcs, bcs []jen.Code) {
+func (f Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 	var hasMeta bool
+	var setBasic bool
 	for _, field := range f {
 		if field.IsSet || field.IsBasic {
 			bcs = append(bcs, field.Code())
+			if !setBasic {
+				mcs = append(mcs, jen.Id(basicName).Line())
+				setBasic = true
+			}
 		} else {
 			mcs = append(mcs, field.Code())
 		}
@@ -355,16 +378,12 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 }
 
 func (m *Model) Codes() jen.Code {
+	basicName := m.Name + "Basic"
 	var cs []jen.Code
 	cs = append(cs, m.TableField())
-	mcs, bcs := m.Fields.Codes()
+	mcs, bcs := m.Fields.Codes(basicName)
 	cs = append(cs, mcs...)
 	st := jen.Comment(m.Name + " " + m.Comment).Line()
-
-	basicName := m.Name + "Basic"
-	if len(bcs) > 0 {
-		cs = append(cs, jen.Id(basicName))
-	}
 
 	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + m.Name)).Line().Line()
 
