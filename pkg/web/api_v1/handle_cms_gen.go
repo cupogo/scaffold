@@ -114,7 +114,8 @@ func (a *api) getCmsClauses(c *gin.Context) {
 		return
 	}
 
-	data, total, err := a.sto.Content().ListClause(c.Request.Context(), &spec)
+	ctx := c.Request.Context()
+	data, total, err := a.sto.Content().ListClause(ctx, &spec)
 	if err != nil {
 		fail(c, 503, err)
 		return
@@ -165,7 +166,8 @@ func (a *api) getArticles(c *gin.Context) {
 		return
 	}
 
-	data, total, err := a.sto.Content().ListArticle(c.Request.Context(), &spec)
+	ctx := c.Request.Context()
+	data, total, err := a.sto.Content().ListArticle(ctx, &spec)
 	if err != nil {
 		fail(c, 503, err)
 		return

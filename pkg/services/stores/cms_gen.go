@@ -68,10 +68,7 @@ func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clau
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
 	obj := new(cms1.Clause)
-	if !obj.SetID(id) {
-		err = errors.NewErrInvalidID(id)
-		return
-	}
+	_ = obj.SetID(id)
 	cs := obj.SetWith(in)
 	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
 	nid = obj.StringID()

@@ -243,6 +243,8 @@ type Model struct {
 	SpecUp   string   `yaml:"specUp,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
+
+	doc *Document
 }
 
 func (m *Model) String() string {
@@ -458,7 +460,7 @@ func (m *Model) specFields() (out Fields) {
 }
 
 func (m *Model) getSpecCodes() jen.Code {
-	comm, _ := getQual("comm")
+	comm, _ := doc.getQual("comm")
 	var fcs []jen.Code
 	fcs = append(fcs, jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec"))
 	if m.hasAudit() {

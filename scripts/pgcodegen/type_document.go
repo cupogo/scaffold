@@ -103,7 +103,10 @@ func NewDoc(docfile string) (*Document, error) {
 	return doc, nil
 }
 
-func (doc *Document) prepare() {
+func (doc *Document) Init() {
+	for i := range doc.Models {
+		doc.Models[i].doc = doc
+	}
 	for i := range doc.Stores {
 		doc.Stores[i].doc = doc
 		doc.Stores[i].prepareMethods()
@@ -165,7 +168,7 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 			return &m, true
 		}
 	}
-	return nil, false
+	return &Model{}, false
 }
 
 func (doc *Document) modelAliasable(name string) bool {
@@ -226,7 +229,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
 		args := []jen.Code{jen.Id("alltables")}
 		for _, model := range doc.Models {
-			name, _ := getModQual(model.Name)
+			name, _ := doc.getModQual(model.Name)
 			args = append(args, jen.Op("&").Id(name).Block())
 		}
 		g.Id("alltables").Op("=").Append(args...)

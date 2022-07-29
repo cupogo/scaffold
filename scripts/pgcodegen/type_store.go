@@ -73,10 +73,10 @@ func (s *Store) prepareMethods() {
 }
 
 func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bcs []*jen.Statement) {
-	if _, ok := getQual("comm"); !ok {
+	if _, ok := doc.getQual("comm"); !ok {
 		log.Print("get qual comm fail")
 	}
-	modpkg, ok := getQual(modelpkg)
+	modpkg, ok := doc.getQual(modelpkg)
 	if !ok {
 		log.Printf("get modpkg %s fail", modpkg)
 	}
@@ -372,7 +372,7 @@ func (s *Store) ShortIName() string {
 }
 
 func (s *Store) Codes(modelpkg string) jen.Code {
-	modpkg, ok := getQual(modelpkg)
+	modpkg, ok := doc.getQual(modelpkg)
 	if !ok {
 		log.Printf("get modpkg %s fail", modpkg)
 	}

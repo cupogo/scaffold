@@ -4,8 +4,6 @@ package main
 import (
 	"flag"
 	"log"
-
-	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
 const (
@@ -43,7 +41,7 @@ func main() {
 		log.Printf("load fail: %s", err)
 		return
 	}
-	doc.prepare()
+	doc.Init()
 
 	if genSpec&tgModel > 0 {
 		if err = doc.genModels(dropfirst); err != nil {
@@ -81,23 +79,4 @@ func getModQual(k string) (string, bool) {
 		return doc.getModQual(k)
 	}
 	return k, false
-}
-
-func getTableName(mn string) string {
-	if doc != nil {
-		if model, ok := doc.modelWithName(mn); ok {
-			return model.tableName()
-		}
-	}
-	return utils.Underscore(mn)
-}
-
-func getModel(name string) *Model {
-	if doc != nil {
-		if model, ok := doc.modelWithName(name); ok {
-			return model
-		}
-	}
-
-	return &Model{}
 }

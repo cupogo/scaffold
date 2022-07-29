@@ -67,8 +67,15 @@ type WebAPI struct {
 	doc *Document
 }
 
-func (us *UriSpot) getRoute(act string) (route string, name string, summary string) {
-	mod := getModel(us.Model)
+func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle, match bool) {
+	if us.Model != mth.model {
+		return
+	}
+	var mod *Model
+	mod, match = wa.doc.modelWithName(us.Model)
+	if !match {
+		return
+	}
 	plural := mod.GetPlural()
 	if len(plural) == 0 {
 		log.Printf("WARN: empty name of %s[%s]", us.Model, mod.Name)
@@ -78,22 +85,33 @@ func (us *UriSpot) getRoute(act string) (route string, name string, summary stri
 		uri = us.Prefix + "/" + strings.ToLower(plural)
 	}
 
-	method := msmethods[act]
+	method := msmethods[mth.action]
 	fct := strings.ToLower(method)
-	name = fct + mod.Name
-	switch act {
+	name := fct + mod.Name
+	switch mth.action {
 	case "Get", "Update", "Put", "Delete":
 		uri = uri + "/{id}"
 	case "List":
 		name = fct + plural
 	}
 
-	route = fmt.Sprintf("%s [%s]", uri, strings.ToLower(method))
 	cname := mod.Comment
 	if a, _, ok := strings.Cut(cname, " "); ok {
 		cname = a
 	}
-	summary = mslabels[act] + cname
+	hdl = Handle{
+		Name:    name,
+		Method:  mth.Name,
+		Store:   stoName,
+		Route:   fmt.Sprintf("%s [%s]", uri, strings.ToLower(method)),
+		Summary: mslabels[mth.action] + cname,
+	}
+	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
+		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm
+	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth
+	if len(wa.TagLabel) > 0 {
+		hdl.Tags = wa.TagLabel
+	}
 
 	return
 }
@@ -109,19 +127,9 @@ func (wa *WebAPI) prepareHandles() {
 	}
 	for _, u := range wa.URIs {
 		for _, sto := range wa.doc.Stores {
+			iname := sto.ShortIName()
 			for _, mth := range sto.Methods {
-				if u.Model == mth.model {
-					hdl := Handle{
-						Method: mth.Name,
-						Store:  sto.ShortIName(),
-					}
-					hdl.Route, hdl.Name, hdl.Summary = u.getRoute(mth.action)
-					hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
-						mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm
-					hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth
-					if len(wa.TagLabel) > 0 {
-						hdl.Tags = wa.TagLabel
-					}
+				if hdl, ok := wa.genHandle(u, mth, iname); ok {
 					wa.Handles = append(wa.Handles, hdl)
 				}
 			}
