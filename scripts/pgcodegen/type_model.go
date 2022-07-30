@@ -142,6 +142,10 @@ func (f *Field) Code(idx int) jen.Code {
 
 	st.Add(f.preCode())
 
+	var offset int
+	if idx > 26 {
+		offset = 6
+	}
 	if len(f.Tags) > 0 {
 		tags := f.Tags.Copy()
 		if j, ok := tags["json"]; ok {
@@ -158,7 +162,7 @@ func (f *Field) Code(idx int) jen.Code {
 
 			if _, ok = tags["swaggerignore"]; !ok {
 				if _, ok = tags["extensions"]; !ok {
-					tags["extensions"] = fmt.Sprintf("x-order=%c", rune(64+idx))
+					tags["extensions"] = fmt.Sprintf("x-order=%c", rune(64+idx+offset))
 				}
 			}
 
