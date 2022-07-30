@@ -20,11 +20,11 @@ type Article struct {
 
 type ArticleBasic struct {
 	// 作者
-	Author string `form:"author" json:"author" pg:",notnull,use_zero"`
+	Author string `extensions:"x-order=A" form:"author" json:"author" pg:",notnull,use_zero"`
 	// 标题
-	Title string `form:"title" json:"title" pg:",notnull"`
+	Title string `extensions:"x-order=B" form:"title" json:"title" pg:",notnull"`
 	// 内容
-	Content string `form:"content" json:"content" pg:",notnull"`
+	Content string `extensions:"x-order=C" form:"content" json:"content" pg:",notnull"`
 	// for meta update
 	MetaUp *comm.MetaUp `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleBasic
@@ -41,9 +41,9 @@ func (z *Article) Creating() error {
 }
 
 type ArticleSet struct {
-	Author  *string `json:"author"`  // 作者
-	Title   *string `json:"title"`   // 标题
-	Content *string `json:"content"` // 内容
+	Author  *string `extensions:"x-order=A" json:"author"`  // 作者
+	Title   *string `extensions:"x-order=B" json:"title"`   // 标题
+	Content *string `extensions:"x-order=C" json:"content"` // 内容
 	// for meta update
 	MetaUp *comm.MetaUp `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleSet
@@ -77,7 +77,7 @@ type Clause struct {
 } // @name Clause
 
 type ClauseBasic struct {
-	Text string `form:"text" json:"text" pg:"text,notnull"`
+	Text string `extensions:"x-order=A" form:"text" json:"text" pg:"text,notnull"`
 } // @name ClauseBasic
 
 type Clauses []Clause
@@ -92,7 +92,7 @@ func (z *Clause) Creating() error {
 }
 
 type ClauseSet struct {
-	Text *string `json:"text"`
+	Text *string `extensions:"x-order=A" json:"text"`
 } // @name ClauseSet
 
 func (z *Clause) SetWith(o ClauseSet) (cs []string) {

@@ -1,5 +1,5 @@
 package stores
 
 type Storage interface {
-	Content() ContentStore
+	Content() ContentStore // gened
 }
