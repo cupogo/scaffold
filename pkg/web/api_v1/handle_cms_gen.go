@@ -15,7 +15,7 @@ func init() {
 	regHI(true, "PUT", "/cms/clauses/:id", "v1-cms-clauses-id-put", func(a *api) gin.HandlerFunc {
 		return a.putCmsClause
 	})
-	regHI(true, "PUT", "/cms/clauses", "v1-cms-clauses-id-put", func(a *api) gin.HandlerFunc {
+	regHI(true, "POST", "/cms/clauses", "v1-cms-clauses-id-put", func(a *api) gin.HandlerFunc {
 		return a.putCmsClause
 	})
 	regHI(true, "GET", "/cms/clauses", "", func(a *api) gin.HandlerFunc {

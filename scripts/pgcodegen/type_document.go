@@ -317,10 +317,11 @@ func (doc *Document) ensureWrapPatch(vd *vdst) bool {
 					if existVarField(cn.Fields, store.Name) {
 						continue
 					}
-					cn.Fields.List = append(cn.Fields.List, fieldecl(store.Name, store.Name))
-					// vd.addStructField(cn.Fields, store.Name, store.Name)
-					// c.Replace(cn)
-					// log.Printf("block: %s", showNode(cn))
+					fd := fieldecl(store.Name, store.Name)
+					if len(cn.Fields.List) < 3 {
+						fd.Decs.Before = dst.EmptyLine
+					}
+					cn.Fields.List = append(cn.Fields.List, fd)
 				}
 				continue
 			}

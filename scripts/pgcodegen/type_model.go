@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -131,7 +132,7 @@ func (f *Field) preCode() (st *jen.Statement) {
 	return st
 }
 
-func (f *Field) Code() jen.Code {
+func (f *Field) Code(idx int) jen.Code {
 	var st *jen.Statement
 	if len(f.Comment) > 0 {
 		st = jen.Comment(f.Comment).Line()
@@ -154,6 +155,13 @@ func (f *Field) Code() jen.Code {
 			} else if f.isScalar() {
 				tags["form"] = j
 			}
+
+			if _, ok = tags["swaggerignore"]; !ok {
+				if _, ok = tags["extensions"]; !ok {
+					tags["extensions"] = fmt.Sprintf("x-order=%c", rune(64+idx))
+				}
+			}
+
 		}
 		// log.Printf("%s: %+v", f.Name, tags)
 		st.Tag(tags)
@@ -219,18 +227,18 @@ func (f *Field) queryCode() jen.Code {
 type Fields []Field
 
 // Codes return fields code of main and basic
-func (f Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
+func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 	var hasMeta bool
 	var setBasic bool
-	for _, field := range f {
+	for i, field := range z {
 		if field.IsSet || field.IsBasic {
-			bcs = append(bcs, field.Code())
+			bcs = append(bcs, field.Code(i))
 			if !setBasic {
 				mcs = append(mcs, jen.Id(basicName).Line())
 				setBasic = true
 			}
 		} else {
-			mcs = append(mcs, field.Code())
+			mcs = append(mcs, field.Code(i))
 		}
 		if field.isMeta() {
 			hasMeta = true
@@ -326,7 +334,7 @@ func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
 
 func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	var hasMeta bool
-	for _, field := range m.Fields {
+	for idx, field := range m.Fields {
 		if !field.IsSet || field.Type == "" || field.Name == "" {
 			if field.isMeta() {
 				hasMeta = true
@@ -350,7 +358,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code.Op("*").Id(tn)
 		}
 		if s, ok := field.Tags["json"]; ok {
-			code.Tag(Maps{"json": s})
+			code.Tag(Maps{"json": s, "extensions": fmt.Sprintf("x-order=%c", rune(64+idx))})
 		}
 		if len(field.Comment) > 0 {
 			code.Comment(field.Comment)

@@ -12,14 +12,15 @@ type Wrap struct {
 	db *pgx.DB
 	rc *redis.Client
 
-	contentStore *contentStore
+	contentStore *contentStore // gened
 }
 
 // NewWithDB ...
 func NewWithDB(db *pgx.DB, rc *redis.Client) *Wrap {
 	w := &Wrap{db: db, rc: rc}
 
-	w.contentStore = &contentStore{w}
+	w.contentStore = &contentStore{w: w} // gened
+
 	// more member stores
 	return w
 }
@@ -54,7 +55,4 @@ func OpenBases(args ...string) (db *pgx.DB, rc *redis.Client, err error) {
 
 	return
 }
-
-func (w *Wrap) Content() ContentStore {
-	return w.contentStore
-}
+func (w *Wrap) Content() ContentStore { return w.contentStore } // Content gened
