@@ -17,8 +17,6 @@ import (
 	"github.com/dave/dst/dstutil"
 	"github.com/dave/jennifer/jen"
 	"gopkg.in/yaml.v3"
-
-	"daxv.cn/gopak/lib/osutil"
 )
 
 const (
@@ -138,7 +136,7 @@ func (doc *Document) genModels(dropfirst bool) error {
 	log.Printf("found models %v", mods)
 	mgf.Line()
 
-	if !osutil.IsDir(doc.dirmod) {
+	if !IsDir(doc.dirmod) {
 		if err := os.Mkdir(doc.dirmod, 0755); err != nil {
 			log.Printf("mkdir %s fail: %s", doc.dirmod, err)
 			return err
@@ -147,7 +145,7 @@ func (doc *Document) genModels(dropfirst bool) error {
 
 	outname := path.Join(doc.dirmod, doc.name)
 	// log.Printf("%s: %s", doc.ModelPkg, outname)
-	if dropfirst && osutil.CheckFile(outname) {
+	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
 			return err
@@ -235,14 +233,14 @@ func (doc *Document) genStores(dropfirst bool) error {
 		g.Id("alltables").Op("=").Append(args...)
 	})
 
-	if !osutil.IsDir(doc.dirsto) {
+	if !IsDir(doc.dirsto) {
 		if err := os.Mkdir(doc.dirsto, 0755); err != nil {
 			log.Printf("mkdir %s fail: %s", doc.dirsto, err)
 			return err
 		}
 	}
 	outname := path.Join(doc.dirsto, doc.name)
-	if dropfirst && osutil.CheckFile(outname) {
+	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
 			return err
@@ -401,14 +399,14 @@ func (doc *Document) genWebAPI() error {
 		return nil
 	}
 
-	if !osutil.IsDir(doc.dirweb) {
+	if !IsDir(doc.dirweb) {
 		if err := os.Mkdir(doc.dirweb, 0755); err != nil {
 			log.Printf("mkdir %s fail: %s", doc.dirweb, err)
 			return err
 		}
 	}
 	outname := path.Join(doc.dirweb, "handle_"+doc.name)
-	if dropfirst && osutil.CheckFile(outname) {
+	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
 			return err

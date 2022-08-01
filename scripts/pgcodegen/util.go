@@ -14,8 +14,6 @@ import (
 	"github.com/dave/dst/decorator"
 	"github.com/dave/dst/dstutil"
 	"golang.org/x/tools/go/packages"
-
-	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
 type empty struct{}
@@ -235,7 +233,7 @@ func cutMethod(s string) (act string, tgt string, ok bool) {
 	var foundUp bool
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if utils.IsUpper(c) {
+		if IsUpper(c) {
 			if foundUp && foundLow || i > 2 { // PutObject, putObject
 				act = s[0:i]
 				tgt = s[i:]
@@ -244,10 +242,23 @@ func cutMethod(s string) (act string, tgt string, ok bool) {
 			}
 			foundUp = true
 		}
-		if utils.IsLower(c) {
+		if IsLower(c) {
 			foundLow = true
 		}
 	}
 
 	return
+}
+
+// CheckFile returns true if a file exists
+func CheckFile(fpath string) (exists bool) {
+	_, err := os.Stat(fpath)
+	exists = !os.IsNotExist(err)
+	return
+}
+
+// IsDir ...
+func IsDir(fpath string) bool {
+	fi, err := os.Stat(fpath)
+	return err == nil && fi.Mode().IsDir()
 }

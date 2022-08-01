@@ -1,4 +1,4 @@
-package utils
+package main
 
 // copy from go-pg/pg/internal
 

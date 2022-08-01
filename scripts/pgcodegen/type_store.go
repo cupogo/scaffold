@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/dave/jennifer/jen"
-
-	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
 const (
@@ -360,7 +358,7 @@ func (s *Store) GetIName() string {
 	if len(s.IName) > 0 {
 		return s.IName
 	}
-	return utils.CamelCased(s.Name)
+	return CamelCased(s.Name)
 }
 
 func (s *Store) ShortIName() string {
