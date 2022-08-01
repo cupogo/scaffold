@@ -43,12 +43,12 @@ type ArticleSpec struct {
 	comm.PageSpec
 	MDftSpec
 
-	Title string `form:"title" json:"title"` // 标题
+	Author string `form:"author" json:"author"` // 作者
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.MDftSpec.Sift(q)
-	q, _ = siftEquel(q, "title", spec.Title, false)
+	q, _ = siftEquel(q, "author", spec.Author, false)
 
 	return q, nil
 }
@@ -83,7 +83,10 @@ func (s *contentStore) DeleteClause(ctx context.Context, id string) (err error) 
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
-	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
+	q := s.w.db.Model(&data).Apply(spec.Sift)
+	tss := s.w.db.GetTsSpec()
+	tss.SetFallback("title", "content")
+	total, err = queryPager(spec, q.Apply(tss.Sift))
 	return
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {

@@ -103,15 +103,30 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			args = append(args, jen.Id("spec").Op("*").Id(tname))
 			rets = append(rets, jen.Id("data").Qual(modpkg, slicename),
 				jen.Id("total").Int(), jen.Id("err").Error())
-			bcs = append(bcs, jen.Block(
-				jen.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
-					jen.Id("spec"),
-					jen.Add(swdb).Dot("Model").
-						Call(jen.Op("&").Id("data")).Dot("Apply").
-						Call(jen.Id("spec").Dot("Sift")),
-				),
-				jen.Return(),
-			))
+			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
+				jq := jen.Add(swdb).Dot("Model").Call(
+					jen.Op("&").Id("data")).Dot("Apply").Call(
+					jen.Id("spec").Dot("Sift"))
+				if cols, ok := mod.HasTextSearch(); ok {
+					g.Id("q").Op(":=").Add(jq)
+					g.Id("tss").Op(":=").Add(swdb).Dot("GetTsSpec").Call()
+					if len(cols) > 0 {
+						g.Id("tss").Dot("SetFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
+							for _, s := range cols {
+								g1.Lit(s)
+							}
+						}))
+					}
+					g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
+						jen.Id("spec"), jen.Id("q").Dot("Apply").Call(jen.Id("tss").Dot("Sift")),
+					)
+				} else {
+					g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
+						jen.Id("spec"), jq,
+					)
+				}
+				g.Return()
+			}))
 			nap = append(nap, false)
 		} else if act == "Get" {
 			args = append(args, jen.Id("id").String())
