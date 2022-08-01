@@ -8,8 +8,6 @@ import (
 
 	"github.com/dave/jennifer/jen"
 	"github.com/jinzhu/inflection"
-
-	"hyyl.xyz/cupola/scaffold/pkg/utils"
 )
 
 const (
@@ -183,12 +181,12 @@ func (f *Field) ColName() (string, bool) {
 	if s, ok := f.Tags["pg"]; ok && len(s) > 0 {
 		if a, b, ok := strings.Cut(s, ","); ok {
 			if len(a) == 0 {
-				a = utils.Underscore(f.Name)
+				a = Underscore(f.Name)
 			}
 			return a, strings.Contains(b, "unique")
 		}
 	}
-	return utils.Underscore(f.Name), false
+	return Underscore(f.Name), false
 }
 
 func (f *Field) relMode() (string, bool) {
@@ -305,7 +303,7 @@ func (m *Model) GetPlural() string {
 func (m *Model) tableName() string {
 	tt := m.TableTag
 	if tt == "" {
-		tt = utils.Underscore(m.GetPlural())
+		tt = Underscore(m.GetPlural())
 	} else if pos := strings.Index(tt, ","); pos > 0 {
 		tt = tt[0:pos]
 	}
@@ -315,7 +313,7 @@ func (m *Model) tableName() string {
 func (m *Model) TableField() jen.Code {
 	tt := m.TableTag
 	if tt == "" {
-		tt = utils.Underscore(m.GetPlural())
+		tt = Underscore(m.GetPlural())
 	}
 	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
 		tt += ",discard_unknown_columns"
@@ -407,7 +405,7 @@ func (m *Model) Codes() jen.Code {
 
 	if hasHooks, field := m.hasHooks(); hasHooks {
 		log.Printf("model %s has hooks", m.Name)
-		oidcat := utils.CamelCased(m.OIDCat)
+		oidcat := CamelCased(m.OIDCat)
 		if oidcat == "" {
 			oidcat = "Default"
 		}
