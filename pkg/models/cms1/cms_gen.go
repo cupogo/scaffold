@@ -16,6 +16,8 @@ type Article struct {
 	ArticleBasic
 
 	comm.MetaField
+
+	comm.TextSearchField
 } // @name Article
 
 type ArticleBasic struct {

@@ -15,8 +15,9 @@ const (
 	errsQual = "hyyl.xyz/cupola/aurora/pkg/services/errors"
 	utilQual = "hyyl.xyz/cupola/aurora/pkg/services/utils"
 
-	metaField  = "comm.MetaField"
-	auditField = "evnt.AuditFields"
+	metaField       = "comm.MetaField"
+	auditField      = "evnt.AuditFields"
+	textSearchField = "comm.TextSearchField"
 )
 
 func qual(args ...string) jen.Code {
@@ -486,7 +487,7 @@ func (m *Model) hasHooks() (bool, string) {
 
 func (m *Model) specFields() (out Fields) {
 	for _, f := range m.Fields {
-		if f.Query != "" {
+		if validQuery(f.Query) {
 			if f.Type == "oid.OID" {
 				f.Type = "string"
 				f.isOid = true
@@ -579,4 +580,27 @@ func metaUpCode() jen.Code {
 	code.Id("MetaUp").Op("*").Add(qual("comm.MetaUp"))
 	code.Tag(Maps{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
 	return code
+}
+
+func (m *Model) HasTextSearch() (cols []string, ok bool) {
+	for _, field := range m.Fields {
+		if field.Query == "fts" {
+			cn, _ := field.ColName()
+			cols = append(cols, cn)
+		}
+		if field.Name == textSearchField || field.Type == textSearchField {
+			ok = true
+		}
+	}
+
+	return
+}
+
+func validQuery(s string) bool {
+	switch s {
+	case "eq", "equal": // TODO: more query support
+		return true
+	default:
+		return false
+	}
 }

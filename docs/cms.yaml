@@ -15,18 +15,21 @@ models:
         type: string
         tags: {json: 'author', pg: ',notnull,use_zero'}
         isset: true
+        query: 'equal' # '', 'equal', 'wildcard'
       - comment: 标题
         name: Title
         type: string
         tags: {json: 'title', pg: ',notnull'}
         isset: true
-        query: 'equal' # '', 'equal', 'wildcard'
+        query: 'fts' # '', 'equal', 'wildcard'
       - comment: 内容
         name: Content
         type: string
         tags: {json: 'content', pg: ',notnull'}
         isset: true
+        query: 'fts'
       - type: comm.MetaField
+      - type: comm.TextSearchField
     oidcat: article
     hooks:
       afterDeleting: dbAfterDeleteArticle
