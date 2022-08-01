@@ -141,10 +141,6 @@ func (f *Field) Code(idx int) jen.Code {
 
 	st.Add(f.preCode())
 
-	var offset int
-	if idx > 26 {
-		offset = 6
-	}
 	if len(f.Tags) > 0 {
 		tags := f.Tags.Copy()
 		if j, ok := tags["json"]; ok {
@@ -159,14 +155,9 @@ func (f *Field) Code(idx int) jen.Code {
 				tags["form"] = j
 			}
 
-			if _, ok = tags["swaggerignore"]; !ok {
-				if _, ok = tags["extensions"]; !ok {
-					tags["extensions"] = fmt.Sprintf("x-order=%c", rune(64+idx+offset))
-				}
-			}
-
+			tags.extOrder(idx)
 		}
-		// log.Printf("%s: %+v", f.Name, tags)
+
 		st.Tag(tags)
 	}
 
@@ -199,7 +190,7 @@ func (f *Field) relMode() (string, bool) {
 	return "", false
 }
 
-func (f *Field) queryCode() jen.Code {
+func (f *Field) queryCode(idx int) jen.Code {
 	if len(f.Type) > 0 {
 		f.Type, _ = getModQual(f.Type)
 	}
@@ -217,6 +208,7 @@ func (f *Field) queryCode() jen.Code {
 			}
 		}
 		delete(tags, "pg")
+		tags.extOrder(idx + 1)
 		st.Tag(tags)
 	}
 
@@ -511,10 +503,10 @@ func (m *Model) getSpecCodes() jen.Code {
 	specFields := m.specFields()
 	if len(specFields) > 0 {
 		fcs = append(fcs, jen.Empty())
-		for _, field := range specFields {
+		for i, field := range specFields {
 			delete(field.Tags, "binding")
 			delete(field.Tags, "extensions")
-			fcs = append(fcs, field.queryCode())
+			fcs = append(fcs, field.queryCode(i))
 		}
 	}
 
@@ -527,7 +519,7 @@ func (m *Model) getSpecCodes() jen.Code {
 			Name: withRel,
 			Type: "bool", Tags: Maps{"json": jtag},
 			Comment: "include relation column"}
-		fcs = append(fcs, jen.Empty(), field.queryCode())
+		fcs = append(fcs, jen.Empty(), field.queryCode(len(specFields)))
 	}
 
 	tname := m.Name + "Spec"

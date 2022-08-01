@@ -43,7 +43,7 @@ type ArticleSpec struct {
 	comm.PageSpec
 	MDftSpec
 
-	Author string `form:"author" json:"author"` // 作者
+	Author string `extensions:"x-order=A" form:"author" json:"author"` // 作者
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
