@@ -41,6 +41,23 @@ func (m Maps) Copy() (out Maps) {
 	return
 }
 
+func (m Maps) extOrder(idx int) {
+
+	if _, ok := m["swaggerignore"]; !ok {
+		if _, ok = m["extensions"]; !ok {
+			m["extensions"] = fmt.Sprintf("x-order=%c", getRune(idx))
+		}
+	}
+}
+
+func getRune(idx int) rune {
+	var offset int
+	if idx > 26 {
+		offset = 6
+	}
+	return rune(64 + idx + offset)
+}
+
 type Document struct {
 	name    string
 	dirmod  string
