@@ -178,6 +178,11 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 					g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
 						jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
 				}
+				if _, ok := mod.HasTextSearch(); ok {
+					g.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Add(swdb).Dot("GetTsCfg").Call().Op(";").Id("ok")).Block(
+						jen.Id("obj").Dot("TsCfgName").Op("=").Id("tscfg"),
+					)
+				}
 				targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
 					targs = append(targs, jen.Lit(cn), jen.Id("in").Dot(fn))
