@@ -215,6 +215,9 @@ func (f *Field) queryCode(idx int) jen.Code {
 	}
 
 	if len(f.Comment) > 0 {
+		if f.isDate {
+			f.Comment += " + during"
+		}
 		st.Comment(f.Comment)
 	}
 
