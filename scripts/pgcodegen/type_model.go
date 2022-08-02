@@ -48,7 +48,9 @@ type Field struct {
 	Comment string `yaml:"comment,omitempty"`
 	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 
-	isOid bool
+	isOid   bool
+	isDate  bool
+	isIntDt bool
 }
 
 func (f *Field) isMeta() bool {
@@ -483,7 +485,15 @@ func (m *Model) specFields() (out Fields) {
 			if f.Type == "oid.OID" {
 				f.Type = "string"
 				f.isOid = true
+			} else if strings.HasSuffix(f.Type, "DateTime") {
+				f.Type = "string"
+				f.isDate = true
+				f.isIntDt = true
+			} else if strings.HasSuffix(f.Type, "Time") {
+				f.Type = "string"
+				f.isDate = true
 			}
+
 			out = append(out, f)
 		}
 	}
@@ -544,15 +554,20 @@ func (m *Model) getSpecCodes() jen.Code {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
 			}
 			for _, field := range specFields {
+				cn, _ := field.ColName()
+				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name)}
 				cfn := "siftEquel"
 				if field.isOid {
 					cfn = "siftOID"
+				} else if field.isDate {
+					cfn = "siftDate"
+					if field.isIntDt {
+						params = append(params, jen.True())
+					}
 				}
+				params = append(params, jen.False())
 				// TODO: set text wildcard
-				cn, _ := field.ColName()
-				g.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(
-					jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name), jen.False(),
-				)
+				g.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
 			}
 			g.Line()
 			g.Return(jen.Id("q"), jen.Nil())

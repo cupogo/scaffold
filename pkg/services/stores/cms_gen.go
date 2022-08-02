@@ -99,6 +99,9 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		ArticleBasic: in,
 	}
 	s.w.opModelMeta(ctx, obj, obj.MetaUp)
+	if tscfg, ok := s.w.db.GetTsCfg(); ok {
+		obj.TsCfgName = tscfg
+	}
 	err = dbInsert(ctx, s.w.db, obj)
 	return
 }
