@@ -32,6 +32,7 @@ models:
       - type: comm.TextSearchField
     oidcat: article
     hooks:
+      beforeSaving: dbBeforeSaveArticle
       afterDeleting: dbAfterDeleteArticle
 
   - name: Clause
