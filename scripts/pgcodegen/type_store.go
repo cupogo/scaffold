@@ -13,6 +13,7 @@ const (
 	afterSaving    = "afterSaving"
 	beforeCreating = "beforeCreating"
 	beforeUpdating = "beforeUpdating"
+	beforeDeleting = "beforeDeleting"
 	afterDeleting  = "afterDeleting"
 	afterLoad      = "afterLoad"
 	afterCreated   = "afterCreated"
@@ -233,12 +234,12 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			nap = append(nap, false)
 		} else if act == "Update" {
 			args = append(args, jen.Id("id").String(), jen.Id("in").Qual(modpkg, mname+"Set"))
-			rets = append(rets, jen.Id("err").Error())
+			rets = append(rets, jen.Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
-				g.If(jen.Id("err").Op("=").Id("getModelWithPKID").Call(
+				g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
-				).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+				).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
 				g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
@@ -322,29 +323,37 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 
 		} else if act == "Delete" {
 			args = append(args, jen.Id("id").String())
-			rets = append(rets, jen.Err().Error())
+			rets = append(rets, jen.Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
-				if hk, ok := mod.hasHook(afterDeleting); ok {
-					g.If(jen.Id("err").Op("=").Id("getModelWithPKID").Call(
+				hkBD, okBD := mod.hasHook(beforeDeleting)
+				hkAD, okAD := mod.hasHook(afterDeleting)
+				if okBD || okAD {
+					g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
 						jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
-					).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return())
+					).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-					g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+					g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+							if okBD {
+								g2.If(jen.Err().Op("=").Id(hkBD).Call(jen.Id("ctx"), jen.Id("tx"),
+									jen.Id("obj")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+							}
 
-							g2.If(jen.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), jen.Id("tx"),
+							g2.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), jen.Id("tx"),
 								jen.Add(swdb).Dot("Schema").Call(),
 								jen.Add(swdb).Dot("SchemaCrap").Call(),
-								jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID")).Op(";").Err().Op("!=").Nil()).Block(
-								jen.Return(),
-							)
-							g2.Return(jen.Id(hk).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
-						})
+								jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"))
+							if okAD {
+								g2.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
+								g2.Return(jen.Id(hkAD).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
+							} else {
+								g2.Return()
+							}
 
+						})
 					})
-					g.Return()
 				} else {
 					g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
 						jen.Return().Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
