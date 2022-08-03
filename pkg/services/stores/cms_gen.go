@@ -26,13 +26,13 @@ type ContentStore interface {
 	ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error)
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
 	PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error)
-	DeleteClause(ctx context.Context, id string) (err error)
+	DeleteClause(ctx context.Context, id string) error
 
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error)
 	GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error)
 	CreateArticle(ctx context.Context, in cms1.ArticleBasic) (obj *cms1.Article, err error)
-	UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) (err error)
-	DeleteArticle(ctx context.Context, id string) (err error)
+	UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) error
+	DeleteArticle(ctx context.Context, id string) error
 }
 
 type ClauseSpec struct {
@@ -74,7 +74,7 @@ func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseS
 	nid = obj.StringID()
 	return
 }
-func (s *contentStore) DeleteClause(ctx context.Context, id string) (err error) {
+func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 	obj := new(cms1.Clause)
 	if !obj.SetID(id) {
 		return errors.NewErrInvalidID(id)
@@ -111,10 +111,10 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	})
 	return
 }
-func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) (err error) {
+func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) error {
 	exist := new(cms1.Article)
-	if err = getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
-		return
+	if err := getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
+		return err
 	}
 	_ = exist.SetWith(in)
 	return s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
@@ -124,16 +124,16 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		return dbUpdate(ctx, tx, exist)
 	})
 }
-func (s *contentStore) DeleteArticle(ctx context.Context, id string) (err error) {
+func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 	obj := new(cms1.Article)
-	if err = getModelWithPKID(ctx, s.w.db, obj, id); err != nil {
-		return
+	if err := getModelWithPKID(ctx, s.w.db, obj, id); err != nil {
+		return err
 	}
-	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
-		if err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), "cms_article", obj.ID); err != nil {
+	return s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
+		err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), "cms_article", obj.ID)
+		if err != nil {
 			return
 		}
 		return dbAfterDeleteArticle(ctx, tx, obj)
 	})
-	return
 }
