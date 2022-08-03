@@ -69,8 +69,8 @@ func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clau
 func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
 	obj := new(cms1.Clause)
 	_ = obj.SetID(id)
-	cs := obj.SetWith(in)
-	err = dbStoreSimple(ctx, s.w.db, obj, cs...)
+	obj.SetWith(in)
+	err = dbStoreSimple(ctx, s.w.db, obj)
 	nid = obj.StringID()
 	return
 }
@@ -102,20 +102,27 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		obj.TsCfgName = tscfg
 	}
-	err = dbInsert(ctx, s.w.db, obj)
+	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
+		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
+			return err
+		}
+		err = dbInsert(ctx, tx, obj)
+		return err
+	})
 	return
 }
 func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) (err error) {
 	exist := new(cms1.Article)
-	err = getModelWithPKID(ctx, s.w.db, exist, id)
-	if err != nil {
+	if err = getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
 		return
 	}
-	cs := exist.SetWith(in)
-	if len(cs) == 0 {
-		return
-	}
-	return dbUpdate(ctx, s.w.db, exist, cs...)
+	_ = exist.SetWith(in)
+	return s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
+		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
+			return
+		}
+		return dbUpdate(ctx, tx, exist)
+	})
 }
 func (s *contentStore) DeleteArticle(ctx context.Context, id string) (err error) {
 	obj := new(cms1.Article)

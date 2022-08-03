@@ -66,6 +66,9 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	if o.MetaUp != nil && z.UpMeta(o.MetaUp) {
 		cs = append(cs, "meta")
 	}
+	if len(cs) > 0 {
+		z.SetChange(cs...)
+	}
 	return
 }
 
@@ -101,6 +104,9 @@ func (z *Clause) SetWith(o ClauseSet) (cs []string) {
 	if o.Text != nil {
 		z.Text = *o.Text
 		cs = append(cs, "text")
+	}
+	if len(cs) > 0 {
+		z.SetChange(cs...)
 	}
 	return
 }

@@ -236,14 +236,11 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			rets = append(rets, jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("exist").Op(":=").New(jen.Qual(modpkg, mname))
-				g.Id("err").Op("=").Id("getModelWithPKID").Call(
+				g.If(jen.Id("err").Op("=").Id("getModelWithPKID").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
-				)
-				g.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
-				g.Id("cs").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
-				g.If(jen.Len(jen.Id("cs")).Op("==").Lit(0)).Block(
-					jen.Return(),
-				)
+				).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+
+				g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
 				hkBU, okBU := mod.hasHook(beforeUpdating)
 				hkBS, okBS := mod.hasHook(beforeSaving)
@@ -254,7 +251,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 						g1.Id("ctx")
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 							if okBU {
-								g2.If(jen.Id("cs").Op(",").Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist"), jen.Id("cs")).Op(";").Err().Op("!=")).Nil().Block(
+								g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
 									jen.Return(),
 								)
 							} else if okBS {
@@ -263,7 +260,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 								)
 							}
 							jup := jen.Id("dbUpdate").Call(
-								jen.Id("ctx"), jdb, jen.Id("exist"), jen.Id("cs..."),
+								jen.Id("ctx"), jdb, jen.Id("exist"),
 							)
 
 							if okAS {
@@ -281,7 +278,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 
 				} else {
 					g.Return().Id("dbUpdate").Call(
-						jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("cs..."),
+						jen.Id("ctx"), swdb, jen.Id("exist"),
 					)
 				}
 
@@ -298,14 +295,11 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op(":=").New(jen.Qual(modpkg, mname))
 				g.Id("_").Op("=").Id("obj").Dot("SetID").Call(jen.Id("id"))
-				// g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
-				// 	jen.Err().Op("=").Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
-				// 	jen.Return(),
-				// )
+
 				if mth.Simple {
-					g.Id("cs").Op(":=").Id("obj").Dot("SetWith").Call(jen.Id("in"))
+					g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
 					g.Err().Op("=").Id("dbStoreSimple").Call(
-						jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("cs..."),
+						jen.Id("ctx"), swdb, jen.Id("obj"),
 					)
 					g.Id("nid").Op("=").Id("obj").Dot("StringID").Call()
 				} else {

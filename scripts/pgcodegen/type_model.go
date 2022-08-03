@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -358,7 +357,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code.Op("*").Id(tn)
 		}
 		if s, ok := field.Tags["json"]; ok {
-			code.Tag(Maps{"json": s, "extensions": fmt.Sprintf("x-order=%c", rune(64+idx))})
+			tags := Maps{"json": s}
+			tags.extOrder(idx)
+			code.Tag(tags)
 		}
 		if len(field.Comment) > 0 {
 			code.Comment(field.Comment)
@@ -382,6 +383,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("meta")),
 		))
 	}
+	scs = append(scs, jen.If(jen.Len(jen.Id("cs")).Op(">").Lit(0)).Block(
+		jen.Id("z").Dot("SetChange").Call(jen.Id("cs").Op("...")),
+	))
 	return
 }
 
@@ -434,7 +438,7 @@ func (m *Model) Codes() jen.Code {
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
 		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params(
-			jen.Id("cs").Index().String(),
+			jen.Id("cs").Index().String(), // TODO: return bool or nil
 		).Block(
 			scs...,
 		)
