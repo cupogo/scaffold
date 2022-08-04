@@ -312,7 +312,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	if !modok {
 		panic("invalid model: " + mname)
 	}
-	// log.Printf("gen act %s, name %s, call %s", act, h.Name, mth.Name)
+
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
 	jmcc := jen.Op(":=").Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
 	jfail := func(st int) []jen.Code {
@@ -429,7 +429,7 @@ func (wa *WebAPI) Codes(doc *Document) jen.Code {
 					jen.Return(jen.Id("a."+h.Name)),
 				),
 			)
-			// log.Printf("init regHI: r %s m %s", uri, h.Method)
+
 			if strings.HasPrefix(h.Method, "Put") && strings.HasSuffix(uri, "/:id") {
 				g.Id("regHI").Call(
 					jen.Lit(h.NeedAuth), jen.Lit("POST"), jen.Lit(uri[0:len(uri)-4]), jen.Lit(h.GetPermID()),
@@ -442,6 +442,9 @@ func (wa *WebAPI) Codes(doc *Document) jen.Code {
 	}).Line()
 
 	for _, h := range wa.Handles {
+		if len(h.Tags) == 0 {
+			h.Tags = wa.TagLabel
+		}
 		st.Add(h.Codes(doc)).Line()
 	}
 
