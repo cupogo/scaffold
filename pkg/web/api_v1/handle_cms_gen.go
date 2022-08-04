@@ -25,19 +25,19 @@ func init() {
 		return a.deleteCmsClause
 	})
 	regHI(false, "GET", "/cms/articles", "", func(a *api) gin.HandlerFunc {
-		return a.getArticles
+		return a.getContentArticles
 	})
 	regHI(false, "GET", "/cms/articles/:id", "", func(a *api) gin.HandlerFunc {
-		return a.getArticle
+		return a.getContentArticle
 	})
 	regHI(true, "POST", "/cms/articles", "v1-cms-articles-post", func(a *api) gin.HandlerFunc {
-		return a.postArticle
+		return a.postContentArticle
 	})
 	regHI(true, "PUT", "/cms/articles/:id", "v1-cms-articles-id-put", func(a *api) gin.HandlerFunc {
-		return a.putArticle
+		return a.putContentArticle
 	})
 	regHI(true, "DELETE", "/cms/articles/:id", "v1-cms-articles-id-delete", func(a *api) gin.HandlerFunc {
-		return a.deleteArticle
+		return a.deleteContentArticle
 	})
 }
 
@@ -159,7 +159,7 @@ func (a *api) deleteCmsClause(c *gin.Context) {
 // @Failure 404 {object} resp.Failure "目标未找到"
 // @Failure 503 {object} resp.Failure "服务端错误"
 // @Router /api/v1/cms/articles [get]
-func (a *api) getArticles(c *gin.Context) {
+func (a *api) getContentArticles(c *gin.Context) {
 	var spec stores.ArticleSpec
 	if err := c.Bind(&spec); err != nil {
 		fail(c, 400, err)
@@ -187,7 +187,7 @@ func (a *api) getArticles(c *gin.Context) {
 // @Failure 404 {object} resp.Failure "目标未找到"
 // @Failure 503 {object} resp.Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [get]
-func (a *api) getArticle(c *gin.Context) {
+func (a *api) getContentArticle(c *gin.Context) {
 	id := c.Param("id")
 	obj, err := a.sto.Content().GetArticle(c.Request.Context(), id)
 	if err != nil {
@@ -211,7 +211,7 @@ func (a *api) getArticle(c *gin.Context) {
 // @Failure 403 {object} resp.Failure "无权限"
 // @Failure 503 {object} resp.Failure "服务端错误"
 // @Router /api/v1/cms/articles [post]
-func (a *api) postArticle(c *gin.Context) {
+func (a *api) postContentArticle(c *gin.Context) {
 	var in cms1.ArticleBasic
 	if err := c.Bind(&in); err != nil {
 		fail(c, 400, err)
@@ -241,7 +241,7 @@ func (a *api) postArticle(c *gin.Context) {
 // @Failure 403 {object} resp.Failure "无权限"
 // @Failure 503 {object} resp.Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [put]
-func (a *api) putArticle(c *gin.Context) {
+func (a *api) putContentArticle(c *gin.Context) {
 	id := c.Param("id")
 	var in cms1.ArticleSet
 	if err := c.Bind(&in); err != nil {
@@ -271,7 +271,7 @@ func (a *api) putArticle(c *gin.Context) {
 // @Failure 403 {object} resp.Failure "无权限"
 // @Failure 503 {object} resp.Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [delete]
-func (a *api) deleteArticle(c *gin.Context) {
+func (a *api) deleteContentArticle(c *gin.Context) {
 	id := c.Param("id")
 	err := a.sto.Content().DeleteArticle(c.Request.Context(), id)
 	if err != nil {

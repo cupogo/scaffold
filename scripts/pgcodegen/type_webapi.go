@@ -87,12 +87,12 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 
 	method := msmethods[mth.action]
 	fct := strings.ToLower(method)
-	name := fct + mod.Name
+	name := fct + stoName + mod.Name
 	switch mth.action {
 	case "Get", "Update", "Put", "Delete":
 		uri = uri + "/{id}"
 	case "List":
-		name = fct + plural
+		name = fct + stoName + plural
 	}
 
 	cname := mod.Comment
