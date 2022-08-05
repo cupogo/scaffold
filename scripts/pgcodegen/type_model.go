@@ -146,13 +146,13 @@ func (f *Field) Code(idx int) jen.Code {
 		tags := f.Tags.Copy()
 		if j, ok := tags["json"]; ok {
 			if a, b, ok := strings.Cut(j, ","); ok {
-				if f.isScalar() {
+				if f.isScalar() && !tags.Has("form") {
 					tags["form"] = a
 				}
 				if b == "" && strings.HasSuffix(f.Type, "DateTime") {
 					tags["json"] = a + ",omitempty"
 				}
-			} else if f.isScalar() {
+			} else if f.isScalar() && !tags.Has("form") {
 				tags["form"] = j
 			}
 
@@ -199,7 +199,7 @@ func (f *Field) queryCode(idx int) jen.Code {
 
 	tags := f.Tags.Copy()
 	if len(tags) > 0 {
-		if _, ok := tags["form"]; !ok {
+		if !tags.Has("form") {
 			if j, ok := tags["json"]; ok {
 				if a, _, ok := strings.Cut(j, ","); ok {
 					tags["form"] = a
