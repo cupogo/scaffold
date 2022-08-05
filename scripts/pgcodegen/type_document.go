@@ -42,7 +42,9 @@ func (m Maps) Copy() (out Maps) {
 }
 
 func (m Maps) extOrder(idx int) {
-
+	if idx > 55 { // max ascii offset
+		return
+	}
 	if _, ok := m["swaggerignore"]; !ok {
 		if _, ok = m["extensions"]; !ok {
 			m["extensions"] = fmt.Sprintf("x-order=%c", getRune(idx))
