@@ -41,6 +41,11 @@ func (m Maps) Copy() (out Maps) {
 	return
 }
 
+func (m Maps) Has(k string) bool {
+	_, ok := m[k]
+	return ok
+}
+
 func (m Maps) extOrder(idx int) {
 	if idx > 55 { // max ascii offset
 		return
