@@ -94,8 +94,9 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			panic("invalid model: " + mname)
 		}
 		swdb := jen.Id("s").Dot("w").Dot("db")
-		// log.Printf("act %s, %s, %v", act, mname, ok)
-		if act == "List" {
+
+		switch act {
+		case "List":
 			tname := mname + "Spec"
 			slicename := mod.GetPlural()
 			tspec := mod.getSpecCodes()
@@ -129,7 +130,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				g.Return()
 			}))
 			nap = append(nap, false)
-		} else if act == "Get" {
+		case "Get":
 			args = append(args, jen.Id("id").String())
 			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
@@ -168,10 +169,10 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				g.Return()
 			}))
 			nap = append(nap, false)
-		} else if act == "Create" {
+		case "Create":
 			tname := mname + "Basic"
 			args = append(args, jen.Id("in").Qual(modpkg, tname))
-			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Id("err").Error())
+			rets = append(rets, jen.Id("obj").Op("*").Qual(modpkg, mname), jen.Err().Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
 				g.Id("obj").Op("=&").Qual(modpkg, mname).Block(jen.Id(tname).Op(":").Id("in").Op(","))
 
@@ -207,7 +208,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 									jen.Return(jen.Err()),
 								)
 							}
-							g2.Id("err").Op("=").Id("dbInsert").Call(targs...)
+							g2.Err().Op("=").Id("dbInsert").Call(targs...)
 							if okAS {
 								g2.If(jen.Err().Op("==")).Nil().Block(
 									jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
@@ -232,7 +233,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 				g.Return()
 			}))
 			nap = append(nap, false)
-		} else if act == "Update" {
+		case "Update":
 			args = append(args, jen.Id("id").String(), jen.Id("in").Qual(modpkg, mname+"Set"))
 			rets = append(rets, jen.Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
@@ -285,7 +286,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 
 			}))
 			nap = append(nap, false)
-		} else if act == "Put" {
+		case "Put":
 			args = append(args, jen.Id("id").String(), jen.Id("in").Qual(modpkg, mname+"Set"))
 			if mth.Simple {
 				rets = append(rets, jen.Id("nid").String())
@@ -321,7 +322,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			}))
 			nap = append(nap, false)
 
-		} else if act == "Delete" {
+		case "Delete":
 			args = append(args, jen.Id("id").String())
 			rets = append(rets, jen.Error())
 			bcs = append(bcs, jen.BlockFunc(func(g *jen.Group) {
@@ -365,7 +366,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 
 			}).Line())
 			nap = append(nap, true)
-		} else {
+		default:
 			log.Printf("unknown action: %s", act)
 			bcs = append(bcs, jen.Block())
 			nap = append(nap, false)
