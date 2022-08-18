@@ -284,6 +284,7 @@ type Model struct {
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 
 	doc *Document
+	pkg string
 }
 
 func (m *Model) String() string {
@@ -291,10 +292,10 @@ func (m *Model) String() string {
 }
 
 func (m *Model) GetPlural() string {
-	if m.Plural != "" {
-		return m.Plural
+	if m.Plural == "" {
+		m.Plural = inflection.Plural(m.Name)
 	}
-	return inflection.Plural(m.Name)
+	return m.Plural
 }
 
 func (m *Model) tableName() string {
@@ -617,4 +618,290 @@ func validQuery(s string) bool {
 	default:
 		return false
 	}
+}
+
+var (
+	swdb = jen.Id("s").Dot("w").Dot("db")
+)
+
+func (m *Model) getIPath() string {
+	if m.doc != nil {
+		return m.doc.modipath
+	}
+	return m.pkg
+}
+
+func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
+	return []jen.Code{jen.Id("spec").Op("*").Id(m.Name + "Spec")},
+		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
+			jen.Id("total").Int(), jen.Err().Error()},
+		jen.BlockFunc(func(g *jen.Group) {
+			jq := jen.Add(swdb).Dot("Model").Call(
+				jen.Op("&").Id("data")).Dot("Apply").Call(
+				jen.Id("spec").Dot("Sift"))
+			if cols, ok := m.HasTextSearch(); ok {
+				g.Id("q").Op(":=").Add(jq)
+				g.Id("tss").Op(":=").Add(swdb).Dot("GetTsSpec").Call()
+				if len(cols) > 0 {
+					g.Id("tss").Dot("SetFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
+						for _, s := range cols {
+							g1.Lit(s)
+						}
+					}))
+				}
+				g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
+					jen.Id("spec"), jen.Id("q").Dot("Apply").Call(jen.Id("tss").Dot("Sift")),
+				)
+			} else {
+				g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
+					jen.Id("spec"), jq,
+				)
+			}
+			g.Return()
+		})
+}
+
+func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
+	return []jen.Code{jen.Id("id").String()},
+		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
+		jen.BlockFunc(func(g *jen.Group) {
+			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
+			jload := jen.Id("err").Op("=").Id("getModelWithPKID").Call(
+				jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
+			if _, cn, isuniq := mod.UniqueOne(); isuniq {
+				g.If(jen.Err().Op("=").Id("getModelWithUnique").Call(
+					swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
+				).Op(";").Err().Op("!=").Nil()).Block(jload)
+			} else {
+				g.Add(jload)
+			}
+
+			if hkAL, okAL := mod.hasHook(afterLoad); okAL {
+				g.If(jen.Err().Op("==").Nil()).Block(
+					jen.Err().Op("=").Id(hkAL).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+				)
+			} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
+				g.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
+				g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
+					for _, rn := range rels {
+						field, _ := mod.Fields.withName(rn)
+						g2.If(jen.Id("rn").Op("==").Lit(rn)).Block(
+							jen.Id("ro").Op(":=").New(field.typeCode(mod.getIPath())),
+							jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
+								jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(rn+"ID")).Op(";").Err().Op("==").Nil()).Block(
+								jen.Id("obj").Dot(rn).Op("=").Id("ro"),
+								jen.Continue(),
+							),
+						)
+					}
+
+				})
+			}
+			g.Return()
+		})
+}
+
+func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
+	tname := mod.Name + "Basic"
+	return []jen.Code{jen.Id("in").Qual(mod.getIPath(), tname)},
+		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
+		jen.BlockFunc(func(g *jen.Group) {
+			g.Id("obj").Op("=&").Qual(mod.getIPath(), mod.Name).Block(jen.Id(tname).Op(":").Id("in").Op(","))
+
+			if mod.hasMeta() {
+				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
+					jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
+			}
+			if _, ok := mod.HasTextSearch(); ok {
+				g.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Add(swdb).Dot("GetTsCfg").Call().Op(";").Id("ok")).Block(
+					jen.Id("obj").Dot("TsCfgName").Op("=").Id("tscfg"),
+				)
+			}
+			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
+			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
+				targs = append(targs, jen.Lit(cn), jen.Id("in").Dot(fn))
+			}
+
+			hkBC, okBC := mod.hasHook(beforeCreating)
+			hkBS, okBS := mod.hasHook(beforeSaving)
+			hkAS, okAS := mod.hasHook(afterSaving)
+			if okBC || okBS || okAS {
+				g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+					jdb := jen.Id("tx")
+					targs[1] = jdb
+					g1.Id("ctx")
+					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+						if okBC {
+							g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+								jen.Return(jen.Err()),
+							)
+						} else if okBS {
+							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+								jen.Return(jen.Err()),
+							)
+						}
+						g2.Err().Op("=").Id("dbInsert").Call(targs...)
+						if okAS {
+							g2.If(jen.Err().Op("==")).Nil().Block(
+								jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+							)
+						}
+
+						g2.Return(jen.Err())
+					})
+
+				})
+
+			} else {
+				g.Err().Op("=").Id("dbInsert").Call(targs...)
+			}
+
+			if hk, ok := mod.hasHook(afterCreated); ok {
+				g.If(jen.Err().Op("==").Nil()).Block(
+					jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+				)
+			}
+
+			g.Return()
+		})
+}
+
+func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
+	tname := mod.Name + "Set"
+	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
+		[]jen.Code{jen.Error()},
+		jen.BlockFunc(func(g *jen.Group) {
+			g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
+			g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
+				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
+			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
+
+			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+
+			hkBU, okBU := mod.hasHook(beforeUpdating)
+			hkBS, okBS := mod.hasHook(beforeSaving)
+			hkAS, okAS := mod.hasHook(afterSaving)
+			if okBU || okBS || okAS {
+				g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+					jdb := jen.Id("tx")
+					g1.Id("ctx")
+					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+						if okBU {
+							g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
+								jen.Return(),
+							)
+						} else if okBS {
+							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
+								jen.Return(),
+							)
+						}
+						jup := jen.Id("dbUpdate").Call(
+							jen.Id("ctx"), jdb, jen.Id("exist"),
+						)
+
+						if okAS {
+							g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
+								jen.Return().Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
+							)
+							g2.Return()
+						} else {
+							g2.Return(jup)
+						}
+
+					})
+
+				})
+
+			} else {
+				g.Return().Id("dbUpdate").Call(
+					jen.Id("ctx"), swdb, jen.Id("exist"),
+				)
+			}
+		})
+}
+
+func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statement) {
+	tname := mod.Name + "Set"
+	jqual := jen.Qual(mod.getIPath(), mod.Name)
+	var jret *jen.Statement
+	if isSimp {
+		jret = jen.Id("nid").String()
+	} else {
+		jret = jen.Id("isnew").Bool()
+	}
+	// log.Printf("jret: %s, %+v", mod.Name, jret)
+	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
+		[]jen.Code{jret, jen.Err().Error()},
+		jen.BlockFunc(func(g *jen.Group) {
+			g.Id("obj").Op(":=").New(jqual)
+			g.Id("_").Op("=").Id("obj").Dot("SetID").Call(jen.Id("id"))
+
+			if isSimp {
+				g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
+				g.Err().Op("=").Id("dbStoreSimple").Call(
+					jen.Id("ctx"), swdb, jen.Id("obj"),
+				)
+				g.Id("nid").Op("=").Id("obj").Dot("StringID").Call()
+			} else {
+				g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
+				g.Id("exist").Op(":=").New(jqual)
+				cpms := []jen.Code{
+					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("obj"),
+					jen.Func().Params().Index().String().Block(
+						jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
+					),
+				}
+				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
+					cpms = append(cpms, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
+				}
+				g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
+			}
+			g.Return()
+		})
+}
+
+func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
+	jqual := jen.Qual(mod.getIPath(), mod.Name)
+	return []jen.Code{jen.Id("id").String()},
+		[]jen.Code{jen.Error()},
+		jen.BlockFunc(func(g *jen.Group) {
+			g.Id("obj").Op(":=").New(jqual)
+			hkBD, okBD := mod.hasHook(beforeDeleting)
+			hkAD, okAD := mod.hasHook(afterDeleting)
+			if okBD || okAD {
+				g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
+					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
+				).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return(jen.Err()))
+
+				g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+					g1.Id("ctx")
+					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+						if okBD {
+							g2.If(jen.Err().Op("=").Id(hkBD).Call(jen.Id("ctx"), jen.Id("tx"),
+								jen.Id("obj")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+						}
+
+						g2.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), jen.Id("tx"),
+							jen.Add(swdb).Dot("Schema").Call(),
+							jen.Add(swdb).Dot("SchemaCrap").Call(),
+							jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"))
+						if okAD {
+							g2.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
+							g2.Return(jen.Id(hkAD).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
+						} else {
+							g2.Return()
+						}
+
+					})
+				})
+			} else {
+				g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
+					jen.Return().Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
+				)
+				g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
+					jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
+				))
+			}
+
+		})
 }
