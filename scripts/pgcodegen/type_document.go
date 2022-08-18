@@ -128,6 +128,7 @@ func NewDoc(docfile string) (*Document, error) {
 func (doc *Document) Init() {
 	for i := range doc.Models {
 		doc.Models[i].doc = doc
+		doc.Models[i].pkg = doc.ModelPkg
 	}
 	for i := range doc.Stores {
 		doc.Stores[i].doc = doc
