@@ -29,8 +29,9 @@ before_script:
 
   - cd ../
   # - ls -al . */*
+  - test -d andvari && git -C andvari pull --rebase origin main || git clone -b main https://git.hyyl.xyz/cupola/andvari.git
   - test -d aurora && git -C aurora pull --rebase origin main || git clone -b main https://git.hyyl.xyz/cupola/aurora.git
-  - test -e go.work || go work init ./aurora ./scaffold
+  - test -e go.work || go work init ./andvari ./aurora ./scaffold
   - cd ${CI_PROJECT_DIR}
   - ls -al ../*
 

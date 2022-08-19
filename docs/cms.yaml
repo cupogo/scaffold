@@ -1,7 +1,7 @@
 
 depends:
-  comm: 'hyyl.xyz/cupola/aurora/pkg/models/comm'
-  oid: 'hyyl.xyz/cupola/aurora/pkg/models/oid'
+  comm: 'hyyl.xyz/cupola/andvari/models/comm'
+  oid: 'hyyl.xyz/cupola/andvari/models/oid'
 
 modelpkg: cms1
 models:

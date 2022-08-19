@@ -14,8 +14,11 @@ require (
 	go.mongodb.org/mongo-driver v1.8.4
 	golang.org/x/tools v0.1.10
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	hyyl.xyz/cupola/andvari v0.0.0-20220819145044-33017fb3a113
 	hyyl.xyz/cupola/aurora v0.0.0-20220426095910-e20a4a915df3
 )
+
+replace hyyl.xyz/cupola/andvari => ../andvari
 
 replace hyyl.xyz/cupola/aurora => ../aurora
 

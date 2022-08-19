@@ -5,7 +5,7 @@ package stores
 import (
 	"context"
 	"fmt"
-	comm "hyyl.xyz/cupola/aurora/pkg/models/comm"
+	comm "hyyl.xyz/cupola/andvari/models/comm"
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 

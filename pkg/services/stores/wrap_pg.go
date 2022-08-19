@@ -7,10 +7,10 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 
+	"hyyl.xyz/cupola/andvari/models/comm"
+	"hyyl.xyz/cupola/andvari/models/oid"
+	"hyyl.xyz/cupola/andvari/stores/pgx"
 	"hyyl.xyz/cupola/aurora/pkg/models"
-	"hyyl.xyz/cupola/aurora/pkg/models/comm"
-	"hyyl.xyz/cupola/aurora/pkg/models/oid"
-	"hyyl.xyz/cupola/aurora/pkg/services/utils/pgx"
 )
 
 type ormDB = orm.DB //nolint
@@ -53,7 +53,7 @@ var (
 	alltables []any
 )
 
-//nolint
+// nolint
 type applier func(query *orm.Query) (*orm.Query, error)
 
 type Model = models.Model
