@@ -9,16 +9,6 @@ import (
 	"github.com/jinzhu/inflection"
 )
 
-const (
-	oidQual  = "hyyl.xyz/cupola/aurora/pkg/models/oid"
-	errsQual = "hyyl.xyz/cupola/aurora/pkg/services/errors"
-	utilQual = "hyyl.xyz/cupola/aurora/pkg/services/utils"
-
-	metaField       = "comm.MetaField"
-	auditField      = "evnt.AuditFields"
-	textSearchField = "comm.TextSearchField"
-)
-
 func qual(args ...string) jen.Code {
 	if len(args) == 0 {
 		log.Fatal("empty args for qual")

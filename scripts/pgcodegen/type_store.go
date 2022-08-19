@@ -8,17 +8,6 @@ import (
 	"github.com/dave/jennifer/jen"
 )
 
-const (
-	beforeSaving   = "beforeSaving"
-	afterSaving    = "afterSaving"
-	beforeCreating = "beforeCreating"
-	beforeUpdating = "beforeUpdating"
-	beforeDeleting = "beforeDeleting"
-	afterDeleting  = "afterDeleting"
-	afterLoad      = "afterLoad"
-	afterCreated   = "afterCreated"
-)
-
 type Var struct {
 	Name string `yaml:"name"`
 	Type string `yaml:"type"`

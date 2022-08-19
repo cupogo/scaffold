@@ -19,15 +19,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	headerComment = "This file is generated - Do Not Edit."
-
-	storepkg = "stores"
-	storewf  = "wrap.go"
-	storewn  = "Wrap"
-	storein  = "Storage"
-)
-
 type Unmarshaler = yaml.Unmarshaler
 
 type Maps map[string]string

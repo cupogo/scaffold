@@ -10,11 +10,6 @@ import (
 	"github.com/dave/jennifer/jen"
 )
 
-const (
-	ginQual  = "github.com/gin-gonic/gin"
-	respQual = "hyyl.xyz/cupola/aurora/pkg/web/resp"
-)
-
 var preFails = map[int]string{
 	400: `400 {object} resp.Failure "请求或参数错误"`,
 	401: `401 {object} resp.Failure "未登录"`,
