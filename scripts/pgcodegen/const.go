@@ -12,9 +12,9 @@ const (
 
 // consts of qual
 const (
+	ginQual  = "github.com/gin-gonic/gin"
 	oidQual  = "hyyl.xyz/cupola/aurora/pkg/models/oid"
-	errsQual = "hyyl.xyz/cupola/aurora/pkg/services/errors"
-	utilQual = "hyyl.xyz/cupola/aurora/pkg/services/utils"
+	respQual = "hyyl.xyz/cupola/aurora/pkg/web/resp"
 
 	metaField       = "comm.MetaField"
 	auditField      = "evnt.AuditFields"
@@ -31,10 +31,4 @@ const (
 	afterDeleting  = "afterDeleting"
 	afterLoad      = "afterLoad"
 	afterCreated   = "afterCreated"
-)
-
-// consts of api
-const (
-	ginQual  = "github.com/gin-gonic/gin"
-	respQual = "hyyl.xyz/cupola/aurora/pkg/web/resp"
 )

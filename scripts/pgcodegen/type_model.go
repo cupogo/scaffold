@@ -886,7 +886,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 				})
 			} else {
 				g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
-					jen.Return().Qual(errsQual, "NewErrInvalidID").Call(jen.Id("id")),
+					jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
 				)
 				g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
 					jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),

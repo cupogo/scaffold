@@ -4,8 +4,8 @@ package stores
 
 import (
 	"context"
+	"fmt"
 	comm "hyyl.xyz/cupola/aurora/pkg/models/comm"
-	errors "hyyl.xyz/cupola/aurora/pkg/services/errors"
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 
@@ -77,7 +77,7 @@ func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseS
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 	obj := new(cms1.Clause)
 	if !obj.SetID(id) {
-		return errors.NewErrInvalidID(id)
+		return fmt.Errorf("id: '%s' is invalid", id)
 	}
 	return s.w.db.OpDeleteAny(ctx, "cms_clause", obj.ID)
 }
