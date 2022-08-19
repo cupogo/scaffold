@@ -13,7 +13,7 @@ const (
 // consts of qual
 const (
 	ginQual = "github.com/gin-gonic/gin"
-	oidQual = "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	oidQual = "hyyl.xyz/cupola/andvari/models/oid"
 
 	metaField       = "comm.MetaField"
 	auditField      = "evnt.AuditFields"

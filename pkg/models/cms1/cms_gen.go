@@ -3,8 +3,8 @@
 package cms1
 
 import (
-	comm "hyyl.xyz/cupola/aurora/pkg/models/comm"
-	oid "hyyl.xyz/cupola/aurora/pkg/models/oid"
+	comm "hyyl.xyz/cupola/andvari/models/comm"
+	oid "hyyl.xyz/cupola/andvari/models/oid"
 )
 
 // Article 文章

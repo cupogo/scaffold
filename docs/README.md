@@ -135,7 +135,7 @@ package stores
 import (
 	redis "github.com/go-redis/redis/v8"
 
-	"hyyl.xyz/cupola/aurora/pkg/services/utils/pgx"
+	"hyyl.xyz/cupola/andvari/stores/pgx"
 	"hyyl.xyz/cupola/aurora/pkg/settings"
 )
 
