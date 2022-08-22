@@ -370,7 +370,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	if hasMeta {
 		name := "MetaDiff"
 		ccs = append(ccs, metaUpCode())
-		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("UpMeta").Call(jen.Id("o").Dot(name))).Block(
+		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("MetaUp").Call(jen.Id("o").Dot(name))).Block(
 			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("meta")),
 		))
 	}

@@ -63,7 +63,7 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 		z.Content = *o.Content
 		cs = append(cs, "content")
 	}
-	if o.MetaDiff != nil && z.UpMeta(o.MetaDiff) {
+	if o.MetaDiff != nil && z.MetaUp(o.MetaDiff) {
 		cs = append(cs, "meta")
 	}
 	if len(cs) > 0 {
