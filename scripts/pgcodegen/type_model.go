@@ -368,7 +368,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		}))
 	}
 	if hasMeta {
-		name := "MetaUp"
+		name := "MetaDiff"
 		ccs = append(ccs, metaUpCode())
 		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("UpMeta").Call(jen.Id("o").Dot(name))).Block(
 			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("meta")),
@@ -582,7 +582,7 @@ func (m *Model) hasHook(k string) (v string, ok bool) {
 
 func metaUpCode() jen.Code {
 	code := jen.Comment("for meta update").Line()
-	code.Id("MetaUp").Op("*").Add(qual("comm.MetaUp"))
+	code.Id("MetaDiff").Op("*").Add(qual("comm.MetaDiff"))
 	code.Tag(Maps{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
 	return code
 }
@@ -700,7 +700,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			if mod.hasMeta() {
 				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
-					jen.Id("obj"), jen.Id("obj").Dot("MetaUp"))
+					jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
 			}
 			if _, ok := mod.HasTextSearch(); ok {
 				g.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Add(swdb).Dot("GetTsCfg").Call().Op(";").Id("ok")).Block(
