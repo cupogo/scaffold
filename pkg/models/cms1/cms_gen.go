@@ -28,7 +28,7 @@ type ArticleBasic struct {
 	// 内容
 	Content string `extensions:"x-order=C" form:"content" json:"content" pg:",notnull"`
 	// for meta update
-	MetaUp *comm.MetaUp `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
+	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleBasic
 
 type Articles []Article
@@ -47,7 +47,7 @@ type ArticleSet struct {
 	Title   *string `extensions:"x-order=B" json:"title"`   // 标题
 	Content *string `extensions:"x-order=C" json:"content"` // 内容
 	// for meta update
-	MetaUp *comm.MetaUp `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
+	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleSet
 
 func (z *Article) SetWith(o ArticleSet) (cs []string) {
@@ -63,7 +63,7 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 		z.Content = *o.Content
 		cs = append(cs, "content")
 	}
-	if o.MetaUp != nil && z.UpMeta(o.MetaUp) {
+	if o.MetaDiff != nil && z.UpMeta(o.MetaDiff) {
 		cs = append(cs, "meta")
 	}
 	if len(cs) > 0 {

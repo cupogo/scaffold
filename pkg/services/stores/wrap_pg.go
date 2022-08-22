@@ -60,9 +60,9 @@ type Model = models.Model
 type OID = oid.OID
 
 // opModelMeta prepare values from Context
-func (w *Wrap) opModelMeta(ctx context.Context, obj models.ModelCreator, ups ...*comm.MetaUp) {
+func (w *Wrap) opModelMeta(ctx context.Context, obj models.ModelCreator, ups ...*comm.MetaDiff) {
 
-	if mm, ok := obj.(interface{ UpMeta(*comm.MetaUp) bool }); ok && len(ups) > 0 {
+	if mm, ok := obj.(interface{ UpMeta(*comm.MetaDiff) bool }); ok && len(ups) > 0 {
 		_ = mm.UpMeta(ups[0])
 	}
 }
