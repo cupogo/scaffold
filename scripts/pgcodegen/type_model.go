@@ -37,6 +37,8 @@ type Field struct {
 	Comment string `yaml:"comment,omitempty"`
 	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 
+	IsChangeWith bool `yaml:"changeWith,omitempty"` // has ChangeWith method
+
 	isOid   bool
 	isDate  bool
 	isIntDt bool
@@ -362,6 +364,8 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 				g.If(jen.Id("id").Op(",").Err().Op(":=").Id("oid").Dot("CheckID").Call(jen.Op("*").Id("o").Dot(field.Name)).Op(";").Err().Op("==").Nil().Block(
 					jen.Id("z").Dot(field.Name).Op("=").Id("id"), csst,
 				))
+			} else if field.IsChangeWith {
+				g.If(jen.Id("z").Dot(field.Name).Dot("ChangeWith").Call(jen.Id("o").Dot(field.Name))).Block(csst)
 			} else {
 				g.Add(jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name).Line(), csst)
 			}
