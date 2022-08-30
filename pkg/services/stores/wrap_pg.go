@@ -10,7 +10,6 @@ import (
 	"hyyl.xyz/cupola/andvari/models/comm"
 	"hyyl.xyz/cupola/andvari/models/oid"
 	"hyyl.xyz/cupola/andvari/stores/pgx"
-	"hyyl.xyz/cupola/aurora/pkg/models"
 )
 
 type ormDB = orm.DB //nolint
@@ -53,14 +52,10 @@ var (
 	alltables []any
 )
 
-// nolint
-type applier func(query *orm.Query) (*orm.Query, error)
-
-type Model = models.Model
 type OID = oid.OID
 
 // opModelMeta prepare values from Context
-func (w *Wrap) opModelMeta(ctx context.Context, obj models.ModelCreator, ups ...*comm.MetaDiff) {
+func (w *Wrap) opModelMeta(ctx context.Context, obj comm.ModelCreator, ups ...*comm.MetaDiff) {
 
 	if mm, ok := obj.(interface{ MetaUp(*comm.MetaDiff) bool }); ok && len(ups) > 0 {
 		_ = mm.MetaUp(ups[0])
