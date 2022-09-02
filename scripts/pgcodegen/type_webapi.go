@@ -265,7 +265,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 		if len(mth.Rets) > 0 && mth.Rets[0].Type != "error" {
 			success = true
 			if act == "List" {
-				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultData{" + mth.Rets[0].Type + "}}").Line()
+				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultData{data=" + mth.Rets[0].Type + "}}").Line()
 			} else if act == "Create" {
 				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultID}").Line()
 			} else {
