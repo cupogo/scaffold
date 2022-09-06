@@ -43,9 +43,12 @@ func (z *Article) Creating() error {
 }
 
 type ArticleSet struct {
-	Author  *string `extensions:"x-order=A" json:"author"`  // 作者
-	Title   *string `extensions:"x-order=B" json:"title"`   // 标题
-	Content *string `extensions:"x-order=C" json:"content"` // 内容
+	// 作者
+	Author *string `extensions:"x-order=A" json:"author"`
+	// 标题
+	Title *string `extensions:"x-order=B" json:"title"`
+	// 内容
+	Content *string `extensions:"x-order=C" json:"content"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleSet

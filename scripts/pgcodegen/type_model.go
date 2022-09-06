@@ -333,7 +333,13 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			}
 			continue
 		}
-		code := jen.Id(field.Name)
+		var code *jen.Statement
+		if len(field.Comment) > 0 {
+			code = jen.Comment(field.Comment).Line()
+		} else {
+			code = jen.Empty()
+		}
+		code.Id(field.Name)
 		cn, _ := field.ColName()
 		tn := field.Type
 		if len(tn) == 0 {
@@ -354,9 +360,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			tags.extOrder(idx)
 			code.Tag(tags)
 		}
-		if len(field.Comment) > 0 {
-			code.Comment(field.Comment)
-		}
+
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
 			csst := jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn))
