@@ -683,7 +683,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
 					for _, rn := range rels {
 						field, _ := mod.Fields.withName(rn)
-						g2.If(jen.Id("rn").Op("==").Lit(rn)).Block(
+						g2.If(jen.Id("rn").Op("==").Lit(rn).Op("&&!").Qual(utilsQual, "IsZero").Call(jen.Id("obj."+rn+"ID"))).Block(
 							jen.Id("ro").Op(":=").New(field.typeCode(mod.getIPath())),
 							jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
 								jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(rn+"ID")).Op(";").Err().Op("==").Nil()).Block(
