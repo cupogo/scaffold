@@ -15,6 +15,8 @@ const (
 	ginQual = "github.com/gin-gonic/gin"
 	oidQual = "hyyl.xyz/cupola/andvari/models/oid"
 
+	utilsQual = "hyyl.xyz/cupola/andvari/utils"
+
 	metaField       = "comm.MetaField"
 	auditField      = "evnt.AuditFields"
 	textSearchField = "comm.TextSearchField"
