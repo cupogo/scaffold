@@ -714,8 +714,8 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				)
 			}
 			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
-			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-				targs = append(targs, jen.Lit(cn), jen.Id("in").Dot(fn))
+			if _, cn, isuniq := mod.UniqueOne(); isuniq {
+				targs = append(targs, jen.Lit(cn))
 			}
 
 			hkBC, okBC := mod.hasHook(beforeCreating)
