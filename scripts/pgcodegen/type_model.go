@@ -92,17 +92,24 @@ func (f *Field) typeCode(pkgs ...string) *jen.Statement {
 	return jen.Id(typ)
 }
 
+func (f *Field) isEmbed() bool {
+	return len(f.Name) == 0 || len(f.Type) == 0
+}
+
 func (f *Field) preCode() (st *jen.Statement) {
 	if len(f.Type) == 0 {
 		f.Type = f.Name
 		f.Name = ""
 	}
-	switch f.Name {
-	case "":
-		// embed field
-		st = jen.Empty()
-	default:
-		st = jen.Id(f.Name)
+	st = jen.Empty()
+	if f.isEmbed() {
+		st.Line()
+	}
+	if len(f.Comment) > 0 {
+		st.Comment(f.Comment).Line()
+	}
+	if !f.isEmbed() {
+		st.Id(f.Name)
 	}
 
 	if len(f.Qual) > 0 {
@@ -125,14 +132,7 @@ func (f *Field) preCode() (st *jen.Statement) {
 }
 
 func (f *Field) Code(idx int) jen.Code {
-	var st *jen.Statement
-	if len(f.Comment) > 0 {
-		st = jen.Comment(f.Comment).Line()
-	} else {
-		st = jen.Empty()
-	}
-
-	st.Add(f.preCode())
+	st := f.preCode()
 
 	if len(f.Tags) > 0 {
 		tags := f.Tags.Copy()
@@ -187,6 +187,11 @@ func (f *Field) queryCode(idx int) jen.Code {
 	if len(f.Type) > 0 {
 		f.Type, _ = getModQual(f.Type)
 	}
+	if len(f.Comment) > 0 {
+		if f.isDate {
+			f.Comment += " + during"
+		}
+	}
 	st := f.preCode()
 
 	tags := f.Tags.Copy()
@@ -203,13 +208,6 @@ func (f *Field) queryCode(idx int) jen.Code {
 		delete(tags, "pg")
 		tags.extOrder(idx + 1)
 		st.Tag(tags)
-	}
-
-	if len(f.Comment) > 0 {
-		if f.isDate {
-			f.Comment += " + during"
-		}
-		st.Comment(f.Comment)
 	}
 
 	return st
