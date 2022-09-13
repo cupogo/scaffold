@@ -42,6 +42,7 @@ type Field struct {
 	isOid   bool
 	isDate  bool
 	isIntDt bool
+	siftFn  string
 }
 
 func (f *Field) isMeta() bool {
@@ -485,17 +486,22 @@ func (m *Model) hasHooks() (bool, string) {
 
 func (m *Model) specFields() (out Fields) {
 	for _, f := range m.Fields {
-		if validQuery(f.Query) {
+		if sfn, ok := validQuery(f.Query); ok {
 			if f.Type == "oid.OID" {
 				f.Type = "string"
 				f.isOid = true
+				f.siftFn = "siftOID"
 			} else if strings.HasSuffix(f.Type, "DateTime") {
 				f.Type = "string"
 				f.isDate = true
 				f.isIntDt = true
+				f.siftFn = "siftDate"
 			} else if strings.HasSuffix(f.Type, "Time") {
 				f.Type = "string"
 				f.isDate = true
+				f.siftFn = "siftDate"
+			} else {
+				f.siftFn = sfn
 			}
 
 			out = append(out, f)
@@ -560,14 +566,9 @@ func (m *Model) getSpecCodes() jen.Code {
 			for _, field := range specFields {
 				cn, _ := field.ColName()
 				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name)}
-				cfn := "siftEquel"
-				if field.isOid {
-					cfn = "siftOID"
-				} else if field.isDate {
-					cfn = "siftDate"
-					if field.isIntDt {
-						params = append(params, jen.True())
-					}
+				cfn := field.siftFn
+				if field.isDate && field.isIntDt {
+					params = append(params, jen.True())
 				}
 				params = append(params, jen.False())
 				// TODO: set text wildcard
@@ -607,12 +608,23 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 	return
 }
 
-func validQuery(s string) bool {
-	switch s {
-	case "eq", "equal": // TODO: more query support
-		return true
+func validQuery(s string) (string, bool) {
+	switch strings.ToLower(s) {
+	case "equal":
+		return "siftEquel", true
+	case "ice", "ilike":
+		return "siftILike", true
+	case "match":
+		return "siftMatch", true
+	case "date":
+		return "siftDate", true
+	case "great":
+		return "siftGreat", true
+	case "less":
+		return "siftLess", true
+
 	default:
-		return false
+		return "", false
 	}
 }
 

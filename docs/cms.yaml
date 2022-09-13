@@ -15,19 +15,25 @@ models:
         type: string
         tags: {json: 'author', pg: ',notnull,use_zero'}
         isset: true
-        query: 'equal' # '', 'equal', 'wildcard'
+        query: 'ice' # '', 'equal', 'match'
       - comment: 标题
         name: Title
         type: string
         tags: {json: 'title', pg: ',notnull'}
         isset: true
-        query: 'fts' # '', 'equal', 'wildcard'
+        query: 'fts' # '', 'equal', 'match'
       - comment: 内容
         name: Content
         type: string
         tags: {json: 'content', pg: ',notnull'}
         isset: true
         query: 'fts'
+      - comment: '新闻时间'
+        name: NewsPublish
+        type: comm.DateTime
+        tags: {json: 'newsPublish,omitempty', pg: "news_publish,type:date"}
+        isset: true
+        query: 'date'
       - type: comm.MetaField
       - type: comm.TextSearchField
     oidcat: article
@@ -46,6 +52,7 @@ models:
           json: 'text'
           pg: 'text,notnull'
         isset: true
+        query: 'match'
     oidcat: article
 
 stores:

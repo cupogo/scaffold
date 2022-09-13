@@ -38,18 +38,31 @@ type ContentStore interface {
 type ClauseSpec struct {
 	comm.PageSpec
 	MDftSpec
+
+	Text string `extensions:"x-order=A" form:"text" json:"text"`
 }
+
+func (spec *ClauseSpec) Sift(q *ormQuery) (*ormQuery, error) {
+	q, _ = spec.MDftSpec.Sift(q)
+	q, _ = siftMatch(q, "text", spec.Text, false)
+
+	return q, nil
+}
+
 type ArticleSpec struct {
 	comm.PageSpec
 	MDftSpec
 
 	// 作者
 	Author string `extensions:"x-order=A" form:"author" json:"author"`
+	// 新闻时间 + during
+	NewsPublish string `extensions:"x-order=B" form:"newsPublish" json:"newsPublish,omitempty"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.MDftSpec.Sift(q)
-	q, _ = siftEquel(q, "author", spec.Author, false)
+	q, _ = siftILike(q, "author", spec.Author, false)
+	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 
 	return q, nil
 }
