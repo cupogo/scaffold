@@ -42,10 +42,12 @@ var (
 
 	sift      = pgx.Sift      //nolint
 	siftEquel = pgx.SiftEquel //nolint
-	siftILike = pgx.SiftILike //nolint
+	siftILike = pgx.SiftICE   //nolint
+	siftMatch = pgx.SiftMatch //nolint
 	siftGreat = pgx.SiftGreat //nolint
 	siftLess  = pgx.SiftLess  //nolint
 	siftOID   = pgx.SiftOID   //nolint
+	siftDate  = pgx.SiftDate  //nolint
 )
 
 var (
