@@ -13,6 +13,7 @@ import (
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
 	"github.com/dave/dst/dstutil"
+	"github.com/jinzhu/inflection"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -261,4 +262,11 @@ func CheckFile(fpath string) (exists bool) {
 func IsDir(fpath string) bool {
 	fi, err := os.Stat(fpath)
 	return err == nil && fi.Mode().IsDir()
+}
+
+func Plural(str string) string {
+	if strings.HasSuffix(str, "ID") {
+		return str + "s"
+	}
+	return inflection.Plural(str)
 }

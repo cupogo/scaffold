@@ -93,3 +93,15 @@ func isUpperString(s string) bool {
 	}
 	return true
 }
+
+func LcFirst(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	if c := s[0]; IsUpper(c) {
+		b := []byte(s)
+		b[0] = ToLower(c)
+		return string(b)
+	}
+	return s
+}
