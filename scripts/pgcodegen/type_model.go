@@ -39,10 +39,12 @@ type Field struct {
 
 	IsChangeWith bool `yaml:"changeWith,omitempty"` // has ChangeWith method
 
-	isOid   bool
-	isDate  bool
-	isIntDt bool
-	siftFn  string
+	isOid    bool
+	isDate   bool
+	isIntDt  bool
+	siftFn   string
+	siftExt  string
+	multable bool
 }
 
 func (f *Field) isMeta() bool {
@@ -182,6 +184,21 @@ func (f *Field) relMode() (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func (f *Field) getArgTag() string {
+	if s, ok := f.Tags["form"]; ok {
+		return LcFirst(s)
+	}
+
+	if j, ok := f.Tags["json"]; ok {
+		if a, _, ok := strings.Cut(j, ","); ok {
+			return LcFirst(a)
+		}
+		return LcFirst(j)
+	}
+
+	return LcFirst(f.Name)
 }
 
 func (f *Field) queryCode(idx int) jen.Code {
@@ -486,7 +503,22 @@ func (m *Model) hasHooks() (bool, string) {
 
 func (m *Model) specFields() (out Fields) {
 	for _, f := range m.Fields {
-		if sfn, ok := validQuery(f.Query); ok {
+		if sfn, ext, ok := parseFieldQuery(f.Query); ok {
+			// log.Printf("name: %s, sfn: %q, ext: %q", f.Name, sfn, ext)
+			f.siftExt = ext
+			if ext == "ints" {
+				argTag := Plural(f.getArgTag())
+				f0 := Field{
+					Comment:  f.Comment + "(逗号分隔)",
+					Type:     "string",
+					Name:     Plural(f.Name),
+					Tags:     Maps{"form": argTag, "json": argTag},
+					siftExt:  ext,
+					multable: true,
+				}
+				// log.Printf("f0: %+v", f0)
+				out = append(out, f0)
+			}
 			if f.Type == "oid.OID" {
 				f.Type = "string"
 				f.isOid = true
@@ -522,6 +554,7 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 	specFields := m.specFields()
 	if len(specFields) > 0 {
+		// log.Printf("specFields: %+v", specFields)
 		fcs = append(fcs, jen.Empty())
 		for i, field := range specFields {
 			delete(field.Tags, "binding")
@@ -563,7 +596,14 @@ func (m *Model) getSpecCodes() jen.Code {
 			for _, sifter := range m.Sifters {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
 			}
-			for _, field := range specFields {
+
+			for i := 0; i < len(specFields); i++ {
+				field := specFields[i]
+				fieldM := field
+				if field.multable && field.siftExt == "ints" {
+					field = specFields[i+1]
+					i++
+				}
 				cn, _ := field.ColName()
 				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name)}
 				cfn := field.siftFn
@@ -571,8 +611,20 @@ func (m *Model) getSpecCodes() jen.Code {
 					params = append(params, jen.True())
 				}
 				params = append(params, jen.False())
+				jq := jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
+				if field.siftExt == "hasVals" {
+					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
+						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+					).Else().Block(jq)
+				} else if field.siftExt == "ints" {
+					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
+						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+					).Else().Block(jq)
+				} else {
+					g.Add(jq)
+				}
+
 				// TODO: set text wildcard
-				g.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
 			}
 			g.Line()
 			g.Return(jen.Id("q"), jen.Nil())
@@ -608,24 +660,24 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 	return
 }
 
-func validQuery(s string) (string, bool) {
-	switch strings.ToLower(s) {
+func parseFieldQuery(s string) (fn, ext string, ok bool) {
+	var a string
+	a, ext, _ = strings.Cut(s, ",")
+	switch a {
 	case "equal":
-		return "siftEquel", true
+		fn, ok = "siftEquel", true
 	case "ice", "ilike":
-		return "siftILike", true
+		fn, ok = "siftILike", true
 	case "match":
-		return "siftMatch", true
+		fn, ok = "siftMatch", true
 	case "date":
-		return "siftDate", true
+		fn, ok = "siftDate", true
 	case "great":
-		return "siftGreat", true
+		fn, ok = "siftGreat", true
 	case "less":
-		return "siftLess", true
-
-	default:
-		return "", false
+		fn, ok = "siftLess", true
 	}
+	return
 }
 
 var (

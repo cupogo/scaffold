@@ -34,6 +34,12 @@ models:
         tags: {json: 'newsPublish,omitempty', pg: "news_publish,type:date"}
         isset: true
         query: 'date'
+      - comment: 状态
+        name: Status
+        type: int16
+        tags: {json: 'status', pg: ',notnull,use_zero'}
+        isset: true
+        query: 'equal,ints'
       - type: comm.MetaField
       - type: comm.TextSearchField
     oidcat: article

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	comm "hyyl.xyz/cupola/andvari/models/comm"
+	utils "hyyl.xyz/cupola/andvari/utils"
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
 
@@ -57,12 +58,21 @@ type ArticleSpec struct {
 	Author string `extensions:"x-order=A" form:"author" json:"author"`
 	// 新闻时间 + during
 	NewsPublish string `extensions:"x-order=B" form:"newsPublish" json:"newsPublish,omitempty"`
+	// 状态(逗号分隔)
+	Statuses string `extensions:"x-order=C" form:"statuses" json:"statuses"`
+	// 状态
+	Status int16 `extensions:"x-order=D" form:"status" json:"status"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.MDftSpec.Sift(q)
 	q, _ = siftILike(q, "author", spec.Author, false)
 	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
+	if vals, ok := utils.ParseInts(spec.Statuses); ok {
+		q = q.WhereIn("status IN(?)", vals)
+	} else {
+		q, _ = siftEquel(q, "status", spec.Status, false)
+	}
 
 	return q, nil
 }
