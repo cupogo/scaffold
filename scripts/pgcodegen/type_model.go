@@ -509,7 +509,7 @@ func (m *Model) specFields() (out Fields) {
 			if ext == "ints" {
 				argTag := Plural(f.getArgTag())
 				f0 := Field{
-					Comment:  f.Comment + "(逗号分隔)",
+					Comment:  f.Comment + "(多值逗号分隔)",
 					Type:     "string",
 					Name:     Plural(f.Name),
 					Tags:     Maps{"form": argTag, "json": argTag},
@@ -518,6 +518,8 @@ func (m *Model) specFields() (out Fields) {
 				}
 				// log.Printf("f0: %+v", f0)
 				out = append(out, f0)
+			} else if ext == "hasVals" {
+				f.Comment += "(多值相加)"
 			}
 			if f.Type == "oid.OID" {
 				f.Type = "string"
