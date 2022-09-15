@@ -506,11 +506,15 @@ func (m *Model) specFields() (out Fields) {
 		if sfn, ext, ok := parseFieldQuery(f.Query); ok {
 			// log.Printf("name: %s, sfn: %q, ext: %q", f.Name, sfn, ext)
 			f.siftExt = ext
-			if ext == "ints" {
+			if ext == "ints" || ext == "strs" || ext == "oids" {
+				ftyp := "string"
+				if ext == "oids" {
+					ftyp = "oid.OIDsStr"
+				}
 				argTag := Plural(f.getArgTag())
 				f0 := Field{
 					Comment:  f.Comment + "(多值逗号分隔)",
-					Type:     "string",
+					Type:     ftyp,
 					Name:     Plural(f.Name),
 					Tags:     Maps{"form": argTag, "json": argTag},
 					siftExt:  ext,
@@ -602,7 +606,7 @@ func (m *Model) getSpecCodes() jen.Code {
 			for i := 0; i < len(specFields); i++ {
 				field := specFields[i]
 				fieldM := field
-				if field.multable && field.siftExt == "ints" {
+				if field.multable { // ints, strs, oids
 					field = specFields[i+1]
 					i++
 				}
@@ -620,6 +624,14 @@ func (m *Model) getSpecCodes() jen.Code {
 					).Else().Block(jq)
 				} else if field.siftExt == "ints" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
+						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+					).Else().Block(jq)
+				} else if field.siftExt == "strs" {
+					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseStrs").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
+						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+					).Else().Block(jq)
+				} else if field.siftExt == "oids" {
+					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(fieldM.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
 						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
 					).Else().Block(jq)
 				} else {
