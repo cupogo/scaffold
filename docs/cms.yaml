@@ -40,6 +40,18 @@ models:
         tags: {json: 'status', pg: ',notnull,use_zero'}
         isset: true
         query: 'equal,ints'
+      - comment: 作者
+        name: AuthorID
+        type: 'oid.OID'
+        tags: {json: 'authorID', pg: ',notnull,use_zero'}
+        isset: true
+        query: 'equal,oids'
+      - comment: 来源
+        name: Src
+        type: string
+        tags: {json: 'src', pg: ',notnull,use_zero'}
+        isset: true
+        query: 'equal,strs'
       - type: comm.MetaField
       - type: comm.TextSearchField
     oidcat: article

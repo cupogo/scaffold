@@ -31,6 +31,10 @@ type ArticleBasic struct {
 	NewsPublish comm.DateTime `extensions:"x-order=D" json:"newsPublish,omitempty" pg:"news_publish,type:date"`
 	// 状态
 	Status int16 `extensions:"x-order=E" form:"status" json:"status" pg:",notnull,use_zero"`
+	// 作者
+	AuthorID oid.OID `extensions:"x-order=F" json:"authorID" pg:",notnull,use_zero"`
+	// 来源
+	Src string `extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleBasic
@@ -57,6 +61,10 @@ type ArticleSet struct {
 	NewsPublish *comm.DateTime `extensions:"x-order=D" json:"newsPublish,omitempty"`
 	// 状态
 	Status *int16 `extensions:"x-order=E" json:"status"`
+	// 作者
+	AuthorID *string `extensions:"x-order=F" json:"authorID"`
+	// 来源
+	Src *string `extensions:"x-order=G" json:"src"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleSet
@@ -81,6 +89,16 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	if o.Status != nil {
 		z.Status = *o.Status
 		cs = append(cs, "status")
+	}
+	if o.AuthorID != nil {
+		if id, err := oid.CheckID(*o.AuthorID); err == nil {
+			z.AuthorID = id
+			cs = append(cs, "author_id")
+		}
+	}
+	if o.Src != nil {
+		z.Src = *o.Src
+		cs = append(cs, "src")
 	}
 	if o.MetaDiff != nil && z.MetaUp(o.MetaDiff) {
 		cs = append(cs, "meta")
