@@ -39,6 +39,12 @@ func init() {
 	regHI(true, "DELETE", "/cms/articles/:id", "v1-cms-articles-id-delete", func(a *api) gin.HandlerFunc {
 		return a.deleteContentArticle
 	})
+	regHI(false, "GET", "/cms/attachments", "", func(a *api) gin.HandlerFunc {
+		return a.getContentAttachments
+	})
+	regHI(false, "GET", "/cms/attachments/:id", "", func(a *api) gin.HandlerFunc {
+		return a.getContentAttachment
+	})
 }
 
 // @Tags 默认 文档生成
@@ -100,7 +106,7 @@ func (a *api) putCmsClause(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
-// @Param   query  formData   stores.ClauseSpec  true   "Object"
+// @Param   query  query   stores.ClauseSpec  true   "Object"
 // @Success 200 {object} resp.Done{result=resp.ResultData{data=cms1.Clauses}}
 // @Failure 400 {object} resp.Failure "请求或参数错误"
 // @Failure 401 {object} resp.Failure "未登录"
@@ -152,7 +158,7 @@ func (a *api) deleteCmsClause(c *gin.Context) {
 // @Summary 列出文章
 // @Accept json
 // @Produce json
-// @Param   query  formData   stores.ArticleSpec  true   "Object"
+// @Param   query  query   stores.ArticleSpec  true   "Object"
 // @Success 200 {object} resp.Done{result=resp.ResultData{data=cms1.Articles}}
 // @Failure 400 {object} resp.Failure "请求或参数错误"
 // @Failure 401 {object} resp.Failure "未登录"
@@ -280,4 +286,54 @@ func (a *api) deleteContentArticle(c *gin.Context) {
 	}
 
 	success(c, "ok")
+}
+
+// @Tags 默认 文档生成
+// @Summary 列出附件
+// @Accept json
+// @Produce json
+// @Param   query  query   stores.AttachmentSpec  true   "Object"
+// @Success 200 {object} resp.Done{result=resp.ResultData{data=cms1.Attachments}}
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 404 {object} resp.Failure "目标未找到"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/attachments [get]
+func (a *api) getContentAttachments(c *gin.Context) {
+	var spec stores.AttachmentSpec
+	if err := c.Bind(&spec); err != nil {
+		fail(c, 400, err)
+		return
+	}
+
+	ctx := c.Request.Context()
+	data, total, err := a.sto.Content().ListAttachment(ctx, &spec)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, dtResult(data, total))
+}
+
+// @Tags 默认 文档生成
+// @Summary 获取附件
+// @Accept json
+// @Produce json
+// @Param   id    path   string  true   "编号"
+// @Success 200 {object} resp.Done{result=cms1.Attachment}
+// @Failure 400 {object} resp.Failure "请求或参数错误"
+// @Failure 401 {object} resp.Failure "未登录"
+// @Failure 404 {object} resp.Failure "目标未找到"
+// @Failure 503 {object} resp.Failure "服务端错误"
+// @Router /api/v1/cms/attachments/{id} [get]
+func (a *api) getContentAttachment(c *gin.Context) {
+	id := c.Param("id")
+	obj, err := a.sto.Content().GetAttachment(c.Request.Context(), id)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, obj)
 }
