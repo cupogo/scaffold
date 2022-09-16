@@ -503,7 +503,7 @@ func (m *Model) hasHooks() (bool, string) {
 
 func (m *Model) specFields() (out Fields) {
 	for _, f := range m.Fields {
-		if sfn, ext, ok := parseFieldQuery(f.Query); ok {
+		if sfn, ext, ok := f.parseQuery(); ok {
 			// log.Printf("name: %s, sfn: %q, ext: %q", f.Name, sfn, ext)
 			f.siftExt = ext
 			if ext == "ints" || ext == "strs" || ext == "oids" {
@@ -528,7 +528,11 @@ func (m *Model) specFields() (out Fields) {
 			if f.Type == "oid.OID" {
 				f.Type = "string"
 				f.isOid = true
-				f.siftFn = "siftOID"
+				if sfn == "siftOIDs" {
+					f.siftFn = sfn
+				} else {
+					f.siftFn = "siftOID"
+				}
 			} else if strings.HasSuffix(f.Type, "DateTime") {
 				f.Type = "string"
 				f.isDate = true
@@ -674,10 +678,12 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 	return
 }
 
-func parseFieldQuery(s string) (fn, ext string, ok bool) {
+func (f *Field) parseQuery() (fn, ext string, ok bool) {
 	var a string
-	a, ext, _ = strings.Cut(s, ",")
+	a, ext, _ = strings.Cut(f.Query, ",")
 	switch a {
+	case "oids":
+		fn, ok = "siftOIDs", f.Type == "oid.OID"
 	case "equal":
 		fn, ok = "siftEquel", true
 	case "ice", "ilike":

@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	comm "hyyl.xyz/cupola/andvari/models/comm"
-	oid "hyyl.xyz/cupola/andvari/models/oid"
 	utils "hyyl.xyz/cupola/andvari/utils"
 	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
 )
@@ -63,14 +62,12 @@ type ArticleSpec struct {
 	Statuses string `extensions:"x-order=C" form:"statuses" json:"statuses"`
 	// 状态
 	Status int16 `extensions:"x-order=D" form:"status" json:"status"`
-	// 作者(多值逗号分隔)
-	AuthorIDs oid.OIDsStr `extensions:"x-order=E" form:"authorIDs" json:"authorIDs"`
 	// 作者
-	AuthorID string `extensions:"x-order=F" form:"authorID" json:"authorID"`
+	AuthorID string `extensions:"x-order=E" form:"authorID" json:"authorID"`
 	// 来源(多值逗号分隔)
-	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs"`
+	Srcs string `extensions:"x-order=F" form:"srcs" json:"srcs"`
 	// 来源
-	Src string `extensions:"x-order=H" form:"src" json:"src"`
+	Src string `extensions:"x-order=G" form:"src" json:"src"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
@@ -82,11 +79,7 @@ func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	} else {
 		q, _ = siftEquel(q, "status", spec.Status, false)
 	}
-	if vals := spec.AuthorIDs.Vals(); len(vals) > 0 {
-		q = q.WhereIn("author_id IN(?)", vals)
-	} else {
-		q, _ = siftOID(q, "author_id", spec.AuthorID, false)
-	}
+	q, _ = siftOIDs(q, "author_id", spec.AuthorID, false)
 	if vals, ok := utils.ParseStrs(spec.Srcs); ok {
 		q = q.WhereIn("src IN(?)", vals)
 	} else {
