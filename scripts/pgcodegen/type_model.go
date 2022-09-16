@@ -574,13 +574,18 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 
 	var withRel string
+	_, okAL := m.hasHook(afterList)
 	relNames := m.Fields.relHasOne()
-	if len(relNames) > 0 {
+	if len(relNames) > 0 || okAL {
+		ftyp := "bool"
+		if okAL {
+			ftyp = "string"
+		}
 		withRel = "WithRel"
 		jtag := "rel"
 		field := &Field{
 			Name: withRel,
-			Type: "bool", Tags: Maps{"json": jtag},
+			Type: ftyp, Tags: Maps{"json": jtag},
 			Comment: "include relation column"}
 		fcs = append(fcs, jen.Empty(), field.queryCode(len(specFields)))
 	}
@@ -591,7 +596,7 @@ func (m *Model) getSpecCodes() jen.Code {
 		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
 			Params(jen.Op("*").Id("ormQuery"), jen.Error())
 		st.BlockFunc(func(g *jen.Group) {
-			if len(relNames) > 0 {
+			if len(relNames) > 0 && !okAL {
 				log.Printf("%s relNames %+v", m.Name, relNames)
 				g.If(jen.Id("spec").Dot(withRel)).BlockFunc(func(g *jen.Group) {
 					for _, relName := range relNames {
@@ -737,6 +742,11 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Id("spec"), jq,
 				)
 			}
+			if hkAL, okAL := m.hasHook(afterList); okAL {
+				g.If(jen.Err().Op("==").Nil().Op("&&").Len(jen.Id("data")).Op(">0")).Block(
+					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("spec"), jen.Id("data")),
+				)
+			}
 			g.Return()
 		})
 }
@@ -758,7 +768,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			if hkAL, okAL := mod.hasHook(afterLoad); okAL {
 				g.If(jen.Err().Op("==").Nil()).Block(
-					jen.Err().Op("=").Id(hkAL).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("obj")),
 				)
 			} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
 				g.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
