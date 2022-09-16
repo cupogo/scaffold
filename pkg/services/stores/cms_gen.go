@@ -14,13 +14,17 @@ import (
 // type ArticleBasic = cms1.ArticleBasic
 // type ArticleSet = cms1.ArticleSet
 // type Articles = cms1.Articles
+// type Attachment = cms1.Attachment
+// type AttachmentBasic = cms1.AttachmentBasic
+// type AttachmentSet = cms1.AttachmentSet
+// type Attachments = cms1.Attachments
 // type Clause = cms1.Clause
 // type ClauseBasic = cms1.ClauseBasic
 // type ClauseSet = cms1.ClauseSet
 // type Clauses = cms1.Clauses
 
 func init() {
-	alltables = append(alltables, &cms1.Article{}, &cms1.Clause{})
+	alltables = append(alltables, &cms1.Article{}, &cms1.Attachment{}, &cms1.Clause{})
 }
 
 type ContentStore interface {
@@ -34,6 +38,9 @@ type ContentStore interface {
 	CreateArticle(ctx context.Context, in cms1.ArticleBasic) (obj *cms1.Article, err error)
 	UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) error
 	DeleteArticle(ctx context.Context, id string) error
+
+	ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error)
+	GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error)
 }
 
 type ClauseSpec struct {
@@ -85,6 +92,29 @@ func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	} else {
 		q, _ = siftEquel(q, "src", spec.Src, false)
 	}
+
+	return q, nil
+}
+
+type AttachmentSpec struct {
+	comm.PageSpec
+	MDftSpec
+
+	// 文章编号
+	ArticleID string `extensions:"x-order=A" form:"articleID" json:"articleID"`
+	// 名称
+	Name string `extensions:"x-order=B" form:"name" json:"name"`
+	// 类型
+	Mime string `extensions:"x-order=C" form:"mime" json:"mime"`
+	Path string `extensions:"x-order=D" form:"path" json:"path"`
+}
+
+func (spec *AttachmentSpec) Sift(q *ormQuery) (*ormQuery, error) {
+	q, _ = spec.MDftSpec.Sift(q)
+	q, _ = siftOID(q, "article_id", spec.ArticleID, false)
+	q, _ = siftMatch(q, "name", spec.Name, false)
+	q, _ = siftILike(q, "mime", spec.Mime, false)
+	q, _ = siftMatch(q, "path", spec.Path, false)
 
 	return q, nil
 }
@@ -172,4 +202,14 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 		}
 		return dbAfterDeleteArticle(ctx, tx, obj)
 	})
+}
+
+func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error) {
+	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
+	return
+}
+func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
+	obj = new(cms1.Attachment)
+	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	return
 }

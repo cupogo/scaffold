@@ -59,6 +59,38 @@ models:
       beforeSaving: dbBeforeSaveArticle
       afterDeleting: dbAfterDeleteArticle
 
+  - name: Attachment
+    comment: '附件'
+    tableTag: 'cms_attachment,alias:att'
+    fields:
+      - name: comm.DefaultModel
+      - comment: 文章编号
+        name: ArticleID
+        type: oid.OID
+        tags: {json: 'articleID', pg: ',notnull'}
+        isset: true
+        query: 'equal'
+      - comment: 名称
+        name: Name
+        type: string
+        tags: {json: 'name', pg: ',notnull'}
+        isset: true
+        query: 'match'
+      - comment: 类型
+        name: Mime
+        type: string
+        tags: {json: 'mime', pg: ',notnull'}
+        isset: true
+        query: 'ice'
+      - name: Path
+        type: string
+        tags:
+          json: 'path'
+          pg: 'path,notnull'
+        isset: true
+        query: 'match'
+    oidcat: article
+
   - name: Clause
     comment: '条款'
     tableTag: 'cms_clause,alias:c'
@@ -76,6 +108,7 @@ models:
 stores:
   - name: contentStore
     hodBread: [ Article ]
+    hodGL: [ Attachment ]
     methods:
       - name: ListClause
       - name: GetClause
@@ -87,6 +120,8 @@ webapi:
   pkg: api_v1
   uris:
     - model: Article
+      prefix: '/api/v1/cms'
+    - model: Attachment
       prefix: '/api/v1/cms'
   handles:
     - name: getCmsClause

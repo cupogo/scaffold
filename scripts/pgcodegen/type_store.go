@@ -34,21 +34,41 @@ type Store struct {
 	Embed    string   `yaml:"embed,omitempty"`
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
+	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
 
 	mnames []string // TODO: aliases
+	allMM  map[string]bool
 
 	doc *Document
 }
 
 func (s *Store) prepareMethods() {
+	s.allMM = make(map[string]bool)
 	for _, m := range s.HodBread {
 		for _, a := range []string{"List", "Get", "Create", "Update", "Delete"} {
-			s.Methods = append(s.Methods, newMethod(a, m))
+			k := a + m
+			if _, ok := s.allMM[k]; !ok {
+				s.Methods = append(s.Methods, newMethod(a, m))
+				s.allMM[k] = true
+			}
 		}
 	}
 	for _, m := range s.HodPrdb {
 		for _, a := range []string{"List", "Get", "Put", "Delete"} {
-			s.Methods = append(s.Methods, newMethod(a, m))
+			k := a + m
+			if _, ok := s.allMM[k]; !ok {
+				s.Methods = append(s.Methods, newMethod(a, m))
+				s.allMM[k] = true
+			}
+		}
+	}
+	for _, m := range s.HodGL {
+		for _, a := range []string{"List", "Get"} {
+			k := a + m
+			if _, ok := s.allMM[k]; !ok {
+				s.Methods = append(s.Methods, newMethod(a, m))
+				s.allMM[k] = true
+			}
 		}
 	}
 

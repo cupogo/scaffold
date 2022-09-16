@@ -109,6 +109,71 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	return
 }
 
+// Attachment 附件
+type Attachment struct {
+	tableName struct{} `pg:"cms_attachment,alias:att"`
+
+	comm.DefaultModel
+
+	AttachmentBasic
+} // @name Attachment
+
+type AttachmentBasic struct {
+	// 文章编号
+	ArticleID oid.OID `extensions:"x-order=A" json:"articleID" pg:",notnull"`
+	// 名称
+	Name string `extensions:"x-order=B" form:"name" json:"name" pg:",notnull"`
+	// 类型
+	Mime string `extensions:"x-order=C" form:"mime" json:"mime" pg:",notnull"`
+	Path string `extensions:"x-order=D" form:"path" json:"path" pg:"path,notnull"`
+} // @name AttachmentBasic
+
+type Attachments []Attachment
+
+// Creating function call to it's inner fields defined hooks
+func (z *Attachment) Creating() error {
+	if z.ID.IsZero() {
+		z.SetID(oid.NewID(oid.OtArticle))
+	}
+
+	return z.DefaultModel.Creating()
+}
+
+type AttachmentSet struct {
+	// 文章编号
+	ArticleID *string `extensions:"x-order=A" json:"articleID"`
+	// 名称
+	Name *string `extensions:"x-order=B" json:"name"`
+	// 类型
+	Mime *string `extensions:"x-order=C" json:"mime"`
+	Path *string `extensions:"x-order=D" json:"path"`
+} // @name AttachmentSet
+
+func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
+	if o.ArticleID != nil {
+		if id, err := oid.CheckID(*o.ArticleID); err == nil {
+			z.ArticleID = id
+			cs = append(cs, "article_id")
+		}
+	}
+	if o.Name != nil {
+		z.Name = *o.Name
+		cs = append(cs, "name")
+	}
+	if o.Mime != nil {
+		z.Mime = *o.Mime
+		cs = append(cs, "mime")
+	}
+	if o.Path != nil {
+		z.Path = *o.Path
+		cs = append(cs, "path")
+	}
+	if len(cs) > 0 {
+		z.SetChange(cs...)
+	}
+	return
+}
+
 // Clause 条款
 type Clause struct {
 	tableName struct{} `pg:"cms_clause,alias:c"`
