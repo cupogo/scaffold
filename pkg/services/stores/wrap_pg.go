@@ -47,6 +47,7 @@ var (
 	siftGreat = pgx.SiftGreat //nolint
 	siftLess  = pgx.SiftLess  //nolint
 	siftOID   = pgx.SiftOID   //nolint
+	siftOIDs  = pgx.SiftOIDs  //nolint
 	siftDate  = pgx.SiftDate  //nolint
 )
 

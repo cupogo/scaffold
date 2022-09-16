@@ -45,7 +45,7 @@ models:
         type: 'oid.OID'
         tags: {json: 'authorID', pg: ',notnull,use_zero'}
         isset: true
-        query: 'equal,oids'
+        query: 'oids'
       - comment: 来源
         name: Src
         type: string
