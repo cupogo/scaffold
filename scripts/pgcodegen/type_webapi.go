@@ -238,6 +238,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 			st.Comment("@Param  " + param).Line()
 		}
 	}
+	act, _, _ := cutMethod(h.Method)
 	if !paramed {
 		if mth, ok := doc.getMethod(h.Method); ok {
 			for _, arg := range mth.Args {
@@ -249,14 +250,17 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 				} else if arg.Type == "string" && strings.Contains(h.Route, "{"+arg.Name+"}") {
 					st.Comment("@Param   " + arg.Name + "  path  " + arg.Type + "  true  \"\"").Line()
 				} else if strings.Contains(arg.Type, ".") {
-					st.Comment("@Param   query  formData   " + arg.Type + "  true   \"Object\"").Line()
+					ppos := "formData"
+					if act == "List" {
+						ppos = "query"
+					}
+					st.Comment("@Param   query  " + ppos + "   " + arg.Type + "  true   \"Object\"").Line()
 				} else {
 					log.Printf("unknown arg: %s(%s)", arg.Name, arg.Type)
 				}
 			}
 		}
 	}
-	act, _, _ := cutMethod(h.Method)
 	var success bool
 	if len(h.Success) > 0 {
 		success = true
