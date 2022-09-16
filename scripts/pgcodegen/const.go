@@ -30,6 +30,7 @@ const (
 	beforeUpdating = "beforeUpdating"
 	beforeDeleting = "beforeDeleting"
 	afterDeleting  = "afterDeleting"
-	afterLoad      = "afterLoad"
 	afterCreated   = "afterCreated"
+	afterLoad      = "afterLoad"
+	afterList      = "afterList"
 )
