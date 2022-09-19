@@ -420,30 +420,8 @@ func (m *Model) Codes() jen.Code {
 
 	st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
 
-	if hasHooks, field := m.hasHooks(); hasHooks {
-		log.Printf("model %s has hooks", m.Name)
-		oidcat := CamelCased(m.OIDCat)
-		if oidcat == "" {
-			oidcat = "Default"
-		}
-		st.Comment("Creating function call to it's inner fields defined hooks").Line()
-		st.Func().Params(
-			jen.Id("z").Op("*").Id(m.Name),
-		).Id("Creating").Params().Error().Block(
-			jen.If(jen.Id("z").Dot("ID")).Dot("IsZero").Call().Block(
-				jen.Id("z").Dot("SetID").Call(
-					jen.Qual(oidQual, "NewID").Call(jen.Qual(oidQual, "Ot"+oidcat)),
-				),
-			).Line(),
-			jen.Return(jen.Id("z").Dot(field).Dot("Creating").Call()),
-		).Line()
-
-		// st.Comment("Saving function call to it's inner fields defined hooks").Line()
-		// st.Func().Params(
-		// 	jen.Id("z").Op("*").Id(m.Name),
-		// ).Id("Saving").Params().Error().Block(
-		// 	jen.Return(jen.Id("z").Dot(field).Dot("Saving").Call()),
-		// ).Line()
+	if jhk := m.hookModelCodes(); jhk != nil {
+		st.Add(jhk)
 	}
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
@@ -480,25 +458,63 @@ func (m *Model) hasAudit() bool {
 }
 
 func (m *Model) hasHooks() (bool, string) {
-	var hasDefaultModel bool
 	var hasIDField bool
 	var hasDateFields bool
 	for _, field := range m.Fields {
-		if strings.HasSuffix(field.Name, "DefaultModel") {
-			hasDefaultModel = true
-		} else if strings.Contains(field.Name, "IDField") {
+		if strings.HasSuffix(field.Name, modelDefault) {
+			return true, modelDefault
+		}
+		if strings.HasSuffix(field.Name, modelDunce) {
+			return true, modelDunce
+		}
+
+		if strings.Contains(field.Name, "IDField") {
 			hasIDField = true
 		} else if strings.HasSuffix(field.Name, "DateFields") {
 			hasDateFields = true
 		}
 	}
-	if hasDefaultModel {
-		return true, "DefaultModel"
-	}
+
 	if hasIDField && hasDateFields {
 		return true, "DateFields"
 	}
 	return false, ""
+}
+
+func (m *Model) hookModelCodes() jen.Code {
+	var st *jen.Statement
+	if hasHooks, field := m.hasHooks(); hasHooks {
+		log.Printf("model %s has hooks", m.Name)
+		st = new(jen.Statement)
+		st.Comment("Creating function call to it's inner fields defined hooks").Line()
+		st.Func().Params(
+			jen.Id("z").Op("*").Id(m.Name),
+		).Id("Creating").Params().Error().Block(
+			jen.If(jen.Id("z").Dot("IsZeroID").Call()).BlockFunc(func(g *jen.Group) {
+				switch field {
+				case modelDefault:
+					oidcat := CamelCased(m.OIDCat)
+					if oidcat == "" {
+						oidcat = "Default"
+					}
+					g.Id("z").Dot("SetID").Call(
+						jen.Qual(oidQual, "NewID").Call(jen.Qual(oidQual, "Ot"+oidcat)),
+					)
+				default:
+					g.Return(jen.Id("comm").Dot("ErrEmptyID"))
+				}
+			}).Line(),
+			jen.Return(jen.Id("z").Dot(field).Dot("Creating").Call()),
+		).Line()
+
+		// st.Comment("Saving function call to it's inner fields defined hooks").Line()
+		// st.Func().Params(
+		// 	jen.Id("z").Op("*").Id(m.Name),
+		// ).Id("Saving").Params().Error().Block(
+		// 	jen.Return(jen.Id("z").Dot(field).Dot("Saving").Call()),
+		// ).Line()
+	}
+	return st
 }
 
 func (m *Model) specFields() (out Fields) {
