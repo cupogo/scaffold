@@ -290,6 +290,7 @@ type Model struct {
 	SpecUp   string   `yaml:"specUp,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
+	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
 
 	doc *Document
 	pkg string
@@ -771,9 +772,12 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
+			params := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id")}
+			if mod.WithColumnGet {
+				params = append(params, jen.Id("ColumnsFromContext").Call(jen.Id("ctx")).Op("..."))
+			}
 			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
-			jload := jen.Id("err").Op("=").Id("getModelWithPKID").Call(
-				jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
+			jload := jen.Id("err").Op("=").Id("getModelWithPKID").Call(params...)
 			if _, cn, isuniq := mod.UniqueOne(); isuniq {
 				g.If(jen.Err().Op("=").Id("getModelWithUnique").Call(
 					swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
