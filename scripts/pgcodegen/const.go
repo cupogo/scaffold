@@ -10,6 +10,13 @@ const (
 	storein  = "Storage"
 )
 
+// models
+const (
+	modelDefault = "DefaultModel"
+	modelDunce   = "DunceModel"
+	modelSerial  = "SerialModel"
+)
+
 // consts of qual
 const (
 	ginQual = "github.com/gin-gonic/gin"

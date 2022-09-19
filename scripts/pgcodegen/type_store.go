@@ -30,6 +30,7 @@ func newMethod(act, mod string) Method {
 type Store struct {
 	Name     string   `yaml:"name"`
 	IName    string   `yaml:"iname,omitempty"`
+	SIName   string   `yaml:"siname,omitempty"`
 	Methods  []Method `yaml:"methods"`
 	Embed    string   `yaml:"embed,omitempty"`
 	HodBread []string `yaml:"hodBread,omitempty"`
@@ -145,6 +146,9 @@ func (s *Store) GetIName() string {
 }
 
 func (s *Store) ShortIName() string {
+	if len(s.SIName) > 0 {
+		return s.SIName
+	}
 	in := s.GetIName()
 	if strings.HasSuffix(in, "Store") {
 		in = in[0 : len(in)-5]

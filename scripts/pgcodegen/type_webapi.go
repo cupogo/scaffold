@@ -53,6 +53,7 @@ type WebAPI struct {
 	Pkg      string    `yaml:"pkg"`
 	Handles  []Handle  `yaml:"handles,omitempty"`
 	URIs     []UriSpot `yaml:"uris,omitempty"`
+	HandReg  bool      `yaml:"handReg,omitempty"`
 	NeedAuth bool      `yaml:"needAuth,omitempty"`
 	NeedPerm bool      `yaml:"needPerm,omitempty"`
 	TagLabel string    `yaml:"tagLabel,omitempty"`
@@ -416,9 +417,11 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	return st
 }
 
-func (wa *WebAPI) Codes(doc *Document) jen.Code {
+func (wa *WebAPI) initRegCodes() jen.Code {
 	st := jen.Empty()
-
+	if wa.HandReg {
+		return st
+	}
 	st.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
 		for _, h := range wa.Handles {
 			uri, method := h.GenPathMethod()
@@ -439,6 +442,13 @@ func (wa *WebAPI) Codes(doc *Document) jen.Code {
 			}
 		}
 	}).Line()
+
+	return st
+}
+
+func (wa *WebAPI) Codes(doc *Document) jen.Code {
+	st := jen.Empty()
+	st.Add(wa.initRegCodes())
 
 	for _, h := range wa.Handles {
 		if len(h.Tags) == 0 {
