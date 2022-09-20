@@ -749,9 +749,11 @@ func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
 					}
 				}))
 			}
-		}).Else().Block(jen.Id(id).Dot("TsCfgName").Op("=").Lit(""))
-		st.Line()
-		st.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
+		})
+		if id == "exist" {
+			st.Else().Block(jen.Id(id).Dot("TsCfgName").Op("=").Lit("")).Line()
+			st.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
+		}
 
 		return st, true
 	}
