@@ -45,13 +45,13 @@ type ContentStore interface {
 
 type ClauseSpec struct {
 	comm.PageSpec
-	MDftSpec
+	ModelSpec
 
 	Text string `extensions:"x-order=A" form:"text" json:"text"`
 }
 
 func (spec *ClauseSpec) Sift(q *ormQuery) (*ormQuery, error) {
-	q, _ = spec.MDftSpec.Sift(q)
+	q, _ = spec.ModelSpec.Sift(q)
 	q, _ = siftMatch(q, "text", spec.Text, false)
 
 	return q, nil
@@ -59,26 +59,27 @@ func (spec *ClauseSpec) Sift(q *ormQuery) (*ormQuery, error) {
 
 type ArticleSpec struct {
 	comm.PageSpec
-	MDftSpec
+	ModelSpec
+	TextSearchSpec
 
 	// 作者
 	Author string `extensions:"x-order=A" form:"author" json:"author"`
 	// 新闻时间 + during
 	NewsPublish string `extensions:"x-order=B" form:"newsPublish" json:"newsPublish,omitempty"`
-	// 状态(多值逗号分隔)
+	// 状态 (多值逗号分隔)
 	Statuses string `extensions:"x-order=C" form:"statuses" json:"statuses"`
 	// 状态
 	Status int16 `extensions:"x-order=D" form:"status" json:"status"`
 	// 作者
 	AuthorID string `extensions:"x-order=E" form:"authorID" json:"authorID"`
-	// 来源(多值逗号分隔)
+	// 来源 (多值逗号分隔)
 	Srcs string `extensions:"x-order=F" form:"srcs" json:"srcs"`
 	// 来源
 	Src string `extensions:"x-order=G" form:"src" json:"src"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
-	q, _ = spec.MDftSpec.Sift(q)
+	q, _ = spec.ModelSpec.Sift(q)
 	q, _ = siftILike(q, "author", spec.Author, false)
 	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
@@ -92,13 +93,14 @@ func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	} else {
 		q, _ = siftEquel(q, "src", spec.Src, false)
 	}
+	q, _ = spec.TextSearchSpec.Sift(q)
 
 	return q, nil
 }
 
 type AttachmentSpec struct {
 	comm.PageSpec
-	MDftSpec
+	ModelSpec
 
 	// 文章编号
 	ArticleID string `extensions:"x-order=A" form:"articleID" json:"articleID"`
@@ -110,7 +112,7 @@ type AttachmentSpec struct {
 }
 
 func (spec *AttachmentSpec) Sift(q *ormQuery) (*ormQuery, error) {
-	q, _ = spec.MDftSpec.Sift(q)
+	q, _ = spec.ModelSpec.Sift(q)
 	q, _ = siftOID(q, "article_id", spec.ArticleID, false)
 	q, _ = siftMatch(q, "name", spec.Name, false)
 	q, _ = siftILike(q, "mime", spec.Mime, false)
@@ -149,10 +151,9 @@ func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
-	q := s.w.db.Model(&data).Apply(spec.Sift)
-	tss := s.w.db.GetTsSpec()
-	tss.SetFallback("title", "content")
-	total, err = queryPager(spec, q.Apply(tss.Sift))
+	spec.SetTsConfig(s.w.db.GetTsCfg())
+	spec.SetTsFallback("title", "content")
+	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
 	return
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
