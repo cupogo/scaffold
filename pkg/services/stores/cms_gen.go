@@ -169,10 +169,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		obj.TsCfgName = tscfg
 		obj.SetTsColumns("title", "content")
-	} else {
-		obj.TsCfgName = ""
 	}
-	obj.SetChange("ts_cfg")
 	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
