@@ -306,7 +306,7 @@ type Model struct {
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
-	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 是否已存在保存时的数据库触发器
+	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 已存在保存时生效的数据表触发器
 
 	doc *Document
 	pkg string
@@ -724,7 +724,7 @@ func metaUpCode() jen.Code {
 func (m *Model) HasTextSearch() (cols []string, ok bool) {
 	var hasTs bool
 	for _, field := range m.Fields {
-		if strings.HasPrefix(field.Query, "fts") {
+		if strings.HasSuffix(field.Query, "fts") {
 			cn, _ := field.ColName()
 			cols = append(cols, cn)
 		}

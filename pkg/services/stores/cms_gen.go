@@ -64,23 +64,26 @@ type ArticleSpec struct {
 
 	// 作者
 	Author string `extensions:"x-order=A" form:"author" json:"author"`
+	// 标题
+	Title string `extensions:"x-order=B" form:"title" json:"title"`
 	// 新闻时间 + during
-	NewsPublish string `extensions:"x-order=B" form:"newsPublish" json:"newsPublish,omitempty"`
+	NewsPublish string `extensions:"x-order=C" form:"newsPublish" json:"newsPublish,omitempty"`
 	// 状态 (多值逗号分隔)
-	Statuses string `extensions:"x-order=C" form:"statuses" json:"statuses"`
+	Statuses string `extensions:"x-order=D" form:"statuses" json:"statuses"`
 	// 状态
-	Status int16 `extensions:"x-order=D" form:"status" json:"status"`
+	Status int16 `extensions:"x-order=E" form:"status" json:"status"`
 	// 作者
-	AuthorID string `extensions:"x-order=E" form:"authorID" json:"authorID"`
+	AuthorID string `extensions:"x-order=F" form:"authorID" json:"authorID"`
 	// 来源 (多值逗号分隔)
-	Srcs string `extensions:"x-order=F" form:"srcs" json:"srcs"`
+	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs"`
 	// 来源
-	Src string `extensions:"x-order=G" form:"src" json:"src"`
+	Src string `extensions:"x-order=H" form:"src" json:"src"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.ModelSpec.Sift(q)
 	q, _ = siftILike(q, "author", spec.Author, false)
+	q, _ = siftMatch(q, "title", spec.Title, false)
 	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
 		q = q.WhereIn("status IN(?)", vals)
