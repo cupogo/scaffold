@@ -306,6 +306,7 @@ type Model struct {
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
+	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 是否已存在保存时的数据库触发器
 
 	doc *Document
 	pkg string
@@ -721,17 +722,41 @@ func metaUpCode() jen.Code {
 }
 
 func (m *Model) HasTextSearch() (cols []string, ok bool) {
+	var hasTs bool
 	for _, field := range m.Fields {
-		if field.Query == "fts" {
+		if strings.HasPrefix(field.Query, "fts") {
 			cn, _ := field.ColName()
 			cols = append(cols, cn)
 		}
 		if field.Name == textSearchField || field.Type == textSearchField {
-			ok = true
+			hasTs = true
 		}
 	}
+	ok = hasTs
 
 	return
+}
+
+func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
+	st := jen.Empty()
+	if cols, ok := mod.HasTextSearch(); ok {
+		st.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Add(swdb).Dot("GetTsCfg").Call().Op(";").Id("ok")).BlockFunc(func(g *jen.Group) {
+			g.Id(id).Dot("TsCfgName").Op("=").Id("tscfg")
+			if !mod.DbTriggerSave && len(cols) > 0 {
+				g.Id(id).Dot("SetTsColumns").Call(jen.ListFunc(func(g1 *jen.Group) {
+					for _, s := range cols {
+						g1.Lit(s)
+					}
+				}))
+			}
+		}).Else().Block(jen.Id(id).Dot("TsCfgName").Op("=").Lit(""))
+		st.Line()
+		st.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
+
+		return st, true
+	}
+
+	return st, false
 }
 
 func (f *Field) parseQuery() (fn, ext string, ok bool) {
@@ -853,11 +878,11 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
 					jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
 			}
-			if _, ok := mod.HasTextSearch(); ok {
-				g.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Add(swdb).Dot("GetTsCfg").Call().Op(";").Id("ok")).Block(
-					jen.Id("obj").Dot("TsCfgName").Op("=").Id("tscfg"),
-				)
+
+			if jt, ok := mod.textSearchCodes("obj"); ok {
+				g.Add(jt)
 			}
+
 			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 			if _, cn, isuniq := mod.UniqueOne(); isuniq {
 				targs = append(targs, jen.Lit(cn))
@@ -918,6 +943,10 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
 			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+
+			if jt, ok := mod.textSearchCodes("exist"); ok {
+				g.Add(jt)
+			}
 
 			hkBU, okBU := mod.hasHook(beforeUpdating)
 			hkBS, okBS := mod.hasHook(beforeSaving)
