@@ -18,7 +18,10 @@ type pgDB = pg.DB //nolint
 type pgTx = pg.Tx //nolint
 type pgIdent = pg.Ident
 type pgSafe = pg.Safe //nolint
-type MDftSpec = pgx.MDftSpec
+
+type MDftSpec = pgx.ModelSpec // deprecated
+type ModelSpec = pgx.ModelSpec
+type TextSearchSpec = pgx.TextSearchSpec
 
 // vars
 var (

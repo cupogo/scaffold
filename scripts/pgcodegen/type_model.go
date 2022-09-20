@@ -45,6 +45,7 @@ type Field struct {
 	siftFn   string
 	siftExt  string
 	multable bool
+	qtype    string
 }
 
 func (f *Field) isMeta() bool {
@@ -115,6 +116,11 @@ func (f *Field) preCode() (st *jen.Statement) {
 		st.Id(f.Name)
 	}
 
+	return st
+}
+
+func (f *Field) defCode() jen.Code {
+	st := jen.Empty()
 	if len(f.Qual) > 0 {
 		st.Qual(f.Qual, f.Type)
 	} else if a, b, ok := strings.Cut(f.Type, "."); ok {
@@ -130,12 +136,11 @@ func (f *Field) preCode() (st *jen.Statement) {
 	} else {
 		st.Id(f.Type)
 	}
-
 	return st
 }
 
 func (f *Field) Code(idx int) jen.Code {
-	st := f.preCode()
+	st := f.preCode().Add(f.defCode())
 
 	if len(f.Tags) > 0 {
 		tags := f.Tags.Copy()
@@ -201,16 +206,26 @@ func (f *Field) getArgTag() string {
 	return LcFirst(f.Name)
 }
 
-func (f *Field) queryCode(idx int) jen.Code {
+func (f *Field) queryTypeCode() jen.Code {
 	if len(f.Type) > 0 {
 		f.Type, _ = getModQual(f.Type)
 	}
+	return f.defCode()
+}
+
+func (f *Field) queryCode(idx int) jen.Code {
+
 	if len(f.Comment) > 0 {
 		if f.isDate {
 			f.Comment += " + during"
 		}
 	}
 	st := f.preCode()
+	if len(f.qtype) > 0 {
+		st.Id(f.qtype)
+	} else {
+		st.Add(f.queryTypeCode())
+	}
 
 	tags := f.Tags.Copy()
 	if len(tags) > 0 {
@@ -530,7 +545,7 @@ func (m *Model) specFields() (out Fields) {
 				}
 				argTag := Plural(f.getArgTag())
 				f0 := Field{
-					Comment:  f.Comment + "(多值逗号分隔)",
+					Comment:  f.Comment + " (多值逗号分隔)",
 					Type:     ftyp,
 					Name:     Plural(f.Name),
 					Tags:     Maps{"form": argTag, "json": argTag},
@@ -539,8 +554,11 @@ func (m *Model) specFields() (out Fields) {
 				}
 				// log.Printf("f0: %+v", f0)
 				out = append(out, f0)
+			} else if ext == "decode" {
+				f.qtype = "string"
+				f.Comment += " (支持混合解码)"
 			} else if ext == "hasVals" {
-				f.Comment += "(多值相加)"
+				f.Comment += " (多值数字相加)"
 			}
 			if f.Type == "oid.OID" {
 				f.Type = "string"
@@ -572,13 +590,18 @@ func (m *Model) specFields() (out Fields) {
 func (m *Model) getSpecCodes() jen.Code {
 	comm, _ := doc.getQual("comm")
 	var fcs []jen.Code
-	fcs = append(fcs, jen.Qual(comm, "PageSpec"), jen.Id("MDftSpec"))
+	fcs = append(fcs, jen.Qual(comm, "PageSpec"), jen.Id("ModelSpec"))
 	if m.hasAudit() {
 		fcs = append(fcs, jen.Id("AuditSpec"))
 	}
 	for _, sifter := range m.Sifters {
 		fcs = append(fcs, jen.Id(sifter))
 	}
+	_, okTS := m.HasTextSearch()
+	if okTS {
+		fcs = append(fcs, jen.Id("TextSearchSpec"))
+	}
+
 	specFields := m.specFields()
 	if len(specFields) > 0 {
 		// log.Printf("specFields: %+v", specFields)
@@ -588,6 +611,7 @@ func (m *Model) getSpecCodes() jen.Code {
 			delete(field.Tags, "extensions")
 			fcs = append(fcs, field.queryCode(i))
 		}
+
 	}
 
 	var withRel string
@@ -621,7 +645,7 @@ func (m *Model) getSpecCodes() jen.Code {
 					}
 				}).Line()
 			}
-			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("MDftSpec").Dot("Sift").Call(jen.Id("q"))
+			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("ModelSpec").Dot("Sift").Call(jen.Id("q"))
 			if m.hasAudit() {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
 			}
@@ -644,7 +668,14 @@ func (m *Model) getSpecCodes() jen.Code {
 				}
 				params = append(params, jen.False())
 				jq := jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
-				if field.siftExt == "hasVals" {
+				if field.siftExt == "decode" {
+					g.If(jen.Len(jen.Id("spec").Dot(field.Name)).Op(">0")).Block(
+						jen.Var().Id("v").Add(field.queryTypeCode()),
+						jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jen.Id("spec").Dot(field.Name)).Op(";").Err().Op("==").Nil()).Block(
+							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" = ?"), jen.Id("v")),
+						),
+					)
+				} else if field.siftExt == "hasVals" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
 						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
 					).Else().Block(jq)
@@ -665,6 +696,9 @@ func (m *Model) getSpecCodes() jen.Code {
 				}
 
 				// TODO: set text wildcard
+			}
+			if okTS {
+				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("TextSearchSpec").Dot("Sift").Call(jen.Id("q"))
 			}
 			g.Line()
 			g.Return(jen.Id("q"), jen.Nil())
@@ -738,27 +772,24 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
 			jen.Id("total").Int(), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
-			jq := jen.Add(swdb).Dot("Model").Call(
-				jen.Op("&").Id("data")).Dot("Apply").Call(
-				jen.Id("spec").Dot("Sift"))
 			if cols, ok := m.HasTextSearch(); ok {
-				g.Id("q").Op(":=").Add(jq)
-				g.Id("tss").Op(":=").Add(swdb).Dot("GetTsSpec").Call()
+				g.Id("spec").Dot("SetTsConfig").Call(jen.Add(swdb).Dot("GetTsCfg").Call())
 				if len(cols) > 0 {
-					g.Id("tss").Dot("SetFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
+					g.Id("spec").Dot("SetTsFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
 						for _, s := range cols {
 							g1.Lit(s)
 						}
 					}))
 				}
-				g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
-					jen.Id("spec"), jen.Id("q").Dot("Apply").Call(jen.Id("tss").Dot("Sift")),
-				)
-			} else {
-				g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
-					jen.Id("spec"), jq,
-				)
 			}
+			jq := jen.Add(swdb).Dot("Model").Call(
+				jen.Op("&").Id("data")).Dot("Apply").Call(
+				jen.Id("spec").Dot("Sift"))
+
+			g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
+				jen.Id("spec"), jq,
+			)
+
 			if hkAL, okAL := m.hasHook(afterList); okAL {
 				g.If(jen.Err().Op("==").Nil().Op("&&").Len(jen.Id("data")).Op(">0")).Block(
 					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("spec"), jen.Id("data")),

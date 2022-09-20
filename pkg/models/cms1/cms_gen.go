@@ -43,7 +43,7 @@ type Articles []Article
 
 // Creating function call to it's inner fields defined hooks
 func (z *Article) Creating() error {
-	if z.ID.IsZero() {
+	if z.IsZeroID() {
 		z.SetID(oid.NewID(oid.OtArticle))
 	}
 
@@ -132,7 +132,7 @@ type Attachments []Attachment
 
 // Creating function call to it's inner fields defined hooks
 func (z *Attachment) Creating() error {
-	if z.ID.IsZero() {
+	if z.IsZeroID() {
 		z.SetID(oid.NewID(oid.OtArticle))
 	}
 
@@ -191,7 +191,7 @@ type Clauses []Clause
 
 // Creating function call to it's inner fields defined hooks
 func (z *Clause) Creating() error {
-	if z.ID.IsZero() {
+	if z.IsZeroID() {
 		z.SetID(oid.NewID(oid.OtArticle))
 	}
 
