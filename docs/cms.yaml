@@ -21,7 +21,7 @@ models:
         type: string
         tags: {json: 'title', pg: ',notnull'}
         isset: true
-        query: 'fts' # '', 'equal', 'match'
+        query: 'match,fts' # '', 'equal', 'match'
       - comment: 内容
         name: Content
         type: string

@@ -49,6 +49,14 @@
 
 - `oidcat`:  指定使用在oid包中定义的类型名称
 
+- `discardUnknown`: 布尔类型，忽略未知的列
+
+- `withColumnGet`: 布尔类型，Get时允许定制列
+
+- `dbTriggerSave`: 布尔类型，已存在保存时生效的数据表触发器
+
+- `hooks`：字典类型，钩子方法集
+
 **注意**：所有必需的定义都需要可导出，也即首字母在大写
 
 - 大多数模型都会以字段的形式嵌入 `comm.DefaultModel` 这个默认模型结构体，由此会自动添加 `id`,`created`,`updated`和 `creator_id` 等字段，如果继续嵌入 `comm.MetaField` 则会添加 `meta` 支持添加更多元信息
@@ -66,11 +74,32 @@
    - `less` 小于
 
 - 扩展:
+   - `decode` 此类型有自己的解码方法 `Decode(string) error`
    - `hasVals` 整数类型可多选，只适用于位枚举
-   - `ints` 整数类型可多选
-   - `strs` 字串类型可多选
-   - `oids` OID 类型可多选
+   - `ints` 可多选的整数类型
+   - `strs` 可多选的字串类型
+   - `oids` 可多选的 `OID` 类型
 
+
+### 模型存储的钩子说明
+
+ - 所有自定义函数建议使用统一风格的名称
+ - 位于事务中的，是纯函数，统一参数：
+ 	  1. `ctx context.Context` 上下文
+	  2. `db ormDB` 数据库富指针
+	  3. `obj Model` 当前操作对象指针
+
+ - `beforeCreating` = "事务，在创建前"
+ - `beforeUpdating` = "事务，在更新前"
+ - `beforeSaving`   = "事务，在保存前"
+ - `afterSaving`    = "事务，在保存后"
+ - `beforeDeleting` = "事务，在删除前"
+ - `afterDeleting`  = "事务，在删除后"
+ - `afterCreated`   = "非事务，创建后"，参数和上面几位一致
+
+非事务中的，是存储对象方法：
+ - `afterLoad`      = "列表查询后"，参数：`ctx Context`，`obj Model`
+ - `afterList`      = "主键查询后"，参数：`ctx Context`，`spec ModelSpec`，`data Slice`
 
 ## 存储接口定义 `stores`
 
