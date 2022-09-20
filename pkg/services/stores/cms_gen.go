@@ -168,7 +168,11 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	s.w.opModelMeta(ctx, obj, obj.MetaDiff)
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		obj.TsCfgName = tscfg
+		obj.SetTsColumns("title", "content")
+	} else {
+		obj.TsCfgName = ""
 	}
+	obj.SetChange("ts_cfg")
 	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
@@ -184,6 +188,13 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		return err
 	}
 	_ = exist.SetWith(in)
+	if tscfg, ok := s.w.db.GetTsCfg(); ok {
+		exist.TsCfgName = tscfg
+		exist.SetTsColumns("title", "content")
+	} else {
+		exist.TsCfgName = ""
+	}
+	exist.SetChange("ts_cfg")
 	return s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
