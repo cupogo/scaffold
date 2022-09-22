@@ -1017,6 +1017,7 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 			} else {
 				g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
 				g.Id("exist").Op(":=").New(jqual)
+
 				cpms := []jen.Code{
 					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("obj"),
 					jen.Func().Params().Index().String().Block(
@@ -1024,6 +1025,9 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 					),
 				}
 				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
+					g.If(jen.Id("in").Dot(fn).Op("==").Nil()).Block(
+						jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
+						jen.Return())
 					cpms = append(cpms, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
 				}
 				g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
