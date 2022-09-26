@@ -306,6 +306,7 @@ type Model struct {
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
+	WithColumnList bool `yaml:"withColumnList,omitempty"` // List时允许定制列
 	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 已存在保存时生效的数据表触发器
 
 	doc *Document
@@ -501,7 +502,7 @@ func (m *Model) hasHooks() (bool, string) {
 func (m *Model) hookModelCodes() jen.Code {
 	var st *jen.Statement
 	if hasHooks, field := m.hasHooks(); hasHooks {
-		log.Printf("model %s has hooks", m.Name)
+		// log.Printf("model %s has hooks", m.Name)
 		st = new(jen.Statement)
 		st.Comment("Creating function call to it's inner fields defined hooks").Line()
 		st.Func().Params(
@@ -702,6 +703,7 @@ func (m *Model) getSpecCodes() jen.Code {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("TextSearchSpec").Dot("Sift").Call(jen.Id("q"))
 			}
 			g.Line()
+
 			g.Return(jen.Id("q"), jen.Nil())
 		}).Line()
 	}
@@ -770,7 +772,7 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 	case "equal":
 		fn, ok = "siftEquel", true
 	case "ice", "ilike":
-		fn, ok = "siftILike", true
+		fn, ok = "siftICE", true
 	case "match":
 		fn, ok = "siftMatch", true
 	case "date":
@@ -812,6 +814,10 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 			jq := jen.Add(swdb).Dot("Model").Call(
 				jen.Op("&").Id("data")).Dot("Apply").Call(
 				jen.Id("spec").Dot("Sift"))
+
+			if m.WithColumnList {
+				jq.Dot("Column").Call(jen.Id("ColumnsFromContext").Call(jen.Id("ctx")).Op("..."))
+			}
 
 			g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
 				jen.Id("spec"), jq,
