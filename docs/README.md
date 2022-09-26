@@ -98,8 +98,8 @@
  - `afterCreated`   = "非事务，创建后"，参数和上面几位一致
 
 非事务中的，是存储对象方法：
- - `afterLoad`      = "列表查询后"，参数：`ctx Context`，`obj Model`
- - `afterList`      = "主键查询后"，参数：`ctx Context`，`spec ModelSpec`，`data Slice`
+ - `afterLoad`      = "主键查询后"，参数：`ctx Context`，`obj Model`
+ - `afterList`      = "列表查询后"，参数：`ctx Context`，`spec ModelSpec`，`data Slice`
 
 ## 存储接口定义 `stores`
 
