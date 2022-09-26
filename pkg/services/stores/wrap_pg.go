@@ -45,6 +45,7 @@ var (
 
 	sift      = pgx.Sift      //nolint
 	siftEquel = pgx.SiftEquel //nolint
+	siftICE   = pgx.SiftICE   //nolint
 	siftILike = pgx.SiftICE   //nolint
 	siftMatch = pgx.SiftMatch //nolint
 	siftGreat = pgx.SiftGreat //nolint
@@ -52,6 +53,11 @@ var (
 	siftOID   = pgx.SiftOID   //nolint
 	siftOIDs  = pgx.SiftOIDs  //nolint
 	siftDate  = pgx.SiftDate  //nolint
+
+	ContextWithColumns  = pgx.ContextWithColumns
+	ColumnsFromContext  = pgx.ColumnsFromContext
+	ContextWithRelation = pgx.ContextWithRelation
+	RelationFromContext = pgx.RelationFromContext
 )
 
 var (
