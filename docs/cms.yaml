@@ -16,6 +16,7 @@ models:
         tags: {json: 'author', pg: ',notnull,use_zero'}
         isset: true
         query: 'ice' # '', 'equal', 'match'
+        sortable: true
       - comment: 标题
         name: Title
         type: string
@@ -34,6 +35,7 @@ models:
         tags: {json: 'newsPublish,omitempty', pg: "news_publish,type:date"}
         isset: true
         query: 'date'
+        sortable: true
       - comment: 状态
         name: Status
         type: int16
@@ -58,6 +60,8 @@ models:
     hooks:
       beforeSaving: dbBeforeSaveArticle
       afterDeleting: dbAfterDeleteArticle
+    # withColumnGet: true
+    # withColumnList: true
 
   - name: Attachment
     comment: '附件'

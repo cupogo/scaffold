@@ -28,14 +28,15 @@ func qual(args ...string) jen.Code {
 }
 
 type Field struct {
-	Name    string `yaml:"name"`
-	Type    string `yaml:"type,omitempty"`
-	Tags    Maps   `yaml:"tags,flow,omitempty"`
-	Qual    string `yaml:"qual,omitempty"`
-	IsBasic bool   `yaml:"basic,omitempty"`
-	IsSet   bool   `yaml:"isset,omitempty"`
-	Comment string `yaml:"comment,omitempty"`
-	Query   string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
+	Name     string `yaml:"name"`
+	Type     string `yaml:"type,omitempty"`
+	Tags     Maps   `yaml:"tags,flow,omitempty"`
+	Qual     string `yaml:"qual,omitempty"`
+	IsBasic  bool   `yaml:"basic,omitempty"`
+	IsSet    bool   `yaml:"isset,omitempty"`
+	Sortable bool   `yaml:"sortable,omitempty"`
+	Comment  string `yaml:"comment,omitempty"`
+	Query    string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 
 	IsChangeWith bool `yaml:"changeWith,omitempty"` // has ChangeWith method
 
@@ -171,15 +172,16 @@ func (f *Field) Code(idx int) jen.Code {
 
 // return column name and is unquie
 func (f *Field) ColName() (string, bool) {
-	if s, ok := f.Tags["pg"]; ok && len(s) > 0 {
+	if s, ok := f.Tags["pg"]; ok && len(s) > 0 && s != "-" {
 		if a, b, ok := strings.Cut(s, ","); ok {
 			if len(a) == 0 {
 				a = Underscore(f.Name)
 			}
 			return a, strings.Contains(b, "unique")
 		}
+		return Underscore(f.Name), false
 	}
-	return Underscore(f.Name), false
+	return "", false
 }
 
 func (f *Field) relMode() (string, bool) {
@@ -589,6 +591,19 @@ func (m *Model) specFields() (out Fields) {
 	return
 }
 
+func (m *Model) sortableColumns() (cs []string) {
+	for _, f := range m.Fields {
+		if f.isEmbed() {
+			continue
+		}
+
+		if cn, _ := f.ColName(); len(cn) > 0 && f.Sortable {
+			cs = append(cs, cn)
+		}
+	}
+	return
+}
+
 func (m *Model) getSpecCodes() jen.Code {
 	comm, _ := doc.getQual("comm")
 	var fcs []jen.Code
@@ -705,6 +720,21 @@ func (m *Model) getSpecCodes() jen.Code {
 			g.Line()
 
 			g.Return(jen.Id("q"), jen.Nil())
+		}).Line()
+	}
+
+	if cols := m.sortableColumns(); len(cols) > 0 {
+		log.Printf("sortable: %+v", cols)
+		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("CanSort").Params(jen.Id("k").Id("string")).Bool()
+		st.BlockFunc(func(g *jen.Group) {
+			g.Switch(jen.Id("k")).BlockFunc(func(g1 *jen.Group) {
+				g1.Case(jen.ListFunc(func(g2 *jen.Group) {
+					for _, s := range cols {
+						g2.Lit(s)
+					}
+				})).Return(jen.True())
+				g1.Default().Return(jen.Id("spec").Dot("ModelSpec").Dot("CanSort").Call(jen.Id("k")))
+			})
 		}).Line()
 	}
 

@@ -82,7 +82,7 @@ type ArticleSpec struct {
 
 func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.ModelSpec.Sift(q)
-	q, _ = siftILike(q, "author", spec.Author, false)
+	q, _ = siftICE(q, "author", spec.Author, false)
 	q, _ = siftMatch(q, "title", spec.Title, false)
 	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
@@ -99,6 +99,14 @@ func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.TextSearchSpec.Sift(q)
 
 	return q, nil
+}
+func (spec *ArticleSpec) CanSort(k string) bool {
+	switch k {
+	case "author", "news_publish":
+		return true
+	default:
+		return spec.ModelSpec.CanSort(k)
+	}
 }
 
 type AttachmentSpec struct {
@@ -118,7 +126,7 @@ func (spec *AttachmentSpec) Sift(q *ormQuery) (*ormQuery, error) {
 	q, _ = spec.ModelSpec.Sift(q)
 	q, _ = siftOID(q, "article_id", spec.ArticleID, false)
 	q, _ = siftMatch(q, "name", spec.Name, false)
-	q, _ = siftILike(q, "mime", spec.Mime, false)
+	q, _ = siftICE(q, "mime", spec.Mime, false)
 	q, _ = siftMatch(q, "path", spec.Path, false)
 
 	return q, nil
