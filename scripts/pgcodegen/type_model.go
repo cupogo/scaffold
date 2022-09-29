@@ -47,10 +47,15 @@ type Field struct {
 	siftExt  string
 	multable bool
 	qtype    string
+	colname  string
 }
 
 func (f *Field) isMeta() bool {
 	return f.Name == metaField || f.Type == metaField
+}
+
+func (f *Field) isOwner() bool {
+	return f.Name == ownerField || f.Type == ownerField
 }
 
 func (f *Field) isAudit() bool {
@@ -181,7 +186,7 @@ func (f *Field) ColName() (string, bool) {
 		}
 		return Underscore(f.Name), false
 	}
-	return "", false
+	return f.colname, false
 }
 
 func (f *Field) relMode() (string, bool) {
@@ -362,10 +367,13 @@ func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
 
 func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	var hasMeta bool
+	var hasOwner bool
 	for idx, field := range m.Fields {
 		if !field.IsSet || field.Type == "" || field.Name == "" {
 			if field.isMeta() {
 				hasMeta = true
+			} else if field.isOwner() {
+				hasOwner = true
 			}
 			continue
 		}
@@ -418,6 +426,13 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("meta")),
 		))
 	}
+	if hasOwner {
+		name := "OwnerID"
+		ccs = append(ccs, ownerUpCode())
+		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("SetOwnerID").Call(jen.Op("*").Id("o").Dot(name)).Block(
+			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("owner_id")),
+		)))
+	}
 	scs = append(scs, jen.If(jen.Len(jen.Id("cs")).Op(">").Lit(0)).Block(
 		jen.Id("z").Dot("SetChange").Call(jen.Id("cs").Op("...")),
 	))
@@ -462,6 +477,15 @@ func (m *Model) Codes() jen.Code {
 func (m *Model) hasMeta() bool {
 	for i := range m.Fields {
 		if m.Fields[i].isMeta() {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) hasOwner() bool {
+	for i := range m.Fields {
+		if m.Fields[i].isOwner() {
 			return true
 		}
 	}
@@ -586,6 +610,16 @@ func (m *Model) specFields() (out Fields) {
 			}
 
 			out = append(out, f)
+		} else if f.isOwner() {
+			f0 := Field{
+				Comment: "所有者编号",
+				Type:    "string",
+				Name:    "OwnerID",
+				Tags:    Maps{"form": "owner", "json": "owner,omitempty"},
+				siftFn:  "siftOIDs",
+				colname: "owner_id",
+			}
+			out = append(out, f0)
 		}
 	}
 	return
@@ -750,6 +784,13 @@ func metaUpCode() jen.Code {
 	code := jen.Comment("for meta update").Line()
 	code.Id("MetaDiff").Op("*").Add(qual("comm.MetaDiff"))
 	code.Tag(Maps{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
+	return code
+}
+
+func ownerUpCode() jen.Code {
+	code := jen.Comment("for ownerID update").Line()
+	code.Id("OwnerID").Op("*").Id("string")
+	code.Tag(Maps{"bson": "-", "json": "owner,omitempty", "pg": "-", "swaggerignore": "true"})
 	return code
 }
 
