@@ -25,6 +25,7 @@ const (
 	utilsQual = "hyyl.xyz/cupola/andvari/utils"
 
 	metaField       = "comm.MetaField"
+	ownerField      = "comm.OwnerField"
 	auditField      = "evnt.AuditFields"
 	textSearchField = "comm.TextSearchField"
 )

@@ -69,13 +69,13 @@ type ArticleSpec struct {
 	// 新闻时间 + during
 	NewsPublish string `extensions:"x-order=C" form:"newsPublish" json:"newsPublish,omitempty"`
 	// 状态 (多值逗号分隔)
-	Statuses string `extensions:"x-order=D" form:"statuses" json:"statuses"`
+	Statuses string `extensions:"x-order=D" form:"statuses" json:"statuses,omitempty"`
 	// 状态
 	Status int16 `extensions:"x-order=E" form:"status" json:"status"`
 	// 作者
 	AuthorID string `extensions:"x-order=F" form:"authorID" json:"authorID"`
 	// 来源 (多值逗号分隔)
-	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs"`
+	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs,omitempty"`
 	// 来源
 	Src string `extensions:"x-order=H" form:"src" json:"src"`
 }
@@ -195,6 +195,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 	if err := getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
 		return err
 	}
+	s.w.opModelMeta(ctx, exist)
 	_ = exist.SetWith(in)
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		exist.TsCfgName = tscfg
