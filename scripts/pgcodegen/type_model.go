@@ -552,7 +552,7 @@ func (m *Model) specFields() (out Fields) {
 					Comment:  f.Comment + " (多值逗号分隔)",
 					Type:     ftyp,
 					Name:     Plural(f.Name),
-					Tags:     Maps{"form": argTag, "json": argTag},
+					Tags:     Maps{"form": argTag, "json": argTag + ",omitempty"},
 					siftExt:  ext,
 					multable: true,
 				}
@@ -979,6 +979,10 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
 				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
 			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
+
+			if mod.hasMeta() {
+				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"), jen.Id("exist"))
+			}
 
 			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
