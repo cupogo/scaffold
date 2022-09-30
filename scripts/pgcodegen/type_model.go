@@ -615,7 +615,7 @@ func (m *Model) specFields() (out Fields) {
 			out = append(out, f)
 		} else if f.isOwner() {
 			f0 := Field{
-				Comment: "所有者编号",
+				Comment: "所有者编号 (多值使用逗号分隔)",
 				Type:    "string",
 				Name:    "OwnerID",
 				Tags:    Maps{"form": "owner", "json": "owner,omitempty"},
@@ -791,9 +791,9 @@ func metaUpCode() jen.Code {
 }
 
 func ownerUpCode() jen.Code {
-	code := jen.Comment("for ownerID update").Line()
+	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
-	code.Tag(Maps{"bson": "-", "json": "owner,omitempty", "pg": "-", "swaggerignore": "true"})
+	code.Tag(Maps{"json": "ownerID,omitempty", "pg": "-"})
 	return code
 }
 
