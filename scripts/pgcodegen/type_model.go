@@ -412,13 +412,13 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
 			csst := jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn))
 			if field.isOid {
-				g.If(jen.Id("id").Op(",").Err().Op(":=").Id("oid").Dot("CheckID").Call(jen.Op("*").Id("o").Dot(field.Name)).Op(";").Err().Op("==").Nil().Block(
-					jen.Id("z").Dot(field.Name).Op("=").Id("id"), csst,
-				))
+				g.Id("z").Dot(field.Name).Op("=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(field.Name))
+				g.Add(csst)
 			} else if field.IsChangeWith {
 				g.If(jen.Id("z").Dot(field.Name).Dot("ChangeWith").Call(jen.Id("o").Dot(field.Name))).Block(csst)
 			} else {
-				g.Add(jen.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name).Line(), csst)
+				g.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name)
+				g.Add(csst)
 			}
 		}))
 	}
