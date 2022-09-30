@@ -3,9 +3,9 @@ module hyyl.xyz/cupola/scaffold
 go 1.18
 
 require (
-	daxv.cn/gopak/lib v0.3.21
-	github.com/dave/dst v0.27.0
-	github.com/dave/jennifer v1.5.0
+	daxv.cn/gopak/lib v0.3.26
+	github.com/dave/dst v0.27.1
+	github.com/dave/jennifer v1.5.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-pg/pg/v10 v10.10.6
 	github.com/go-redis/redis/v8 v8.11.4
