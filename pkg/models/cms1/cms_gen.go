@@ -91,10 +91,8 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 		cs = append(cs, "status")
 	}
 	if o.AuthorID != nil {
-		if id, err := oid.CheckID(*o.AuthorID); err == nil {
-			z.AuthorID = id
-			cs = append(cs, "author_id")
-		}
+		z.AuthorID = oid.Cast(*o.AuthorID)
+		cs = append(cs, "author_id")
 	}
 	if o.Src != nil {
 		z.Src = *o.Src
@@ -151,10 +149,8 @@ type AttachmentSet struct {
 
 func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 	if o.ArticleID != nil {
-		if id, err := oid.CheckID(*o.ArticleID); err == nil {
-			z.ArticleID = id
-			cs = append(cs, "article_id")
-		}
+		z.ArticleID = oid.Cast(*o.ArticleID)
+		cs = append(cs, "article_id")
 	}
 	if o.Name != nil {
 		z.Name = *o.Name
