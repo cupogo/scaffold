@@ -377,6 +377,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			}
 			continue
 		}
+		if pgt, ok := field.Tags["pg"]; !ok || pgt == "-" {
+			continue
+		}
 		var code *jen.Statement
 		if len(field.Comment) > 0 {
 			code = jen.Comment(field.Comment).Line()
@@ -1021,11 +1024,11 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
 			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
+			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+
 			if mod.hasMeta() {
 				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"), jen.Id("exist"))
 			}
-
-			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
 			if jt, ok := mod.textSearchCodes("exist"); ok {
 				g.Add(jt)
