@@ -3,8 +3,8 @@ package stores
 import (
 	redis "github.com/go-redis/redis/v8"
 
-	"hyyl.xyz/cupola/andvari/stores/pgx"
-	"hyyl.xyz/cupola/aurora/pkg/settings"
+	"github.com/cupogo/andvari/stores/pgx"
+	"github.com/cupogo/scaffold/pkg/settings"
 )
 
 // Wrap implements Storages

@@ -1,7 +1,7 @@
 
 depends:
-  comm: 'hyyl.xyz/cupola/andvari/models/comm'
-  oid: 'hyyl.xyz/cupola/andvari/models/oid'
+  comm: 'github.com/cupogo/andvari/models/comm'
+  oid: 'github.com/cupogo/andvari/models/oid'
 
 modelpkg: cms1
 models:

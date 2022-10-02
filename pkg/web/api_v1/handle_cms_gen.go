@@ -3,9 +3,9 @@
 package apiv1
 
 import (
+	"github.com/cupogo/scaffold/pkg/models/cms1"
+	"github.com/cupogo/scaffold/pkg/services/stores"
 	gin "github.com/gin-gonic/gin"
-	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
-	"hyyl.xyz/cupola/scaffold/pkg/services/stores"
 )
 
 func init() {

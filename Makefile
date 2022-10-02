@@ -2,15 +2,14 @@
 .PHONY: docs
 
 NAME:=scaffold
-ROOF:=hyyl.xyz/cupola/scaffold
+ROOF:=github.com/cupogo/scaffold
 DATE := $(shell date '+%Y%m%d')
 TAG:=$(shell git describe --tags --always)
 GO=$(shell which go)
 GOMOD=$(shell echo "$${GO111MODULE:-auto}")
+WEBAPIS=$(shell find pkg/web -type f \( -name "*.go" ! -name "*_test.go" \) -print )
 
-
-MDs=account.md # deprecated
-YAML=$(shell find docs -type f \( -name "*.yaml" ! -name "swagger.yaml" \) -print )
+MDs=$(shell find docs -type f \( -name "*.yaml" ! -name "swagger.yaml" \) -print )
 SPEC=7
 
 help:
@@ -21,9 +20,9 @@ docs:
 
 codegen:
 	mkdir -p ./pkg/models ./pkg/services/stores ./pkg/web
-	for name in $(YAML); do \
+	for name in $(MDs); do \
 		echo $${name}; \
-		GO111MODULE=on $(GO) run -tags=codegen ./scripts/pgcodegen -spec $(SPEC) $${name} ; \
+		GO111MODULE=on $(GO) run -tags=codegen ./scripts/codegen -spec $(SPEC) $${name} ; \
 	done
 
 generate:
@@ -71,3 +70,11 @@ package: dist
 	echo "Packaging $(NAME)"
 	ls dist/linux_amd64 | xargs tar -cvJf $(NAME)-linux-amd64-$(TAG).tar.xz -C dist/linux_amd64
 	ls dist/darwin_amd64 | xargs tar -cvJf $(NAME)-darwin-amd64-$(TAG).tar.xz -C dist/darwin_amd64
+
+docs/swagger.json: $(WEBAPIS)
+	GO111MODULE=on swag init -g ./pkg/web/docs.go -d ./ --ot json,yaml --parseDependency
+
+touch-web-api:
+	touch pkg/web/docs.go
+
+gen-apidoc: touch-web-api docs/swagger.json

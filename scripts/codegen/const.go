@@ -20,9 +20,9 @@ const (
 // consts of qual
 const (
 	ginQual = "github.com/gin-gonic/gin"
-	oidQual = "hyyl.xyz/cupola/andvari/models/oid"
+	oidQual = "github.com/cupogo/andvari/models/oid"
 
-	utilsQual = "hyyl.xyz/cupola/andvari/utils"
+	utilsQual = "github.com/cupogo/andvari/utils"
 
 	metaField       = "comm.MetaField"
 	ownerField      = "comm.OwnerField"

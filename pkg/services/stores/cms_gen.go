@@ -5,9 +5,9 @@ package stores
 import (
 	"context"
 	"fmt"
-	comm "hyyl.xyz/cupola/andvari/models/comm"
-	utils "hyyl.xyz/cupola/andvari/utils"
-	"hyyl.xyz/cupola/scaffold/pkg/models/cms1"
+	comm "github.com/cupogo/andvari/models/comm"
+	utils "github.com/cupogo/andvari/utils"
+	"github.com/cupogo/scaffold/pkg/models/cms1"
 )
 
 // type Article = cms1.Article
@@ -50,11 +50,11 @@ type ClauseSpec struct {
 	Text string `extensions:"x-order=A" form:"text" json:"text"`
 }
 
-func (spec *ClauseSpec) Sift(q *ormQuery) (*ormQuery, error) {
-	q, _ = spec.ModelSpec.Sift(q)
+func (spec *ClauseSpec) Sift(q *ormQuery) *ormQuery {
+	q = spec.ModelSpec.Sift(q)
 	q, _ = siftMatch(q, "text", spec.Text, false)
 
-	return q, nil
+	return q
 }
 
 type ArticleSpec struct {
@@ -80,25 +80,25 @@ type ArticleSpec struct {
 	Src string `extensions:"x-order=H" form:"src" json:"src"`
 }
 
-func (spec *ArticleSpec) Sift(q *ormQuery) (*ormQuery, error) {
-	q, _ = spec.ModelSpec.Sift(q)
+func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
+	q = spec.ModelSpec.Sift(q)
 	q, _ = siftICE(q, "author", spec.Author, false)
 	q, _ = siftMatch(q, "title", spec.Title, false)
 	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
-		q = q.WhereIn("status IN(?)", vals)
+		q = q.Where("status IN(?)", pgIn(vals))
 	} else {
 		q, _ = siftEquel(q, "status", spec.Status, false)
 	}
 	q, _ = siftOIDs(q, "author_id", spec.AuthorID, false)
 	if vals, ok := utils.ParseStrs(spec.Srcs); ok {
-		q = q.WhereIn("src IN(?)", vals)
+		q = q.Where("src IN(?)", pgIn(vals))
 	} else {
 		q, _ = siftEquel(q, "src", spec.Src, false)
 	}
 	q, _ = spec.TextSearchSpec.Sift(q)
 
-	return q, nil
+	return q
 }
 func (spec *ArticleSpec) CanSort(k string) bool {
 	switch k {
@@ -122,14 +122,14 @@ type AttachmentSpec struct {
 	Path string `extensions:"x-order=D" form:"path" json:"path"`
 }
 
-func (spec *AttachmentSpec) Sift(q *ormQuery) (*ormQuery, error) {
-	q, _ = spec.ModelSpec.Sift(q)
+func (spec *AttachmentSpec) Sift(q *ormQuery) *ormQuery {
+	q = spec.ModelSpec.Sift(q)
 	q, _ = siftOID(q, "article_id", spec.ArticleID, false)
 	q, _ = siftMatch(q, "name", spec.Name, false)
 	q, _ = siftICE(q, "mime", spec.Mime, false)
 	q, _ = siftMatch(q, "path", spec.Path, false)
 
-	return q, nil
+	return q
 }
 
 type contentStore struct {
@@ -137,7 +137,7 @@ type contentStore struct {
 }
 
 func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error) {
-	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
+	total, err = queryPager(ctx, spec, s.w.db.NewSelect().Model(&data).Apply(spec.Sift))
 	return
 }
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
@@ -164,7 +164,7 @@ func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
 	spec.SetTsConfig(s.w.db.GetTsCfg())
 	spec.SetTsFallback("title", "content")
-	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
+	total, err = queryPager(ctx, spec, s.w.db.NewSelect().Model(&data).Apply(spec.Sift))
 	return
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
@@ -181,7 +181,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		obj.TsCfgName = tscfg
 		obj.SetTsColumns("title", "content")
 	}
-	err = s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
+	err = s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
 		}
@@ -204,7 +204,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		exist.TsCfgName = ""
 	}
 	exist.SetChange("ts_cfg")
-	return s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
+	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
 		}
@@ -216,7 +216,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 	if err := getModelWithPKID(ctx, s.w.db, obj, id); err != nil {
 		return err
 	}
-	return s.w.db.RunInTransaction(ctx, func(tx *pgTx) (err error) {
+	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), "cms_article", obj.ID)
 		if err != nil {
 			return
@@ -226,7 +226,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 }
 
 func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error) {
-	total, err = queryPager(spec, s.w.db.Model(&data).Apply(spec.Sift))
+	total, err = queryPager(ctx, spec, s.w.db.NewSelect().Model(&data).Apply(spec.Sift))
 	return
 }
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {

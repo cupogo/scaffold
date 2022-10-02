@@ -1,6 +1,8 @@
 # scaffold
 
-Go 项目脚手架
+Go 项目脚手架, 包含代码生成器和示例
+
+Go project scaffolding, including code generators and examples
 
 ## Features
 

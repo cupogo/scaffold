@@ -3,13 +3,13 @@
 package cms1
 
 import (
-	comm "hyyl.xyz/cupola/andvari/models/comm"
-	oid "hyyl.xyz/cupola/andvari/models/oid"
+	comm "github.com/cupogo/andvari/models/comm"
+	oid "github.com/cupogo/andvari/models/oid"
 )
 
 // Article 文章
 type Article struct {
-	tableName struct{} `pg:"cms_article,alias:a"`
+	BaseModel struct{} `bun:"table:cms_article,alias:a" json:"-"`
 
 	comm.DefaultModel
 
@@ -22,19 +22,19 @@ type Article struct {
 
 type ArticleBasic struct {
 	// 作者
-	Author string `extensions:"x-order=A" form:"author" json:"author" pg:",notnull,use_zero"`
+	Author string `bun:",notnull" extensions:"x-order=A" form:"author" json:"author" pg:",notnull,use_zero"`
 	// 标题
-	Title string `extensions:"x-order=B" form:"title" json:"title" pg:",notnull"`
+	Title string `bun:",notnull" extensions:"x-order=B" form:"title" json:"title" pg:",notnull"`
 	// 内容
-	Content string `extensions:"x-order=C" form:"content" json:"content" pg:",notnull"`
+	Content string `bun:",notnull" extensions:"x-order=C" form:"content" json:"content" pg:",notnull"`
 	// 新闻时间
-	NewsPublish comm.DateTime `extensions:"x-order=D" json:"newsPublish,omitempty" pg:"news_publish,type:date"`
+	NewsPublish comm.DateTime `bun:"news_publish,type:date" extensions:"x-order=D" json:"newsPublish,omitempty" pg:"news_publish,type:date"`
 	// 状态
-	Status int16 `extensions:"x-order=E" form:"status" json:"status" pg:",notnull,use_zero"`
+	Status int16 `bun:",notnull" extensions:"x-order=E" form:"status" json:"status" pg:",notnull,use_zero"`
 	// 作者
-	AuthorID oid.OID `extensions:"x-order=F" json:"authorID" pg:",notnull,use_zero"`
+	AuthorID oid.OID `bun:",notnull" extensions:"x-order=F" json:"authorID" pg:",notnull,use_zero"`
 	// 来源
-	Src string `extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
+	Src string `bun:",notnull" extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleBasic
@@ -109,7 +109,7 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 
 // Attachment 附件
 type Attachment struct {
-	tableName struct{} `pg:"cms_attachment,alias:att"`
+	BaseModel struct{} `bun:"table:cms_attachment,alias:att" json:"-"`
 
 	comm.DefaultModel
 
@@ -118,12 +118,12 @@ type Attachment struct {
 
 type AttachmentBasic struct {
 	// 文章编号
-	ArticleID oid.OID `extensions:"x-order=A" json:"articleID" pg:",notnull"`
+	ArticleID oid.OID `bun:",notnull" extensions:"x-order=A" json:"articleID" pg:",notnull"`
 	// 名称
-	Name string `extensions:"x-order=B" form:"name" json:"name" pg:",notnull"`
+	Name string `bun:",notnull" extensions:"x-order=B" form:"name" json:"name" pg:",notnull"`
 	// 类型
-	Mime string `extensions:"x-order=C" form:"mime" json:"mime" pg:",notnull"`
-	Path string `extensions:"x-order=D" form:"path" json:"path" pg:"path,notnull"`
+	Mime string `bun:",notnull" extensions:"x-order=C" form:"mime" json:"mime" pg:",notnull"`
+	Path string `bun:"path,notnull" extensions:"x-order=D" form:"path" json:"path" pg:"path,notnull"`
 } // @name AttachmentBasic
 
 type Attachments []Attachment
@@ -172,7 +172,7 @@ func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 
 // Clause 条款
 type Clause struct {
-	tableName struct{} `pg:"cms_clause,alias:c"`
+	BaseModel struct{} `bun:"table:cms_clause,alias:c" json:"-"`
 
 	comm.DefaultModel
 
@@ -180,7 +180,7 @@ type Clause struct {
 } // @name Clause
 
 type ClauseBasic struct {
-	Text string `extensions:"x-order=A" form:"text" json:"text" pg:"text,notnull"`
+	Text string `bun:"text,notnull" extensions:"x-order=A" form:"text" json:"text" pg:"text,notnull"`
 } // @name ClauseBasic
 
 type Clauses []Clause

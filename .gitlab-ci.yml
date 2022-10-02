@@ -10,7 +10,7 @@ variables:
   GOPRIVATE: daxv.cn,fhyx.tech,hyyl.xyz
   GOPROXY: https://goproxy.cn,direct
   NAME: celeste
-  ROOF: hyyl.xyz/cupola/celeste
+  ROOF: github.com/cupogo/celeste
 
 before_script:
   # SSH
@@ -29,8 +29,8 @@ before_script:
 
   - cd ../
   # - ls -al . */*
-  - test -d andvari && git -C andvari pull --rebase origin main || git clone -b main https://git.hyyl.xyz/cupola/andvari.git
-  - test -d aurora && git -C aurora pull --rebase origin main || git clone -b main https://git.hyyl.xyz/cupola/aurora.git
+  - test -d andvari && git -C andvari pull --rebase origin main || git clone -b main https://git.github.com/cupogo/andvari.git
+  - test -d aurora && git -C aurora pull --rebase origin main || git clone -b main https://git.github.com/cupogo/aurora.git
   - test -e go.work || go work init ./andvari ./aurora ./scaffold
   - cd ${CI_PROJECT_DIR}
   - ls -al ../*

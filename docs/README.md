@@ -202,8 +202,8 @@ package stores
 import (
 	redis "github.com/go-redis/redis/v8"
 
-	"hyyl.xyz/cupola/andvari/stores/pgx"
-	"hyyl.xyz/cupola/aurora/pkg/settings"
+	"github.com/cupogo/andvari/stores/pgx"
+	"github.com/cupogo/aurora/pkg/settings"
 )
 
 type Storage interface {
@@ -271,8 +271,8 @@ func (w *Wrap) Contant() ContantStore {
 import (
 	"github.com/gin-gonic/gin"
 
-	"hyyl.xyz/cupola/aurora/pkg/web/resp"
-	"hyyl.xyz/cupola/scaffold/pkg/services/stores"
+	"github.com/cupogo/aurora/pkg/web/resp"
+	"github.com/cupogo/scaffold/pkg/services/stores"
 )
 
 //nolint

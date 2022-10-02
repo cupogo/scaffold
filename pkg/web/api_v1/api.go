@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"hyyl.xyz/cupola/scaffold/pkg/services/stores"
+	"github.com/cupogo/scaffold/pkg/services/stores"
 )
 
 var handles = []handleIn{}
@@ -24,7 +24,7 @@ func regHI(auth bool, method string, path string, rid string, hafn haFunc) {
 	handles = append(handles, handleIn{auth, method, path, rid, hafn})
 }
 
-//nolint
+// nolint
 func route(r gin.IRoutes, method, path string, hs ...gin.HandlerFunc) {
 	switch method {
 	case http.MethodPost:
@@ -38,7 +38,7 @@ func route(r gin.IRoutes, method, path string, hs ...gin.HandlerFunc) {
 	}
 }
 
-//nolint
+// nolint
 type api struct {
 	sto stores.Storage
 }

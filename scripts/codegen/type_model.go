@@ -78,6 +78,23 @@ func (f *Field) isScalar() bool {
 	return false
 }
 
+var replTrimUseZero = strings.NewReplacer(",use_zero", "")
+
+func (f *Field) bunPatchTags() (out Maps) {
+	out = f.Tags.Copy()
+	for k, v := range out {
+		if k == "pg" {
+			if _, ok := out["bun"]; !ok {
+				if strings.Contains(v, ",use_zero") {
+					v = replTrimUseZero.Replace(v)
+				}
+				out["bun"] = v
+			}
+		}
+	}
+	return out
+}
+
 func (f *Field) typeCode(pkgs ...string) *jen.Statement {
 	typ := f.Type
 	if len(typ) == 0 {
@@ -149,7 +166,7 @@ func (f *Field) Code(idx int) jen.Code {
 	st := f.preCode().Add(f.defCode())
 
 	if len(f.Tags) > 0 {
-		tags := f.Tags.Copy()
+		tags := f.bunPatchTags()
 		if j, ok := tags["json"]; ok {
 			if a, b, ok := strings.Cut(j, ","); ok {
 				if f.isScalar() && !tags.Has("form") {
@@ -349,7 +366,7 @@ func (m *Model) TableField() jen.Code {
 	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
 		tt += ",discard_unknown_columns"
 	}
-	return jen.Id("tableName").Add(jen.Struct()).Tag(Maps{"pg": tt}).Line()
+	return jen.Id("BaseModel").Add(jen.Struct()).Tag(Maps{"json": "-", "bun": "table:" + tt}).Line()
 }
 
 func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
@@ -689,7 +706,7 @@ func (m *Model) getSpecCodes() jen.Code {
 	st := jen.Type().Id(tname).Struct(fcs...).Line()
 	if len(fcs) > 2 {
 		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
-			Params(jen.Op("*").Id("ormQuery"), jen.Error())
+			Params(jen.Op("*").Id("ormQuery"))
 		st.BlockFunc(func(g *jen.Group) {
 			if len(relNames) > 0 && !okAL {
 				log.Printf("%s relNames %+v", m.Name, relNames)
@@ -699,7 +716,7 @@ func (m *Model) getSpecCodes() jen.Code {
 					}
 				}).Line()
 			}
-			g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("ModelSpec").Dot("Sift").Call(jen.Id("q"))
+			g.Id("q").Op("=").Id("spec").Dot("ModelSpec").Dot("Sift").Call(jen.Id("q"))
 			if m.hasAudit() {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
 			}
@@ -731,19 +748,19 @@ func (m *Model) getSpecCodes() jen.Code {
 					)
 				} else if field.siftExt == "hasVals" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else if field.siftExt == "ints" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else if field.siftExt == "strs" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseStrs").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else if field.siftExt == "oids" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(fieldM.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("WhereIn").Call(jen.Lit(cn+" IN(?)"), jen.Id("vals")),
+						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else {
 					g.Add(jq)
@@ -756,7 +773,7 @@ func (m *Model) getSpecCodes() jen.Code {
 			}
 			g.Line()
 
-			g.Return(jen.Id("q"), jen.Nil())
+			g.Return(jen.Id("q"))
 		}).Line()
 	}
 
@@ -860,7 +877,8 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 }
 
 var (
-	swdb = jen.Id("s").Dot("w").Dot("db")
+	swdb  = jen.Id("s").Dot("w").Dot("db")
+	jactx = jen.Id("ctx").Id("context.Context")
 )
 
 func (m *Model) getIPath() string {
@@ -885,7 +903,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 					}))
 				}
 			}
-			jq := jen.Add(swdb).Dot("Model").Call(
+			jq := jen.Add(swdb).Dot("NewSelect").Call().Dot("Model").Call(
 				jen.Op("&").Id("data")).Dot("Apply").Call(
 				jen.Id("spec").Dot("Sift"))
 
@@ -894,7 +912,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 			}
 
 			g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
-				jen.Id("spec"), jq,
+				jen.Id("ctx"), jen.Id("spec"), jq,
 			)
 
 			if hkAL, okAL := m.hasHook(afterList); okAL {
@@ -974,11 +992,12 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			hkBS, okBS := mod.hasHook(beforeSaving)
 			hkAS, okAS := mod.hasHook(afterSaving)
 			if okBC || okBS || okAS {
-				g.Err().Op("=").Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+				g.Err().Op("=").Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					targs[1] = jdb
 					g1.Id("ctx")
-					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+					g1.Nil()
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 						if okBC {
 							g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(jen.Err()),
@@ -1038,10 +1057,11 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			hkBS, okBS := mod.hasHook(beforeSaving)
 			hkAS, okAS := mod.hasHook(afterSaving)
 			if okBU || okBS || okAS {
-				g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+				g.Return().Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					g1.Id("ctx")
-					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+					g1.Nil()
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 						if okBU {
 							g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(),
@@ -1133,9 +1153,10 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
 				).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-				g.Return().Add(swdb).Dot("RunInTransaction").CallFunc(func(g1 *jen.Group) {
+				g.Return().Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
 					g1.Id("ctx")
-					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+					g1.Nil()
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
 						if okBD {
 							g2.If(jen.Err().Op("=").Id(hkBD).Call(jen.Id("ctx"), jen.Id("tx"),
 								jen.Id("obj")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
