@@ -21,23 +21,23 @@ import (
 
 type Unmarshaler = yaml.Unmarshaler
 
-type Maps map[string]string
+type Tags map[string]string
 
 // Copy ...
-func (m Maps) Copy() (out Maps) {
-	out = Maps{}
+func (m Tags) Copy() (out Tags) {
+	out = Tags{}
 	for k, v := range m {
 		out[k] = v
 	}
 	return
 }
 
-func (m Maps) Has(k string) bool {
+func (m Tags) Has(k string) bool {
 	_, ok := m[k]
 	return ok
 }
 
-func (m Maps) extOrder(idx int) {
+func (m Tags) extOrder(idx int) {
 	if idx > 55 { // max ascii offset
 		return
 	}
@@ -69,7 +69,7 @@ type Document struct {
 
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
-	Qualified Maps    `yaml:"depends"` // imports name
+	Qualified Tags    `yaml:"depends"` // imports name
 	Stores    []Store `yaml:"stores"`
 	WebAPI    WebAPI  `yaml:"webapi"`
 }

@@ -30,7 +30,7 @@ func qual(args ...string) jen.Code {
 type Field struct {
 	Name     string `yaml:"name"`
 	Type     string `yaml:"type,omitempty"`
-	Tags     Maps   `yaml:"tags,flow,omitempty"`
+	Tags     Tags   `yaml:"tags,flow,omitempty"`
 	Qual     string `yaml:"qual,omitempty"`
 	IsBasic  bool   `yaml:"basic,omitempty"`
 	IsSet    bool   `yaml:"isset,omitempty"`
@@ -80,7 +80,7 @@ func (f *Field) isScalar() bool {
 
 var replTrimUseZero = strings.NewReplacer(",use_zero", "")
 
-func (f *Field) bunPatchTags() (out Maps) {
+func (f *Field) bunPatchTags() (out Tags) {
 	out = f.Tags.Copy()
 	for k, v := range out {
 		if k == "pg" {
@@ -324,7 +324,7 @@ type Model struct {
 	Fields   Fields   `yaml:"fields"`
 	Plural   string   `yaml:"plural,omitempty"`
 	OIDCat   string   `yaml:"oidcat,omitempty"`
-	Hooks    Maps     `yaml:"hooks,omitempty"`
+	Hooks    Tags     `yaml:"hooks,omitempty"`
 	Sifters  []string `yaml:"sifters,omitempty"`
 	SpecUp   string   `yaml:"specUp,omitempty"`
 
@@ -366,7 +366,7 @@ func (m *Model) TableField() jen.Code {
 	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
 		tt += ",discard_unknown_columns"
 	}
-	return jen.Id("BaseModel").Add(jen.Struct()).Tag(Maps{"json": "-", "bun": "table:" + tt}).Line()
+	return jen.Id("BaseModel").Add(jen.Struct()).Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
 }
 
 func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
@@ -420,7 +420,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code.Op("*").Id(tn)
 		}
 		if s, ok := field.Tags["json"]; ok {
-			tags := Maps{"json": s}
+			tags := Tags{"json": s}
 			tags.extOrder(idx)
 			code.Tag(tags)
 		}
@@ -596,7 +596,7 @@ func (m *Model) specFields() (out Fields) {
 					Comment:  f.Comment + " (多值逗号分隔)",
 					Type:     ftyp,
 					Name:     Plural(f.Name),
-					Tags:     Maps{"form": argTag, "json": argTag + ",omitempty"},
+					Tags:     Tags{"form": argTag, "json": argTag + ",omitempty"},
 					siftExt:  ext,
 					multable: true,
 				}
@@ -635,7 +635,7 @@ func (m *Model) specFields() (out Fields) {
 				Comment: "所有者编号 (多值使用逗号分隔)",
 				Type:    "string",
 				Name:    "OwnerID",
-				Tags:    Maps{"form": "owner", "json": "owner,omitempty"},
+				Tags:    Tags{"form": "owner", "json": "owner,omitempty"},
 				siftFn:  "siftOIDs",
 				colname: "owner_id",
 			}
@@ -697,7 +697,7 @@ func (m *Model) getSpecCodes() jen.Code {
 		jtag := "rel"
 		field := &Field{
 			Name: withRel,
-			Type: ftyp, Tags: Maps{"json": jtag},
+			Type: ftyp, Tags: Tags{"json": jtag},
 			Comment: "include relation column"}
 		fcs = append(fcs, jen.Empty(), field.queryCode(len(specFields)))
 	}
@@ -803,14 +803,14 @@ func (m *Model) hasHook(k string) (v string, ok bool) {
 func metaUpCode() jen.Code {
 	code := jen.Comment("for meta update").Line()
 	code.Id("MetaDiff").Op("*").Add(qual("comm.MetaDiff"))
-	code.Tag(Maps{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
+	code.Tag(Tags{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
 	return code
 }
 
 func ownerUpCode() jen.Code {
 	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
-	code.Tag(Maps{"json": "ownerID,omitempty", "pg": "-"})
+	code.Tag(Tags{"json": "ownerID,omitempty", "pg": "-"})
 	return code
 }
 
