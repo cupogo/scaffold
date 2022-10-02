@@ -10,6 +10,7 @@ Go project scaffolding, including code generators and examples
 * 依据参数生成相应的数据访问层 `pkg/services/stores/doc_gen.go`
 * 依据参数生成相应的Web API层 `pkg/web/api_vx/handle_doc_gen.go`
 * 以上代码如无误可一次生成，并允许无限更新
+* 生成的API支持swagger描述文档
 
 ## 模型生成，使用 `yaml`
 
