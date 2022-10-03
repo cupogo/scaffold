@@ -3,6 +3,7 @@ package main
 
 import (
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/dave/jennifer/jen"
@@ -324,7 +325,7 @@ type Model struct {
 	Fields   Fields   `yaml:"fields"`
 	Plural   string   `yaml:"plural,omitempty"`
 	OIDCat   string   `yaml:"oidcat,omitempty"`
-	Hooks    Tags     `yaml:"hooks,omitempty"`
+	StoHooks Tags     `yaml:"hooks,omitempty"`
 	Sifters  []string `yaml:"sifters,omitempty"`
 	SpecUp   string   `yaml:"specUp,omitempty"`
 
@@ -521,7 +522,7 @@ func (m *Model) hasAudit() bool {
 	return false
 }
 
-func (m *Model) hasHooks() (bool, string) {
+func (m *Model) hasModHook() (bool, string) {
 	var hasIDField bool
 	var hasDateFields bool
 	for _, field := range m.Fields {
@@ -547,8 +548,7 @@ func (m *Model) hasHooks() (bool, string) {
 
 func (m *Model) hookModelCodes() jen.Code {
 	var st *jen.Statement
-	if hasHooks, field := m.hasHooks(); hasHooks {
-		// log.Printf("model %s has hooks", m.Name)
+	if hasHooks, field := m.hasModHook(); hasHooks {
 		st = new(jen.Statement)
 		st.Comment("Creating function call to it's inner fields defined hooks").Line()
 		st.Func().Params(
@@ -686,7 +686,7 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 
 	var withRel string
-	_, okAL := m.hasHook(afterList)
+	_, okAL := m.hasStoreHook(afterList)
 	relNames := m.Fields.relHasOne()
 	if len(relNames) > 0 || okAL {
 		ftyp := "bool"
@@ -795,9 +795,41 @@ func (m *Model) getSpecCodes() jen.Code {
 	return st
 }
 
-func (m *Model) hasHook(k string) (v string, ok bool) {
-	v, ok = m.Hooks[k]
+func (m *Model) hasStoreHook(k string) (v string, ok bool) {
+	if v, ok = m.StoHooks[k]; ok {
+		v, ok = m.storeHookName(k, v)
+	}
 	return
+}
+
+func (m *Model) storeHookName(k, v string) (string, bool) {
+	if strings.HasPrefix(v, "db") {
+		return v, true
+	} else if v[0] == 't' || v[0] == 'y' { // true, yes
+		return "db" + ToExported(k) + m.Name, true
+	}
+	return "", false
+}
+
+func (m *Model) StoreHooks() (out []storeHook) {
+	for k, v := range m.StoHooks {
+		if len(v) == 0 {
+			continue
+		}
+		fn, ok := m.storeHookName(k, v)
+		if !ok {
+			continue
+		}
+
+		out = append(out, storeHook{
+			FunName: fn,
+			ObjName: m.Name,
+		})
+	}
+
+	sort.Slice(out, func(i, j int) bool { return out[i].FunName > out[j].FunName })
+
+	return out
 }
 
 func metaUpCode() jen.Code {
@@ -915,7 +947,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 				jen.Id("ctx"), jen.Id("spec"), jq,
 			)
 
-			if hkAL, okAL := m.hasHook(afterList); okAL {
+			if hkAL, okAL := m.hasStoreHook(afterList); okAL {
 				g.If(jen.Err().Op("==").Nil().Op("&&").Len(jen.Id("data")).Op(">0")).Block(
 					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("spec"), jen.Id("data")),
 				)
@@ -942,7 +974,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.Add(jload)
 			}
 
-			if hkAL, okAL := mod.hasHook(afterLoad); okAL {
+			if hkAL, okAL := mod.hasStoreHook(afterLoad); okAL {
 				g.If(jen.Err().Op("==").Nil()).Block(
 					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("obj")),
 				)
@@ -988,9 +1020,9 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				targs = append(targs, jen.Lit(cn))
 			}
 
-			hkBC, okBC := mod.hasHook(beforeCreating)
-			hkBS, okBS := mod.hasHook(beforeSaving)
-			hkAS, okAS := mod.hasHook(afterSaving)
+			hkBC, okBC := mod.hasStoreHook(beforeCreating)
+			hkBS, okBS := mod.hasStoreHook(beforeSaving)
+			hkAS, okAS := mod.hasStoreHook(afterSaving)
 			if okBC || okBS || okAS {
 				g.Err().Op("=").Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
@@ -1023,7 +1055,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.Err().Op("=").Id("dbInsert").Call(targs...)
 			}
 
-			if hk, ok := mod.hasHook(afterCreated); ok {
+			if hk, ok := mod.hasStoreHook(afterCreated); ok {
 				g.If(jen.Err().Op("==").Nil()).Block(
 					jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
 				)
@@ -1053,9 +1085,9 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.Add(jt)
 			}
 
-			hkBU, okBU := mod.hasHook(beforeUpdating)
-			hkBS, okBS := mod.hasHook(beforeSaving)
-			hkAS, okAS := mod.hasHook(afterSaving)
+			hkBU, okBU := mod.hasStoreHook(beforeUpdating)
+			hkBS, okBS := mod.hasStoreHook(beforeSaving)
+			hkAS, okAS := mod.hasStoreHook(afterSaving)
 			if okBU || okBS || okAS {
 				g.Return().Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
@@ -1146,8 +1178,8 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 		[]jen.Code{jen.Error()},
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("obj").Op(":=").New(jqual)
-			hkBD, okBD := mod.hasHook(beforeDeleting)
-			hkAD, okAD := mod.hasHook(afterDeleting)
+			hkBD, okBD := mod.hasStoreHook(beforeDeleting)
+			hkAD, okAD := mod.hasStoreHook(afterDeleting)
 			if okBD || okAD {
 				g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),

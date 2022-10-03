@@ -1,0 +1,12 @@
+package stores
+
+import (
+	"context"
+
+	"{{ .ModelIPath }}"
+)
+{{ $modpkg := .ModelPkg }}{{ range .Models }}{{ range .StoreHooks }}
+func {{.FunName}}(ctx context.Context, db ormDB, obj *{{$modpkg}}.{{.ObjName}}) error {
+	// TODO:
+	return nil
+}{{ end }}{{ end }}

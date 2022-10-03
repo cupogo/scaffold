@@ -184,3 +184,8 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 
 	return st
 }
+
+type storeHook struct {
+	FunName string
+	ObjName string
+}

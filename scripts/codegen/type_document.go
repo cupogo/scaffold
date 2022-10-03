@@ -57,7 +57,8 @@ func getRune(idx int) rune {
 }
 
 type Document struct {
-	name    string
+	gened   string
+	extern  string
 	dirmod  string
 	dirsto  string
 	dirweb  string
@@ -103,7 +104,7 @@ func NewDoc(docfile string) (*Document, error) {
 	if doc.ModelPkg == "" {
 		return nil, fmt.Errorf("modelpkg is empty")
 	}
-	doc.name = getOutName(docfile)
+	doc.gened, doc.extern = getOutName(docfile)
 	doc.dirmod = path.Join("pkg", "models", doc.ModelPkg)
 	doc.dirsto = path.Join("pkg", "services", "stores")
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
@@ -129,14 +130,28 @@ func (doc *Document) Init() {
 	doc.WebAPI.prepareHandles()
 }
 
-func getOutName(docfile string) string {
+func getOutName(docfile string) (gened string, extern string) {
 	name := path.Base(docfile)
 	if pos := strings.LastIndex(name, "."); pos > 1 {
 		name = name[0:pos]
 	}
-	name = name + "_gen.go"
+	gened = name + "_gen.go"
+	extern = name + "_x.go"
 
-	return name
+	return
+}
+
+func (doc *Document) hasStoreHooks() bool {
+	for _, m := range doc.Models {
+		if len(m.StoHooks) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (doc *Document) ModelIPath() string {
+	return doc.modipath
 }
 
 func (doc *Document) genModels(dropfirst bool) error {
@@ -159,7 +174,7 @@ func (doc *Document) genModels(dropfirst bool) error {
 		}
 	}
 
-	outname := path.Join(doc.dirmod, doc.name)
+	outname := path.Join(doc.dirmod, doc.gened)
 	// log.Printf("%s: %s", doc.ModelPkg, outname)
 	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
@@ -172,7 +187,7 @@ func (doc *Document) genModels(dropfirst bool) error {
 		log.Fatalf("generate models fail: %s", err)
 		return err
 	}
-	log.Printf("generated '%s/%s' ok", doc.dirmod, doc.name)
+	log.Printf("generated '%s/%s' ok", doc.dirmod, doc.gened)
 	return nil
 }
 
@@ -206,7 +221,7 @@ func (doc *Document) loadModPkg() (ipath string, aliases []string) {
 	for i, f := range mpkg.Syntax {
 		// log.Printf("gofile: %s,", mpkg.CompiledGoFiles[i])
 		var ismods bool
-		if path.Base(mpkg.CompiledGoFiles[i]) == doc.name {
+		if path.Base(mpkg.CompiledGoFiles[i]) == doc.gened {
 			ismods = true
 		}
 		for k, o := range f.Scope.Objects {
@@ -255,7 +270,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 			return err
 		}
 	}
-	outname := path.Join(doc.dirsto, doc.name)
+	outname := path.Join(doc.dirsto, doc.gened)
 	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
@@ -273,18 +288,19 @@ func (doc *Document) genStores(dropfirst bool) error {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
 	}
-	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.name)
+	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.gened)
 
 	if !hasAnyStore {
 		log.Print("no store found, skip wrap")
 		return nil
 	}
 
+	if doc.hasStoreHooks() {
+		ensureGoFile(path.Join(doc.dirsto, doc.extern), "stores_doc_x", doc)
+	}
+
 	sfile := path.Join(doc.dirsto, storewf)
-
-	// spkg := loadPackage(doc.dirsto)
-	// log.Printf("loaded spkg: %s name %q", spkg.ID, spkg.Types.Name())
-
+	ensureGoFile(sfile, "stores_wrap", nil)
 	wvd, err := newDST(sfile)
 	if err != nil {
 		return err
@@ -301,6 +317,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	iffile := path.Join(doc.dirsto, "interfaces.go")
+	ensureGoFile(iffile, "stores_interfaces", nil)
 	svd, err := newDST(iffile)
 	if err != nil {
 		// TODO: new file
@@ -421,7 +438,16 @@ func (doc *Document) genWebAPI() error {
 			return err
 		}
 	}
-	outname := path.Join(doc.dirweb, "handle_"+doc.name)
+
+	afile := path.Join(doc.dirweb, "api.go")
+	if !CheckFile(afile) {
+		data := map[string]string{"webpkg": doc.WebAPI.getPkgName()}
+		if err := renderTmpl("web_api", afile, data); err != nil {
+			return err
+		}
+	}
+
+	outname := path.Join(doc.dirweb, "handle_"+doc.gened)
 	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
@@ -485,7 +511,7 @@ func (doc *Document) genWebAPI() error {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
 	}
-	log.Printf("generated '%s/%s' ok", doc.dirweb, "handle_"+doc.name)
+	log.Printf("generated '%s/%s' ok", doc.dirweb, "handle_"+doc.gened)
 	return nil
 }
 
