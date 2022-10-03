@@ -203,7 +203,7 @@ import (
 	redis "github.com/go-redis/redis/v8"
 
 	"github.com/cupogo/andvari/stores/pgx"
-	"github.com/cupogo/aurora/pkg/settings"
+	"github.com/cupogo/scaffold/pkg/settings"
 )
 
 type Storage interface {
@@ -271,7 +271,7 @@ func (w *Wrap) Contant() ContantStore {
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/cupogo/aurora/pkg/web/resp"
+	"github.com/cupogo/scaffold/pkg/web/resp"
 	"github.com/cupogo/scaffold/pkg/services/stores"
 )
 
