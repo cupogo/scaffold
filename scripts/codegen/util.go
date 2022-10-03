@@ -3,12 +3,14 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"go/parser"
 	"go/token"
 	"log"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
@@ -16,6 +18,9 @@ import (
 	"github.com/jinzhu/inflection"
 	"golang.org/x/tools/go/packages"
 )
+
+//go:embed templates/*.tmpl
+var tplfs embed.FS
 
 type empty struct{}
 
@@ -269,4 +274,15 @@ func Plural(str string) string {
 		return str + "s"
 	}
 	return inflection.Plural(str)
+}
+
+func renderTmpl(src, dest string, data any) error {
+	tplf := "templates/" + src + ".go.tmpl"
+	t := template.Must(template.ParseFS(tplfs, tplf))
+	wr, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	err = t.Execute(wr, data)
+	return err
 }

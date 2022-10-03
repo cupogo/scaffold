@@ -1,22 +1,77 @@
 package stores
 
 import (
-	redis "github.com/go-redis/redis/v8"
+	"context"
 
+	redis "github.com/go-redis/redis/v8"
+	"github.com/uptrace/bun/dialect/pgdialect"
+
+	"github.com/cupogo/andvari/models/comm"
 	"github.com/cupogo/andvari/stores/pgx"
+	"github.com/cupogo/andvari/utils/zlog"
 	"github.com/cupogo/scaffold/pkg/settings"
 )
+
+type ormDB = pgx.IDB //nolint
+type ormQuery = pgx.SelectQuery
+type pgDB = pgx.IDB //nolint
+type pgTx = pgx.Tx  //nolint
+type pgIdent = pgx.Ident
+type pgSafe = pgx.Safe //nolint
+
+type ModelSpec = pgx.ModelSpec
+type TextSearchSpec = pgx.TextSearchSpec
+
+// vars
+var (
+	pgIn    = pgx.In          //nolint
+	pgArray = pgdialect.Array //nolint
+
+	ErrNoRows = pgx.ErrNoRows
+
+	queryPager         = pgx.QueryPager
+	getModelWherePK    = pgx.ModelWherePK    //nolint
+	getModelWithPKID   = pgx.ModelWithPKID   //nolint
+	getModelWithPKOID  = pgx.ModelWithPKID   //nolint
+	getModelWithUnique = pgx.ModelWithUnique //nolint
+	dbInsert           = pgx.DoInsert
+	dbUpdate           = pgx.DoUpdate
+	dbDeleteT          = pgx.DoDeleteT     //nolint
+	dbStoreSimple      = pgx.StoreSimple   //nolint
+	dbStoreWithCall    = pgx.StoreWithCall //nolint
+
+	sift      = pgx.Sift      //nolint
+	siftEquel = pgx.SiftEquel //nolint
+	siftICE   = pgx.SiftICE   //nolint
+	siftMatch = pgx.SiftMatch //nolint
+	siftOID   = pgx.SiftOID   //nolint
+	siftOIDs  = pgx.SiftOIDs  //nolint
+	siftDate  = pgx.SiftDate  //nolint
+
+	ContextWithColumns  = pgx.ContextWithColumns
+	ColumnsFromContext  = pgx.ColumnsFromContext
+	ContextWithRelation = pgx.ContextWithRelation
+	RelationFromContext = pgx.RelationFromContext
+)
+
+var (
+	alltables []any
+)
+
+func logger() zlog.Logger {
+	return zlog.Get()
+}
 
 // Wrap implements Storages
 type Wrap struct {
 	db *pgx.DB
-	rc *redis.Client
+	rc redis.UniversalClient
 
 	contentStore *contentStore // gened
 }
 
 // NewWithDB ...
-func NewWithDB(db *pgx.DB, rc *redis.Client) *Wrap {
+func NewWithDB(db *pgx.DB, rc redis.UniversalClient) *Wrap {
 	w := &Wrap{db: db, rc: rc}
 
 	w.contentStore = &contentStore{w: w} // gened
@@ -35,7 +90,7 @@ func New(args ...string) (*Wrap, error) {
 }
 
 // OpenBases open multiable databases
-func OpenBases(args ...string) (db *pgx.DB, rc *redis.Client, err error) {
+func OpenBases(args ...string) (db *pgx.DB, rc redis.UniversalClient, err error) {
 	dsn := settings.Current.PgStoreDSN
 	if len(args) > 0 && len(args[0]) > 0 {
 		dsn = args[0]
@@ -54,5 +109,13 @@ func OpenBases(args ...string) (db *pgx.DB, rc *redis.Client, err error) {
 	rc = redis.NewClient(opt)
 
 	return
+}
+
+// opModelMeta prepare values from Context
+func (w *Wrap) opModelMeta(ctx context.Context, obj comm.ModelMeta, ups ...*comm.MetaDiff) {
+
+	if mm, ok := obj.(interface{ MetaUp(*comm.MetaDiff) bool }); ok && len(ups) > 0 {
+		_ = mm.MetaUp(ups[0])
+	}
 }
 func (w *Wrap) Content() ContentStore { return w.contentStore } // Content gened

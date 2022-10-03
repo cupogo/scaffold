@@ -282,9 +282,11 @@ func (doc *Document) genStores(dropfirst bool) error {
 
 	sfile := path.Join(doc.dirsto, storewf)
 
-	// spkg := loadPackage(doc.dirsto)
-	// log.Printf("loaded spkg: %s name %q", spkg.ID, spkg.Types.Name())
-
+	if !CheckFile(sfile) {
+		if err = renderTmpl("stores_wrap", sfile, nil); err != nil {
+			return err
+		}
+	}
 	wvd, err := newDST(sfile)
 	if err != nil {
 		return err
@@ -301,6 +303,11 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	iffile := path.Join(doc.dirsto, "interfaces.go")
+	if !CheckFile(iffile) {
+		if err = renderTmpl("stores_interfaces", iffile, nil); err != nil {
+			return err
+		}
+	}
 	svd, err := newDST(iffile)
 	if err != nil {
 		// TODO: new file
@@ -421,6 +428,15 @@ func (doc *Document) genWebAPI() error {
 			return err
 		}
 	}
+
+	afile := path.Join(doc.dirweb, "api.go")
+	if !CheckFile(afile) {
+		data := map[string]string{"webpkg": doc.WebAPI.getPkgName()}
+		if err := renderTmpl("web_api", afile, data); err != nil {
+			return err
+		}
+	}
+
 	outname := path.Join(doc.dirweb, "handle_"+doc.name)
 	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {

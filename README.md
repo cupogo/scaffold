@@ -14,7 +14,7 @@ Go project scaffolding, including code generators and examples
 
 ## 模型生成，使用 `yaml`
 
-详见 [源文档结构说明](docs/)
+详见 [源文档结构说明](docs/) 和[示例](docs/cms.yaml)
 
 ### 生成指令
 
