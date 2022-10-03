@@ -184,15 +184,13 @@
 
 ## 生成的代码可以运行的约定
 
-- 依赖 `aurora` 项目的 `pkg/models/{comm,oid}` 两个包
+- 依赖 `andvari` 项目的 `pkg/models/{comm,oid}` 若干包
 
-- 依赖 `aurora` 项目的 `pkg/stores/utils/pgx` 包
+- 依赖 `andvari` 项目的 `pkg/stores/pgx` 包
 
-- 依赖 `aurora` 项目的 `pkg/settings` 包
+- `pkg/servies/stores/wrap.go` 可提前准备或由模版生成(TODO)
 
-- `pkg/servies/stores/wrap.go` 需要提前准备
-
-- `pkg/web/apixx/api.go` 需要提前准备
+- `pkg/web/apixx/api.go` 可提前准备或由模版生成(TODO)
 
 
 
