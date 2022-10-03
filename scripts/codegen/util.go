@@ -276,6 +276,15 @@ func Plural(str string) string {
 	return inflection.Plural(str)
 }
 
+func ensureGoFile(gfile, tplname string, data any) {
+	if !CheckFile(gfile) {
+		if err := renderTmpl(tplname, gfile, data); err != nil {
+			panic(err)
+		}
+		log.Printf("write go file ok, %s", gfile)
+	}
+}
+
 func renderTmpl(src, dest string, data any) error {
 	tplf := "templates/" + src + ".go.tmpl"
 	t := template.Must(template.ParseFS(tplfs, tplf))
@@ -284,5 +293,9 @@ func renderTmpl(src, dest string, data any) error {
 		return err
 	}
 	err = t.Execute(wr, data)
+	if err != nil {
+		log.Printf("render fail: %s", err)
+		os.Remove(dest)
+	}
 	return err
 }
