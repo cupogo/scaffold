@@ -7,6 +7,7 @@ import (
 
 	"github.com/cupogo/scaffold/pkg/services/stores"
 	"github.com/cupogo/scaffold/pkg/web/resp"
+	"github.com/cupogo/scaffold/pkg/web/routes"
 )
 
 var handles = []handleIn{}
@@ -44,7 +45,63 @@ type api struct {
 	sto stores.Storage
 }
 
-// TODO: strap router
+func init() {
+	routes.Register("{{ .webpkg }}", routes.StrapFunc(strap))
+}
+
+func strap(router gin.IRouter) {
+	sto,err := stores.New()
+	if err != nil {
+		panic(err)
+	}
+	a := newapi(sto)
+	a.Strap(router)
+}
+
+func newapi(sto stores.Storage) *api {
+	return &api{sto: sto}
+}
+
+func (a *api) Strap(r gin.IRouter) {
+
+	vr := r.Group("/api/c1")
+	vr.GET("/ping", ping)
+
+	privater := vr.Group("", a.authSignedIn())
+
+	for _, hi := range handles {
+		if hi.auth {
+			if len(hi.rid) > 0 {
+				route(privater, hi.method, hi.path, a.authPerm(hi.rid), hi.hafn(a))
+			} else {
+				route(privater, hi.method, hi.path, hi.hafn(a))
+			}
+		} else {
+			route(vr, hi.method, hi.path, hi.hafn(a))
+		}
+	}
+}
+
+// authSignedIn 验证登录中间件
+func (a *api) authSignedIn() gin.HandlerFunc {
+	// DODO:
+	return func(c *gin.Context) {}
+}
+
+func (a *api) authPerm(permID string) gin.HandlerFunc {
+	// DODO:
+	return func(c *gin.Context) {}
+}
+
+// @Tags Cupogo
+// @Summary API health check
+// @Description API health check
+// @Produce plain
+// @Success 200 {string} pong
+// @Router /api/c/1/ping [get]
+func ping(c *gin.Context) {
+	c.String(200, "pong")
+}
 
 // nolint
 func success(c *gin.Context, result interface{}) {
