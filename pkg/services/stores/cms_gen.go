@@ -4,7 +4,6 @@ package stores
 
 import (
 	"context"
-	"fmt"
 	comm "github.com/cupogo/andvari/models/comm"
 	utils "github.com/cupogo/andvari/utils"
 	"github.com/cupogo/scaffold/pkg/models/cms1"
@@ -137,12 +136,12 @@ type contentStore struct {
 }
 
 func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error) {
-	total, err = queryPager(ctx, spec, s.w.db.NewSelect().Model(&data).Apply(spec.Sift))
+	total, err = s.w.db.List(ctx, spec, &data)
 	return
 }
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
-	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	err = s.w.db.GetModel(ctx, obj, id)
 	return
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
@@ -155,21 +154,18 @@ func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseS
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 	obj := new(cms1.Clause)
-	if !obj.SetID(id) {
-		return fmt.Errorf("id: '%s' is invalid", id)
-	}
-	return s.w.db.OpDeleteAny(ctx, "cms_clause", obj.ID)
+	return s.w.db.DeleteModel(ctx, obj, obj.ID)
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
 	spec.SetTsConfig(s.w.db.GetTsCfg())
 	spec.SetTsFallback("title", "content")
-	total, err = queryPager(ctx, spec, s.w.db.NewSelect().Model(&data).Apply(spec.Sift))
+	total, err = s.w.db.List(ctx, spec, &data)
 	return
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
 	obj = new(cms1.Article)
-	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	err = s.w.db.GetModel(ctx, obj, id)
 	return
 }
 func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) (obj *cms1.Article, err error) {
@@ -226,11 +222,11 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 }
 
 func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error) {
-	total, err = queryPager(ctx, spec, s.w.db.NewSelect().Model(&data).Apply(spec.Sift))
+	total, err = s.w.db.List(ctx, spec, &data)
 	return
 }
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
 	obj = new(cms1.Attachment)
-	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	err = s.w.db.GetModel(ctx, obj, id)
 	return
 }

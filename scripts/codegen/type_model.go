@@ -909,8 +909,8 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 }
 
 var (
-	swdb  = jen.Id("s").Dot("w").Dot("db")
-	jactx = jen.Id("ctx").Id("context.Context")
+	swdb  jen.Code = jen.Id("s").Dot("w").Dot("db")
+	jactx jen.Code = jen.Id("ctx").Id("context.Context")
 )
 
 func (m *Model) getIPath() string {
@@ -935,16 +935,9 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 					}))
 				}
 			}
-			jq := jen.Add(swdb).Dot("NewSelect").Call().Dot("Model").Call(
-				jen.Op("&").Id("data")).Dot("Apply").Call(
-				jen.Id("spec").Dot("Sift"))
 
-			if m.WithColumnList {
-				jq.Dot("Column").Call(jen.Id("ColumnsFromContext").Call(jen.Id("ctx")).Op("..."))
-			}
-
-			g.Id("total").Op(",").Id("err").Op("=").Id("queryPager").Call(
-				jen.Id("ctx"), jen.Id("spec"), jq,
+			g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("List").Call(
+				jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
 			)
 
 			if hkAL, okAL := m.hasStoreHook(afterList); okAL {
@@ -960,12 +953,9 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
-			params := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id")}
-			if mod.WithColumnGet {
-				params = append(params, jen.Id("ColumnsFromContext").Call(jen.Id("ctx")).Op("..."))
-			}
 			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
-			jload := jen.Id("err").Op("=").Id("getModelWithPKID").Call(params...)
+			jload := jen.Id("err").Op("=").Add(swdb).Dot("GetModel").Call(
+				jen.Id("ctx"), jen.Id("obj"), jen.Id("id"))
 			if _, cn, isuniq := mod.UniqueOne(); isuniq {
 				g.If(jen.Err().Op("=").Id("getModelWithUnique").Call(
 					swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
@@ -1208,11 +1198,11 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					})
 				})
 			} else {
-				g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
-					jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
-				)
-				g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
-					jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
+				// g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
+				// 	jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
+				// )
+				g.Return(jen.Add(swdb).Dot("DeleteModel").Call(
+					jen.Id("ctx"), jen.Id("obj"), jen.Id("obj").Dot("ID"),
 				))
 			}
 
