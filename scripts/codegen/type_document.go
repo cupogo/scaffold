@@ -256,12 +256,14 @@ func (doc *Document) genStores(dropfirst bool) error {
 	sgf.Line()
 
 	sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
-		args := []jen.Code{jen.Id("alltables")}
+		var args []jen.Code
 		for _, model := range doc.Models {
 			// name, _ := doc.getModQual(model.Name)
-			args = append(args, jen.Op("&").Qual(ipath, model.Name).Block())
+			args = append(args, jen.Op("(*").Qual(ipath, model.Name).Op(")(nil)"))
 		}
-		g.Id("alltables").Op("=").Append(args...)
+		if len(args) > 0 {
+			g.Id("RegisterModel").Call(args...)
+		}
 	})
 
 	if !IsDir(doc.dirsto) {

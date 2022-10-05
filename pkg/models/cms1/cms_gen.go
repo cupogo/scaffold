@@ -9,7 +9,7 @@ import (
 
 // Article 文章
 type Article struct {
-	BaseModel struct{} `bun:"table:cms_article,alias:a" json:"-"`
+	comm.BaseModel `bun:"table:cms_article,alias:a" json:"-"`
 
 	comm.DefaultModel
 
@@ -109,7 +109,7 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 
 // Attachment 附件
 type Attachment struct {
-	BaseModel struct{} `bun:"table:cms_attachment,alias:att" json:"-"`
+	comm.BaseModel `bun:"table:cms_attachment,alias:att" json:"-"`
 
 	comm.DefaultModel
 
@@ -172,7 +172,7 @@ func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 
 // Clause 条款
 type Clause struct {
-	BaseModel struct{} `bun:"table:cms_clause,alias:c" json:"-"`
+	comm.BaseModel `bun:"table:cms_clause,alias:c" json:"-"`
 
 	comm.DefaultModel
 

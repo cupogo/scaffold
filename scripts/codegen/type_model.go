@@ -367,7 +367,7 @@ func (m *Model) TableField() jen.Code {
 	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
 		tt += ",discard_unknown_columns"
 	}
-	return jen.Id("BaseModel").Add(jen.Struct()).Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
+	return jen.Id("comm.BaseModel").Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
 }
 
 func (m *Model) UniqueOne() (name, col string, onlyOne bool) {

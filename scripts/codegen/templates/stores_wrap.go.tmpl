@@ -52,10 +52,8 @@ var (
 	ColumnsFromContext  = pgx.ColumnsFromContext
 	ContextWithRelation = pgx.ContextWithRelation
 	RelationFromContext = pgx.RelationFromContext
-)
 
-var (
-	alltables []any
+	RegisterModel = pgx.RegisterModel
 )
 
 func logger() zlog.Logger {

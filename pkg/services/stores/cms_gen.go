@@ -24,7 +24,7 @@ import (
 // type Clauses = cms1.Clauses
 
 func init() {
-	alltables = append(alltables, &cms1.Article{}, &cms1.Attachment{}, &cms1.Clause{})
+	RegisterModel((*cms1.Article)(nil), (*cms1.Attachment)(nil), (*cms1.Clause)(nil))
 }
 
 type ContentStore interface {
