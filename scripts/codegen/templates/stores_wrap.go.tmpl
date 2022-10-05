@@ -6,10 +6,11 @@ import (
 	redis "github.com/go-redis/redis/v8"
 	"github.com/uptrace/bun/dialect/pgdialect"
 
+	"github.com/cupogo/andvari/database/embeds"
 	"github.com/cupogo/andvari/models/comm"
 	"github.com/cupogo/andvari/stores/pgx"
-	"github.com/cupogo/scaffold/pkg/settings"
 	"github.com/cupogo/andvari/utils/zlog"
+	"github.com/cupogo/scaffold/pkg/settings"
 )
 
 type ormDB = pgx.IDB //nolint
@@ -30,7 +31,7 @@ var (
 	ErrNoRows = pgx.ErrNoRows
 
 	queryPager         = pgx.QueryPager
-	getModelWherePK    = pgx.ModelWherePK    //nolint
+	getModelWherePK    = pgx.ModelWithPK     //nolint
 	getModelWithPKID   = pgx.ModelWithPKID   //nolint
 	getModelWithPKOID  = pgx.ModelWithPKID   //nolint
 	getModelWithUnique = pgx.ModelWithUnique //nolint
@@ -58,6 +59,10 @@ var (
 
 func logger() zlog.Logger {
 	return zlog.Get()
+}
+
+func init() {
+	pgx.RegisterDbFs(embeds.DBFS())
 }
 
 // Wrap implements Storages
