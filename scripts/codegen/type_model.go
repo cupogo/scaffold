@@ -805,7 +805,12 @@ func (m *Model) hasStoreHook(k string) (v string, ok bool) {
 func (m *Model) storeHookName(k, v string) (string, bool) {
 	if strings.HasPrefix(v, "db") {
 		return v, true
-	} else if v[0] == 't' || v[0] == 'y' { // true, yes
+	} else if k == afterLoad || k == afterList { // store method
+		return k + m.Name, true
+	} else if v == "true" || v == "yes" { // true, yes
+		if strings.HasPrefix(k, "afterL") {
+			return k + m.Name, true
+		}
 		return "db" + ToExported(k) + m.Name, true
 	}
 	return "", false
@@ -958,7 +963,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 				jen.Id("ctx"), jen.Id("obj"), jen.Id("id"))
 			if _, cn, isuniq := mod.UniqueOne(); isuniq {
 				g.If(jen.Err().Op("=").Id("getModelWithUnique").Call(
-					swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
+					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
 				).Op(";").Err().Op("!=").Nil()).Block(jload)
 			} else {
 				g.Add(jload)
