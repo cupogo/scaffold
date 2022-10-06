@@ -154,7 +154,7 @@ func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseS
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 	obj := new(cms1.Clause)
-	return s.w.db.DeleteModel(ctx, obj, obj.ID)
+	return s.w.db.DeleteModel(ctx, obj, id)
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {

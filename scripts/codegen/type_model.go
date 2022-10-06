@@ -1202,7 +1202,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 				// 	jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
 				// )
 				g.Return(jen.Add(swdb).Dot("DeleteModel").Call(
-					jen.Id("ctx"), jen.Id("obj"), jen.Id("obj").Dot("ID"),
+					jen.Id("ctx"), jen.Id("obj"), jen.Id("id"),
 				))
 			}
 
