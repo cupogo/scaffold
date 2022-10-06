@@ -8,9 +8,9 @@ variables:
   GO111MODULE: 'on'
   GOPATH: /cache/go
   GOPRIVATE: daxv.cn,fhyx.tech,hyyl.xyz
-  GOPROXY: https://goproxy.cn,direct
-  NAME: celeste
-  ROOF: github.com/cupogo/celeste
+  GOPROXY: https://goproxy.io,direct
+  NAME: scaffold
+  ROOF: github.com/cupogo/scaffold
 
 before_script:
   # SSH
