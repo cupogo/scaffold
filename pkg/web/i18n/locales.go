@@ -10,6 +10,7 @@ import (
 // Printer ...
 type Printer = message.Printer
 
+// nolint
 var (
 	enUS   = language.AmericanEnglish
 	zhHans = language.MustParse("zh-Hans")

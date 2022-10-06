@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
 
 	"github.com/dave/jennifer/jen"
 )
@@ -57,8 +56,6 @@ type WebAPI struct {
 	NeedAuth bool      `yaml:"needAuth,omitempty"`
 	NeedPerm bool      `yaml:"needPerm,omitempty"`
 	TagLabel string    `yaml:"tagLabel,omitempty"`
-
-	once sync.Once
 
 	doc *Document
 }
@@ -168,9 +165,7 @@ func (h *Handle) GetProduce() string {
 
 func (h *Handle) GenID() string {
 	s := h.Route
-	if strings.HasPrefix(s, "/api/") {
-		s = s[5:]
-	}
+	s = strings.TrimPrefix(s, "/api/")
 	s = replRoute.Replace(s)
 
 	return strings.TrimSpace(s)

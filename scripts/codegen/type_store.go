@@ -37,8 +37,7 @@ type Store struct {
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
 
-	mnames []string // TODO: aliases
-	allMM  map[string]bool
+	allMM map[string]bool
 
 	doc *Document
 }
@@ -150,10 +149,7 @@ func (s *Store) ShortIName() string {
 		return s.SIName
 	}
 	in := s.GetIName()
-	if strings.HasSuffix(in, "Store") {
-		in = in[0 : len(in)-5]
-	}
-	return in
+	return strings.TrimSuffix(in, "Store")
 }
 
 func (s *Store) Codes(modelpkg string) jen.Code {

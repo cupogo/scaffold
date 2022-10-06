@@ -41,20 +41,6 @@ func loadPackage(path string) *packages.Package {
 	return pkgs[0]
 }
 
-func checkPackageObject(pkg *packages.Package, name string) bool {
-	for _, f := range pkg.Syntax {
-		// log.Printf("Decls %+v", f.Decls)
-		// log.Printf("Scope %+v", f.Scope)
-		for k := range f.Scope.Objects {
-			// log.Printf("object %s: %v", k, obj)
-			if k == name {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func fieldecl(name, typ string) *dst.Field {
 	f := &dst.Field{
 		Names: []*dst.Ident{dst.NewIdent(name)},
@@ -79,6 +65,7 @@ func existVarField(list *dst.FieldList, name string) bool {
 	return false
 }
 
+// nolint
 func showNode(node dst.Node) string {
 	before, after, points := dstutil.Decorations(node)
 	var info string

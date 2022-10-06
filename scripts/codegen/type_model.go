@@ -504,15 +504,6 @@ func (m *Model) hasMeta() bool {
 	return false
 }
 
-func (m *Model) hasOwner() bool {
-	for i := range m.Fields {
-		if m.Fields[i].isOwner() {
-			return true
-		}
-	}
-	return false
-}
-
 func (m *Model) hasAudit() bool {
 	for i := range m.Fields {
 		if m.Fields[i].isAudit() {
@@ -546,8 +537,7 @@ func (m *Model) hasModHook() (bool, string) {
 	return false, ""
 }
 
-func (m *Model) hookModelCodes() jen.Code {
-	var st *jen.Statement
+func (m *Model) hookModelCodes() (st *jen.Statement) {
 	if hasHooks, field := m.hasModHook(); hasHooks {
 		st = new(jen.Statement)
 		st.Comment("Creating function call to it's inner fields defined hooks").Line()
@@ -571,12 +561,6 @@ func (m *Model) hookModelCodes() jen.Code {
 			jen.Return(jen.Id("z").Dot(field).Dot("Creating").Call()),
 		).Line()
 
-		// st.Comment("Saving function call to it's inner fields defined hooks").Line()
-		// st.Func().Params(
-		// 	jen.Id("z").Op("*").Id(m.Name),
-		// ).Id("Saving").Params().Error().Block(
-		// 	jen.Return(jen.Id("z").Dot(field).Dot("Saving").Call()),
-		// ).Line()
 	}
 	return st
 }
@@ -659,9 +643,8 @@ func (m *Model) sortableColumns() (cs []string) {
 }
 
 func (m *Model) getSpecCodes() jen.Code {
-	comm, _ := doc.getQual("comm")
 	var fcs []jen.Code
-	fcs = append(fcs, jen.Qual(comm, "PageSpec"), jen.Id("ModelSpec"))
+	fcs = append(fcs, jen.Id("PageSpec"), jen.Id("ModelSpec"))
 	if m.hasAudit() {
 		fcs = append(fcs, jen.Id("AuditSpec"))
 	}

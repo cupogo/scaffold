@@ -4,7 +4,6 @@ package stores
 
 import (
 	"context"
-	comm "github.com/cupogo/andvari/models/comm"
 	utils "github.com/cupogo/andvari/utils"
 	"github.com/cupogo/scaffold/pkg/models/cms1"
 )
@@ -43,7 +42,7 @@ type ContentStore interface {
 }
 
 type ClauseSpec struct {
-	comm.PageSpec
+	PageSpec
 	ModelSpec
 
 	Text string `extensions:"x-order=A" form:"text" json:"text"`
@@ -57,7 +56,7 @@ func (spec *ClauseSpec) Sift(q *ormQuery) *ormQuery {
 }
 
 type ArticleSpec struct {
-	comm.PageSpec
+	PageSpec
 	ModelSpec
 	TextSearchSpec
 
@@ -109,7 +108,7 @@ func (spec *ArticleSpec) CanSort(k string) bool {
 }
 
 type AttachmentSpec struct {
-	comm.PageSpec
+	PageSpec
 	ModelSpec
 
 	// 文章编号

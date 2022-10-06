@@ -15,11 +15,12 @@ import (
 
 type ormDB = pgx.IDB //nolint
 type ormQuery = pgx.SelectQuery
-type pgDB = pgx.IDB //nolint
-type pgTx = pgx.Tx  //nolint
-type pgIdent = pgx.Ident
-type pgSafe = pgx.Safe //nolint
+type pgDB = pgx.IDB      //nolint
+type pgTx = pgx.Tx       //nolint
+type pgIdent = pgx.Ident //nolint
+type pgSafe = pgx.Safe   //nolint
 
+type PageSpec = comm.PageSpec
 type ModelSpec = pgx.ModelSpec
 type TextSearchSpec = pgx.TextSearchSpec
 type StringsDiff = pgx.StringsDiff
@@ -31,7 +32,7 @@ var (
 
 	ErrNoRows = pgx.ErrNoRows
 
-	queryPager         = pgx.QueryPager
+	queryPager         = pgx.QueryPager      //nolint
 	getModelWherePK    = pgx.ModelWithPK     //nolint
 	getModelWithPKID   = pgx.ModelWithPKID   //nolint
 	getModelWithPKOID  = pgx.ModelWithPKID   //nolint

@@ -42,9 +42,9 @@ func Fail(c *gin.Context, code int, args ...any) {
 	er := GetError(c.Request, code, args[0], args[1:]...)
 	logger().Infow("request fail", "code", code, "args", args,
 		"er", er, c.Request.Method, c.Request.RequestURI, "ip", c.ClientIP())
-	if code >= 500 {
-		// TODO: report error
-	}
+	// if code >= 500 {
+	// 	// TODO: report error
+	// }
 
 	res.Code = er.Code
 	res.Message = er.Message
