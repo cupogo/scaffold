@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -310,7 +309,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 
 	if doc.ensureWrapPatch(wvd) {
 		// log.Printf("rewrite: %s", string(wvd.body))
-		err = ioutil.WriteFile(sfile, wvd.body, 0644)
+		err = os.WriteFile(sfile, wvd.body, 0644)
 		if err != nil {
 			log.Printf("write %s fail %s", storewf, err)
 		} else {
@@ -327,7 +326,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	if doc.encureStoMethod(svd) {
-		err = ioutil.WriteFile(iffile, svd.body, 0644)
+		err = os.WriteFile(iffile, svd.body, 0644)
 		if err != nil {
 			log.Printf("write i fail %s", err)
 		} else {
