@@ -22,6 +22,7 @@ type pgSafe = pgx.Safe //nolint
 
 type ModelSpec = pgx.ModelSpec
 type TextSearchSpec = pgx.TextSearchSpec
+type StringsDiff = pgx.StringsDiff
 
 // vars
 var (
