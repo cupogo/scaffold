@@ -704,7 +704,7 @@ func (m *Model) getSpecCodes() jen.Code {
 				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
 			}
 			for _, sifter := range m.Sifters {
-				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
+				g.Id("q").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
 			}
 
 			for i := 0; i < len(specFields); i++ {
@@ -823,14 +823,14 @@ func (m *Model) StoreHooks() (out []storeHook) {
 func metaUpCode() jen.Code {
 	code := jen.Comment("for meta update").Line()
 	code.Id("MetaDiff").Op("*").Add(qual("comm.MetaDiff"))
-	code.Tag(Tags{"bson": "-", "json": "metaUp,omitempty", "pg": "-", "swaggerignore": "true"})
+	code.Tag(Tags{"bson": "-", "json": "metaUp,omitempty", "bun": "-", "pg": "-", "swaggerignore": "true"})
 	return code
 }
 
 func ownerUpCode() jen.Code {
 	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
-	code.Tag(Tags{"json": "ownerID,omitempty", "pg": "-"})
+	code.Tag(Tags{"json": "ownerID,omitempty", "bun": "-", "pg": "-"})
 	return code
 }
 
@@ -862,11 +862,12 @@ func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
 					}
 				}))
 			}
+			g.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
 		})
-		if id == "exist" {
-			st.Else().Block(jen.Id(id).Dot("TsCfgName").Op("=").Lit("")).Line()
-			st.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
-		}
+		// if id == "exist" {
+		// 	// st.Else().Block(jen.Id(id).Dot("TsCfgName").Op("=").Lit(""))
+		// 	st.Line().Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
+		// }
 
 		return st, true
 	}
@@ -989,13 +990,16 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
 			}
 
-			if jt, ok := mod.textSearchCodes("obj"); ok {
-				g.Add(jt)
+			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
+			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
+				g.If(jen.Id("in").Dot(fn).Op("==").Lit("")).Block(
+					jen.Err().Op("=").Id("ErrEmptyKey"),
+					jen.Return())
+				targs = append(targs, jen.Lit(cn))
 			}
 
-			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
-			if _, cn, isuniq := mod.UniqueOne(); isuniq {
-				targs = append(targs, jen.Lit(cn))
+			if jt, ok := mod.textSearchCodes("obj"); ok {
+				g.Add(jt)
 			}
 
 			hkBC, okBC := mod.hasStoreHook(beforeCreating)

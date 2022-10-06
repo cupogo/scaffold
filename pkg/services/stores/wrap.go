@@ -30,7 +30,8 @@ var (
 	pgIn    = pgx.In          //nolint
 	pgArray = pgdialect.Array //nolint
 
-	ErrNoRows = pgx.ErrNoRows
+	ErrNoRows   = pgx.ErrNoRows
+	ErrEmptyKey = pgx.ErrEmptyKey
 
 	queryPager         = pgx.QueryPager      //nolint
 	getModelWherePK    = pgx.ModelWithPK     //nolint
