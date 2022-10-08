@@ -76,6 +76,10 @@ func (f *Field) isScalar() bool {
 		return true
 	}
 
+	if strings.HasSuffix(f.Type, "Status") || strings.HasSuffix(f.Type, "Type") {
+		return true
+	}
+
 	return false
 }
 
