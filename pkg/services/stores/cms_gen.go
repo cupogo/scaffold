@@ -175,6 +175,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		obj.TsCfgName = tscfg
 		obj.SetTsColumns("title", "content")
+		obj.SetChange("ts_cfg")
 	}
 	err = s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
@@ -195,10 +196,8 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		exist.TsCfgName = tscfg
 		exist.SetTsColumns("title", "content")
-	} else {
-		exist.TsCfgName = ""
+		exist.SetChange("ts_cfg")
 	}
-	exist.SetChange("ts_cfg")
 	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return

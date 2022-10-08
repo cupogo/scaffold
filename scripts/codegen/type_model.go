@@ -193,18 +193,21 @@ func (f *Field) Code(idx int) jen.Code {
 	return st
 }
 
-// return column name and is unquie
-func (f *Field) ColName() (string, bool) {
+// return column name, is in db and is unquie
+func (f *Field) ColName() (cn string, hascol bool, unique bool) {
 	if s, ok := f.Tags["pg"]; ok && len(s) > 0 && s != "-" {
+		hascol = true
 		if a, b, ok := strings.Cut(s, ","); ok {
-			if len(a) == 0 {
-				a = Underscore(f.Name)
-			}
-			return a, strings.Contains(b, "unique")
+			cn = a
+			unique = strings.Contains(b, "unique")
 		}
-		return Underscore(f.Name), false
+		if len(cn) == 0 {
+			cn = Underscore(f.Name)
+		}
+	} else if len(f.colname) > 0 {
+		cn = f.colname
 	}
-	return f.colname, false
+	return
 }
 
 func (f *Field) relMode() (string, bool) {
@@ -373,7 +376,7 @@ func (m *Model) TableField() jen.Code {
 func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
 	var count int
 	for _, field := range m.Fields {
-		if cn, ok := field.ColName(); ok {
+		if cn, _, ok := field.ColName(); ok {
 			count++
 			name = field.Name
 			col = cn
@@ -387,15 +390,12 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	var hasMeta bool
 	var hasOwner bool
 	for idx, field := range m.Fields {
-		if !field.IsSet || field.Type == "" || field.Name == "" {
+		if !field.IsSet || field.isEmbed() {
 			if field.isMeta() {
 				hasMeta = true
 			} else if field.isOwner() {
 				hasOwner = true
 			}
-			continue
-		}
-		if pgt, ok := field.Tags["pg"]; !ok || pgt == "-" {
 			continue
 		}
 		var code *jen.Statement
@@ -405,7 +405,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code = jen.Empty()
 		}
 		code.Id(field.Name)
-		cn, _ := field.ColName()
+		cn, isInDb, _ := field.ColName()
 		tn := field.Type
 		if len(tn) == 0 {
 			tn = field.Name
@@ -428,15 +428,15 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
-			csst := jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn))
 			if field.isOid {
 				g.Id("z").Dot(field.Name).Op("=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(field.Name))
-				g.Add(csst)
 			} else if field.IsChangeWith {
-				g.If(jen.Id("z").Dot(field.Name).Dot("ChangeWith").Call(jen.Id("o").Dot(field.Name))).Block(csst)
+				g.Id("z").Dot(field.Name).Dot("ChangeWith").Call(jen.Id("o").Dot(field.Name))
 			} else {
 				g.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name)
-				g.Add(csst)
+			}
+			if isInDb {
+				g.Add(jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn)))
 			}
 		}))
 	}
@@ -635,7 +635,7 @@ func (m *Model) sortableColumns() (cs []string) {
 			continue
 		}
 
-		if cn, _ := f.ColName(); len(cn) > 0 && f.Sortable {
+		if cn, ok, _ := f.ColName(); ok && len(cn) > 0 && f.Sortable {
 			cs = append(cs, cn)
 		}
 	}
@@ -714,7 +714,7 @@ func (m *Model) getSpecCodes() jen.Code {
 					field = specFields[i+1]
 					i++
 				}
-				cn, _ := field.ColName()
+				cn, _, _ := field.ColName()
 				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name)}
 				cfn := field.siftFn
 				if field.isDate && field.isIntDt {
@@ -838,7 +838,7 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 	var hasTs bool
 	for _, field := range m.Fields {
 		if strings.HasSuffix(field.Query, "fts") {
-			cn, _ := field.ColName()
+			cn, _, _ := field.ColName()
 			cols = append(cols, cn)
 		}
 		if field.Name == textSearchField || field.Type == textSearchField {

@@ -36,7 +36,7 @@ type ArticleBasic struct {
 	// 来源
 	Src string `bun:",notnull" extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
 	// for meta update
-	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
+	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleBasic
 
 type Articles []Article
@@ -66,7 +66,7 @@ type ArticleSet struct {
 	// 来源
 	Src *string `extensions:"x-order=G" json:"src"`
 	// for meta update
-	MetaDiff *comm.MetaDiff `bson:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
+	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name ArticleSet
 
 func (z *Article) SetWith(o ArticleSet) (cs []string) {
