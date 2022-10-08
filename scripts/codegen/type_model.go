@@ -985,11 +985,6 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("obj").Op("=&").Qual(mod.getIPath(), mod.Name).Block(jen.Id(tname).Op(":").Id("in").Op(","))
 
-			if mod.hasMeta() {
-				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"),
-					jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
-			}
-
 			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
 				g.If(jen.Id("in").Dot(fn).Op("==").Lit("")).Block(
@@ -1021,6 +1016,11 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 								jen.Return(jen.Err()),
 							)
 						}
+						if mod.hasMeta() {
+							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"),
+								jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
+						}
+
 						g2.Err().Op("=").Id("dbInsert").Call(targs...)
 						if okAS {
 							g2.If(jen.Err().Op("==")).Nil().Block(
@@ -1034,6 +1034,11 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				})
 
 			} else {
+				if mod.hasMeta() {
+					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb,
+						jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
+				}
+
 				g.Err().Op("=").Id("dbInsert").Call(targs...)
 			}
 
@@ -1059,10 +1064,6 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
-			if mod.hasMeta() {
-				g.Id("s").Dot("w").Dot("opModelMeta").Call(jen.Id("ctx"), jen.Id("exist"))
-			}
-
 			if jt, ok := mod.textSearchCodes("exist"); ok {
 				g.Add(jt)
 			}
@@ -1085,6 +1086,10 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 								jen.Return(),
 							)
 						}
+						if mod.hasMeta() {
+							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
+						}
+
 						jup := jen.Id("dbUpdate").Call(
 							jen.Id("ctx"), jdb, jen.Id("exist"),
 						)
@@ -1103,6 +1108,9 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				})
 
 			} else {
+				if mod.hasMeta() {
+					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
+				}
 				g.Return().Id("dbUpdate").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"),
 				)
