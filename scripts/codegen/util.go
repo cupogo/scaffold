@@ -3,7 +3,6 @@ package main
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -17,10 +16,9 @@ import (
 	"github.com/dave/dst/dstutil"
 	"github.com/jinzhu/inflection"
 	"golang.org/x/tools/go/packages"
-)
 
-//go:embed templates/*.tmpl
-var tplfs embed.FS
+	"github.com/cupogo/scaffold/templates"
+)
 
 type empty struct{}
 
@@ -273,8 +271,8 @@ func ensureGoFile(gfile, tplname string, data any) {
 }
 
 func renderTmpl(src, dest string, data any) error {
-	tplf := "templates/" + src + ".go.tmpl"
-	t := template.Must(template.ParseFS(tplfs, tplf))
+	tplf := src + ".go.tmpl"
+	t := template.Must(template.ParseFS(templates.FS(), tplf))
 	wr, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err

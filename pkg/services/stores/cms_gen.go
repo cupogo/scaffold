@@ -171,7 +171,6 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	obj = &cms1.Article{
 		ArticleBasic: in,
 	}
-	s.w.opModelMeta(ctx, obj, obj.MetaDiff)
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		obj.TsCfgName = tscfg
 		obj.SetTsColumns("title", "content")
@@ -181,6 +180,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
 		}
+		dbOpModelMeta(ctx, tx, obj, obj.MetaDiff)
 		err = dbInsert(ctx, tx, obj)
 		return err
 	})
@@ -192,7 +192,6 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		return err
 	}
 	_ = exist.SetWith(in)
-	s.w.opModelMeta(ctx, exist)
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		exist.TsCfgName = tscfg
 		exist.SetTsColumns("title", "content")
@@ -202,6 +201,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
 		}
+		dbOpModelMeta(ctx, tx, exist)
 		return dbUpdate(ctx, tx, exist)
 	})
 }

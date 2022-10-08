@@ -297,11 +297,11 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	if doc.hasStoreHooks() {
-		ensureGoFile(path.Join(doc.dirsto, doc.extern), "stores_doc_x", doc)
+		ensureGoFile(path.Join(doc.dirsto, doc.extern), "stores/doc_x", doc)
 	}
 
 	sfile := path.Join(doc.dirsto, storewf)
-	ensureGoFile(sfile, "stores_wrap", nil)
+	ensureGoFile(sfile, "stores/wrap", nil)
 	wvd, err := newDST(sfile)
 	if err != nil {
 		return err
@@ -318,7 +318,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	iffile := path.Join(doc.dirsto, "interfaces.go")
-	ensureGoFile(iffile, "stores_interfaces", nil)
+	ensureGoFile(iffile, "stores/interfaces", nil)
 	svd, err := newDST(iffile)
 	if err != nil {
 		// TODO: new file
@@ -443,7 +443,7 @@ func (doc *Document) genWebAPI() error {
 	afile := path.Join(doc.dirweb, "api.go")
 	if !CheckFile(afile) {
 		data := map[string]string{"webpkg": doc.WebAPI.getPkgName()}
-		if err := renderTmpl("web_api", afile, data); err != nil {
+		if err := renderTmpl("web/api", afile, data); err != nil {
 			return err
 		}
 	}
