@@ -66,6 +66,7 @@ type Document struct {
 
 	modipath string
 	modtypes map[string]empty
+	dbcode   string
 
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
@@ -116,8 +117,9 @@ func NewDoc(docfile string) (*Document, error) {
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
 	doc.methods = make(map[string]Method)
 	doc.modtypes = make(map[string]empty)
+	doc.dbcode = os.Getenv("SCAFFOLD_DB_CODE")
 
-	log.Printf("loaded %d models", len(doc.Models))
+	log.Printf("loaded %d models, dbcode %s", len(doc.Models), doc.dbcode)
 	// log.Printf("loaded webapi uris %+v", doc.WebAPI.URIs)
 
 	return doc, nil
@@ -145,6 +147,13 @@ func getOutName(docfile string) (gened string, extern string) {
 	extern = name + "_x.go"
 
 	return
+}
+
+func (doc *Document) IsPG10() bool {
+	if doc != nil && doc.dbcode == "pg10" {
+		return true
+	}
+	return false
 }
 
 func (doc *Document) hasStoreHooks() bool {

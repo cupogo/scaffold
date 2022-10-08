@@ -374,6 +374,9 @@ func (m *Model) TableField() jen.Code {
 	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
 		tt += ",discard_unknown_columns"
 	}
+	if m.doc.IsPG10() {
+		return jen.Id("tableName").Add(jen.Struct()).Tag(Tags{"pg": tt}).Line()
+	}
 	return jen.Id("comm.BaseModel").Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
 }
 
@@ -693,8 +696,19 @@ func (m *Model) getSpecCodes() jen.Code {
 	tname := m.Name + "Spec"
 	st := jen.Type().Id(tname).Struct(fcs...).Line()
 	if len(fcs) > 2 {
+		isPG10 := m.doc.IsPG10()
+		jfsiftcall := func(name string) jen.Code {
+			if isPG10 {
+				return jen.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(name).Dot("Sift").Call(jen.Id("q"))
+			}
+			return jen.Id("q").Op("=").Id("spec").Dot(name).Dot("Sift").Call(jen.Id("q"))
+		}
+		args := []jen.Code{jen.Op("*").Id("ormQuery")}
+		if isPG10 {
+			args = append(args, jen.Error())
+		}
 		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
-			Params(jen.Op("*").Id("ormQuery"))
+			Params(args...)
 		st.BlockFunc(func(g *jen.Group) {
 			if len(relNames) > 0 && !okAL {
 				log.Printf("%s relNames %+v", m.Name, relNames)
@@ -704,12 +718,13 @@ func (m *Model) getSpecCodes() jen.Code {
 					}
 				}).Line()
 			}
-			g.Id("q").Op("=").Id("spec").Dot("ModelSpec").Dot("Sift").Call(jen.Id("q"))
+			g.Add(jfsiftcall("ModelSpec"))
+
 			if m.hasAudit() {
-				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("AuditSpec").Dot("sift").Call(jen.Id("q"))
+				g.Add(jfsiftcall("AuditSpec"))
 			}
 			for _, sifter := range m.Sifters {
-				g.Id("q").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
+				g.Add(jfsiftcall(sifter))
 			}
 			utilsQual, _ := m.doc.getQual("utils")
 
@@ -737,32 +752,36 @@ func (m *Model) getSpecCodes() jen.Code {
 					)
 				} else if field.siftExt == "hasVals" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else if field.siftExt == "ints" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else if field.siftExt == "strs" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseStrs").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else if field.siftExt == "oids" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(fieldM.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 					).Else().Block(jq)
 				} else {
 					g.Add(jq)
 				}
 
-				// TODO: set text wildcard
 			}
 			if okTS {
-				g.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot("TextSearchSpec").Dot("Sift").Call(jen.Id("q"))
+				g.Add(jfsiftcall("TextSearchSpec"))
 			}
 			g.Line()
 
-			g.Return(jen.Id("q"))
+			if isPG10 {
+				g.Return(jen.Id("q"), jen.Nil())
+			} else {
+				g.Return(jen.Id("q"))
+			}
+
 		}).Line()
 	}
 
@@ -915,6 +934,13 @@ func (m *Model) getIPath() string {
 	return m.pkg
 }
 
+func (m *Model) dbTxFn() string {
+	if m.doc.IsPG10() {
+		return "RunInTransaction"
+	}
+	return "RunInTx"
+}
+
 func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 	return []jen.Code{jen.Id("spec").Op("*").Id(m.Name + "Spec")},
 		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
@@ -1003,17 +1029,17 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			if jt, ok := mod.textSearchCodes("obj"); ok {
 				g.Add(jt)
 			}
+			isPG10 := mod.doc.IsPG10()
 
 			hkBC, okBC := mod.hasStoreHook(beforeCreating)
 			hkBS, okBS := mod.hasStoreHook(beforeSaving)
 			hkAS, okAS := mod.hasStoreHook(afterSaving)
 			if okBC || okBS || okAS {
-				g.Err().Op("=").Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
+				g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					targs[1] = jdb
 					g1.Id("ctx")
-					g1.Nil()
-					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+					jbf := func(g2 *jen.Group) {
 						if okBC {
 							g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(jen.Err()),
@@ -1036,7 +1062,13 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 						}
 
 						g2.Return(jen.Err())
-					})
+					}
+					if isPG10 {
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					} else {
+						g1.Nil()
+						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					}
 
 				})
 
@@ -1074,16 +1106,16 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			if jt, ok := mod.textSearchCodes("exist"); ok {
 				g.Add(jt)
 			}
+			isPG10 := mod.doc.IsPG10()
 
 			hkBU, okBU := mod.hasStoreHook(beforeUpdating)
 			hkBS, okBS := mod.hasStoreHook(beforeSaving)
 			hkAS, okAS := mod.hasStoreHook(afterSaving)
 			if okBU || okBS || okAS {
-				g.Return().Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
+				g.Return().Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					g1.Id("ctx")
-					g1.Nil()
-					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+					jbf := func(g2 *jen.Group) {
 						if okBU {
 							g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(),
@@ -1109,9 +1141,13 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 						} else {
 							g2.Return(jup)
 						}
-
-					})
-
+					}
+					if isPG10 {
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					} else {
+						g1.Nil()
+						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					}
 				})
 
 			} else {
@@ -1182,10 +1218,9 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
 				).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-				g.Return().Add(swdb).Dot("RunInTx").CallFunc(func(g1 *jen.Group) {
+				g.Return().Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					g1.Id("ctx")
-					g1.Nil()
-					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(func(g2 *jen.Group) {
+					jbf := func(g2 *jen.Group) {
 						if okBD {
 							g2.If(jen.Err().Op("=").Id(hkBD).Call(jen.Id("ctx"), jen.Id("tx"),
 								jen.Id("obj")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
@@ -1201,16 +1236,29 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 						} else {
 							g2.Return()
 						}
+					}
+					if mod.doc.IsPG10() {
+						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					} else {
+						g1.Nil()
+						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					}
 
-					})
 				})
 			} else {
-				// g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
-				// 	jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
-				// )
-				g.Return(jen.Add(swdb).Dot("DeleteModel").Call(
-					jen.Id("ctx"), jen.Id("obj"), jen.Id("id"),
-				))
+				if mod.doc.IsPG10() {
+					g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
+						jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
+					)
+					g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
+						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
+					))
+				} else {
+					g.Return(jen.Add(swdb).Dot("DeleteModel").Call(
+						jen.Id("ctx"), jen.Id("obj"), jen.Id("id"),
+					))
+				}
+
 			}
 
 		})
