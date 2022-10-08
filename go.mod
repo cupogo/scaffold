@@ -13,7 +13,7 @@ require (
 	github.com/uptrace/bun/dialect/pgdialect v1.1.8
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.10
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 replace github.com/cupogo/andvari => ../andvari

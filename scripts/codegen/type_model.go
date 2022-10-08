@@ -555,6 +555,7 @@ func (m *Model) hookModelCodes() (st *jen.Statement) {
 					if oidcat == "" {
 						oidcat = "Default"
 					}
+					oidQual, _ := m.doc.getQual("oid")
 					g.Id("z").Dot("SetID").Call(
 						jen.Qual(oidQual, "NewID").Call(jen.Qual(oidQual, "Ot"+oidcat)),
 					)
@@ -710,6 +711,7 @@ func (m *Model) getSpecCodes() jen.Code {
 			for _, sifter := range m.Sifters {
 				g.Id("q").Op("=").Id("spec").Dot(sifter).Dot("Sift").Call(jen.Id("q"))
 			}
+			utilsQual, _ := m.doc.getQual("utils")
 
 			for i := 0; i < len(specFields); i++ {
 				field := specFields[i]
@@ -943,6 +945,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 }
 
 func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
+	utilsQual, _ := mod.doc.getQual("utils")
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
