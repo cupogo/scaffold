@@ -98,6 +98,23 @@ func (doc *Document) getModQual(k string) (string, bool) {
 	return k, false
 }
 
+func (doc *Document) qual(args ...string) jen.Code {
+	if len(args) == 0 {
+		log.Fatal("empty args for qual")
+	}
+	if len(args) > 1 {
+		return jen.Qual(args[0], args[1])
+	}
+	name := args[0]
+	if pos := strings.Index(name, "."); pos > 0 {
+		if qual, ok := doc.getQual(name[0:pos]); ok {
+			return jen.Qual(qual, name[pos+1:])
+		} else {
+			log.Printf("get qual %s fail", name)
+		}
+	}
+	return jen.Id(name)
+}
 func NewDoc(docfile string) (*Document, error) {
 	yf, err := os.Open(docfile)
 	if err != nil {
@@ -172,6 +189,7 @@ func (doc *Document) ModelIPath() string {
 func (doc *Document) genModels(dropfirst bool) error {
 	mgf := jen.NewFile(doc.ModelPkg)
 	mgf.HeaderComment(headerComment)
+	mgf.ImportNames(doc.Qualified.Copy())
 
 	var mods []string
 	for _, model := range doc.Models {

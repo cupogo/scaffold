@@ -353,7 +353,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				).Line()
 				g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
 			} else if (act == "Put" || act == "Update") && len(mth.Args) > 2 {
-				g.Var().Id("in").Add(qual(mth.Args[2].Type))
+				g.Var().Id("in").Add(doc.qual(mth.Args[2].Type))
 				g.Add(jbind("in"))
 				if act == "Put" {
 					g.Id("nid").Op(",").Err().Add(jmcc).Call(
@@ -383,7 +383,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
 			}
 		} else if act == "List" && len(mth.Args) > 1 {
-			g.Var().Id("spec").Add(qual(mth.Args[1].Type))
+			g.Var().Id("spec").Add(doc.qual(mth.Args[1].Type))
 			g.Add(jbind("spec"))
 			g.Id("ctx").Op(":=").Add(jctx)
 			if len(mod.SpecUp) > 0 {
@@ -397,7 +397,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			).Line()
 			g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
 		} else if act == "Create" && len(mth.Args) > 1 {
-			g.Var().Id("in").Add(qual(mth.Args[1].Type))
+			g.Var().Id("in").Add(doc.qual(mth.Args[1].Type))
 			g.Add(jbind("in"))
 			g.Id("obj").Op(",").Err().Add(jmcc).Call(
 				jctx, jen.Id("in"),

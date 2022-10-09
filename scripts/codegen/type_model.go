@@ -10,24 +10,6 @@ import (
 	"github.com/jinzhu/inflection"
 )
 
-func qual(args ...string) jen.Code {
-	if len(args) == 0 {
-		log.Fatal("empty args for qual")
-	}
-	if len(args) > 1 {
-		return jen.Qual(args[0], args[1])
-	}
-	name := args[0]
-	if pos := strings.Index(name, "."); pos > 0 {
-		if qual, ok := getQual(name[0:pos]); ok {
-			return jen.Qual(qual, name[pos+1:])
-		} else {
-			log.Printf("get qual %s fail", name)
-		}
-	}
-	return jen.Id(name)
-}
-
 type Field struct {
 	Name     string `yaml:"name"`
 	Type     string `yaml:"type,omitempty"`
@@ -850,7 +832,7 @@ func metaUpCode(a ...bool) jen.Code {
 		tags["pg"] = "-"
 	}
 	code := jen.Comment("for meta update").Line()
-	code.Id("MetaDiff").Op("*").Add(qual("comm.MetaDiff"))
+	code.Id("MetaDiff").Op("*").Add(jen.Id("comm.MetaDiff"))
 	code.Tag(tags)
 	return code
 }
