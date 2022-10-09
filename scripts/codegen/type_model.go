@@ -259,18 +259,17 @@ func (f *Field) queryCode(idx int) jen.Code {
 		st.Add(f.queryTypeCode())
 	}
 
-	tags := f.Tags.Copy()
-	if len(tags) > 0 {
-		if !tags.Has("form") {
-			if j, ok := tags["json"]; ok {
-				if a, _, ok := strings.Cut(j, ","); ok {
-					tags["form"] = a
-				} else {
-					tags["form"] = j
-				}
+	if json, jok := f.Tags["json"]; jok {
+		tags := Tags{"json": json}
+		if !f.Tags.Has("form") {
+			if a, _, ok := strings.Cut(json, ","); ok {
+				tags["form"] = a
+			} else {
+				tags["form"] = json
 			}
+		} else {
+			tags["form"] = f.Tags["form"]
 		}
-		delete(tags, "pg")
 		tags.extOrder(idx + 1)
 		st.Tag(tags)
 	}
@@ -669,8 +668,6 @@ func (m *Model) getSpecCodes() jen.Code {
 		// log.Printf("specFields: %+v", specFields)
 		fcs = append(fcs, jen.Empty())
 		for i, field := range specFields {
-			delete(field.Tags, "binding")
-			delete(field.Tags, "extensions")
 			fcs = append(fcs, field.queryCode(i))
 		}
 
