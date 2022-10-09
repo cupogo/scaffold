@@ -299,7 +299,7 @@ func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 		}
 	}
 	if hasMeta {
-		bcs = append(bcs, metaUpCode())
+		bcs = append(bcs, metaUpCode(true))
 	}
 	return
 }
@@ -845,17 +845,24 @@ func (m *Model) StoreHooks() (out []storeHook) {
 	return out
 }
 
-func metaUpCode() jen.Code {
+func metaUpCode(a ...bool) jen.Code {
+	tags := Tags{"json": "metaUp,omitempty", "swaggerignore": "true"}
+	if len(a) > 0 && a[0] {
+		tags["bson"] = "-"
+		tags["bun"] = "-"
+		tags["pg"] = "-"
+	}
 	code := jen.Comment("for meta update").Line()
 	code.Id("MetaDiff").Op("*").Add(qual("comm.MetaDiff"))
-	code.Tag(Tags{"bson": "-", "json": "metaUp,omitempty", "bun": "-", "pg": "-", "swaggerignore": "true"})
+	code.Tag(tags)
 	return code
 }
 
 func ownerUpCode() jen.Code {
+	tags := Tags{"json": "ownerID,omitempty"}
 	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
-	code.Tag(Tags{"json": "ownerID,omitempty", "bun": "-", "pg": "-"})
+	code.Tag(tags)
 	return code
 }
 
