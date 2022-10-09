@@ -811,7 +811,7 @@ func (m *Model) hasStoreHook(k string) (v string, ok bool) {
 }
 
 func (m *Model) storeHookName(k, v string) (string, bool) {
-	if strings.HasPrefix(v, "db") {
+	if strings.HasPrefix(v, "db") || strings.HasPrefix(v, "afterCreate") {
 		return v, true
 	} else if k == afterLoad || k == afterList { // store method
 		return k + m.Name, true
