@@ -146,6 +146,14 @@ func (doc *Document) Init() {
 	for i := range doc.Models {
 		doc.Models[i].doc = doc
 		doc.Models[i].pkg = doc.ModelPkg
+		for j := range doc.Models[i].Fields {
+			f := doc.Models[i].Fields[j]
+			if k, _, _ := f.cutType(); len(k) > 0 && len(f.Qual) == 0 {
+				if p, ok := doc.Qualified[k]; ok {
+					doc.Models[i].Fields[j].Qual = p
+				}
+			}
+		}
 	}
 	for i := range doc.Stores {
 		doc.Stores[i].doc = doc

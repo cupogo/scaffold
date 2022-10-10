@@ -45,6 +45,22 @@ func (f *Field) isAudit() bool {
 	return f.Name == auditField || f.Type == auditField
 }
 
+func (f *Field) cutType() (qn string, typ string, isptr bool) {
+	typ = f.Type
+	if len(typ) == 0 && len(f.Name) > 0 {
+		typ = f.Name
+	}
+	if len(typ) > 0 && typ[0] == '*' {
+		isptr = true
+		typ = typ[1:]
+	}
+	if a, b, ok := strings.Cut(typ, "."); ok {
+		qn = a
+		typ = b
+	}
+	return
+}
+
 func (f *Field) isScalar() bool {
 	if f.Type == "string" || f.Type == "bool" {
 		return true
@@ -83,27 +99,21 @@ func (f *Field) bunPatchTags() (out Tags) {
 }
 
 func (f *Field) typeCode(pkgs ...string) *jen.Statement {
-	typ := f.Type
-	if len(typ) == 0 {
-		typ = f.Name
-	}
-	if len(f.Qual) > 0 {
-		return jen.Qual(f.Qual, typ)
-	}
-	if a, b, ok := strings.Cut(typ, "."); ok {
-		if qual, ok := getQual(a); ok {
-			return jen.Qual(qual, b)
+	st := jen.Empty()
+	qn, typ, _ := f.cutType()
+	if len(qn) > 0 {
+		if len(f.Qual) > 0 {
+			return st.Qual(f.Qual, typ)
 		}
-		return jen.Qual(a, b)
+		if qual, ok := getQual(qn); ok {
+			return st.Qual(qual, typ)
+		}
+		return st.Qual(qn, typ)
 	}
-
 	if len(pkgs) == 1 {
-		if typ[0] == '*' {
-			typ = typ[1:]
-		}
-		return jen.Qual(pkgs[0], typ)
+		return st.Qual(pkgs[0], typ)
 	}
-	return jen.Id(typ)
+	return st.Id(typ)
 }
 
 func (f *Field) isEmbed() bool {
@@ -130,23 +140,21 @@ func (f *Field) preCode() (st *jen.Statement) {
 }
 
 func (f *Field) defCode() jen.Code {
+	qn, typ, isptr := f.cutType()
 	st := jen.Empty()
-	if len(f.Qual) > 0 {
-		st.Qual(f.Qual, f.Type)
-	} else if a, b, ok := strings.Cut(f.Type, "."); ok {
-		if len(a) > 0 && a[0] == '*' {
-			st.Op("*")
-		}
-		// log.Printf("field %s qual: %s", f.Name, f.Type)
-		if qual, ok := getQual(a); ok {
-			st.Qual(qual, b)
-		} else {
-			log.Printf("get qual %s fail", f.Type)
-		}
-	} else {
-		st.Id(f.Type)
+	if isptr {
+		st.Op("*")
 	}
-	return st
+	if len(qn) > 0 {
+		if len(f.Qual) > 0 {
+			return st.Qual(f.Qual, typ)
+		}
+		if qual, ok := getQual(qn); ok {
+			return st.Qual(qual, typ)
+		}
+		return st.Qual(qn, typ)
+	}
+	return st.Id(typ)
 }
 
 func (f *Field) Code(idx int) jen.Code {
@@ -394,10 +402,8 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		}
 		code.Id(field.Name)
 		cn, isInDb, _ := field.ColName()
-		tn := field.Type
-		if len(tn) == 0 {
-			tn = field.Name
-		} else if field.Type == "oid.OID" {
+		qn, tn, _ := field.cutType()
+		if qn == "oid" && tn == "OID" {
 			field.Type = "string"
 			field.isOid = true
 			field.Qual = ""
