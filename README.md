@@ -2,7 +2,7 @@
 
 Go 项目脚手架, 包含代码生成器和示例
 
-Go project scaffolding, including code generators and examples
+Go project scaffolding, including a code generator and examples
 
 ## Features
 
