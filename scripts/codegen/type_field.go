@@ -82,15 +82,9 @@ var replTrimUseZero = strings.NewReplacer(",use_zero", "")
 
 func (f *Field) bunPatchTags() (out Tags) {
 	out = f.Tags.Copy()
-	for k, v := range out {
-		if k == "pg" {
-			if _, ok := out["bun"]; !ok {
-				if strings.Contains(v, ",use_zero") {
-					v = replTrimUseZero.Replace(v)
-				}
-				out["bun"] = v
-			}
-		}
+	if !out.Has("bun") && out.Has("pg") {
+		v := out["pg"]
+		out["bun"] = replTrimUseZero.Replace(v)
 	}
 	return out
 }
@@ -186,7 +180,7 @@ func (f *Field) Code(idx int) jen.Code {
 
 // return column name, is in db and is unquie
 func (f *Field) ColName() (cn string, hascol bool, unique bool) {
-	if s, ok := f.Tags["pg"]; ok && len(s) > 0 && s != "-" {
+	if s, ok := f.Tags.GetAny("pg", "bun"); ok && len(s) > 0 && s != "-" {
 		hascol = true
 		if a, b, ok := strings.Cut(s, ","); ok {
 			cn = a
@@ -202,9 +196,12 @@ func (f *Field) ColName() (cn string, hascol bool, unique bool) {
 }
 
 func (f *Field) relMode() (string, bool) {
-	if s, ok := f.Tags["pg"]; ok && len(s) > 0 {
-		if s == "rel:has-one" {
+	if s, ok := f.Tags.GetAny("pg", "bun"); ok && len(s) > 4 {
+		if strings.HasPrefix(s, "rel:has-one") {
 			return "has-one", true
+		}
+		if strings.HasPrefix(s, "rel:has-many") {
+			return "has-many", true
 		}
 	}
 	return "", false
@@ -292,11 +289,20 @@ func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 
 func (z Fields) relHasOne() (cols []string) {
 	for i := range z {
-		if _, ok := z[i].relMode(); ok && i > 0 {
+		if n, ok := z[i].relMode(); ok && i > 0 {
 			// 上一个字段必须指向关联的主键
-			if z[i-1].Name == z[i].Name+"ID" {
+			if n == "has-one" && z[i-1].Name == z[i].Name+"ID" {
 				cols = append(cols, z[i].Name)
 			}
+		}
+	}
+	return
+}
+
+func (z Fields) relations() (cols []string) {
+	for i := range z {
+		if _, ok := z[i].relMode(); ok && i > 0 {
+			cols = append(cols, z[i].Name)
 		}
 	}
 	return

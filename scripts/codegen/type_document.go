@@ -36,6 +36,15 @@ func (m Tags) Has(k string) bool {
 	return ok
 }
 
+func (m Tags) GetAny(a ...string) (string, bool) {
+	for _, k := range a {
+		if v, ok := m[k]; ok {
+			return v, ok
+		}
+	}
+	return "", false
+}
+
 func (m Tags) extOrder(idx int) {
 	if idx > 55 { // max ascii offset
 		return
