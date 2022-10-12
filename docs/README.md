@@ -61,21 +61,21 @@
 
 - 大多数模型都会以字段的形式嵌入 `comm.DefaultModel` 这个默认模型结构体，由此会自动添加 `id`,`created`,`updated`和 `creator_id` 等字段，如果继续嵌入 `comm.MetaField` 则会添加 `meta` 支持添加更多元信息
 
-### 字段查询参数定义
+### query 字段查询参数定义
 
 - 查询定义分了两个部分：方法和扩展
 
 - 方法:
    - `equal` 相等，此项有扩展，之间用逗号分隔
-   - `ice` 相等并忽略大小写
-   - `match` 进行模式匹配
-   - `date` 日期范围匹配
+   - `ice` ignore case equal 相等并忽略大小写
+   - `match` 进行模式匹配, `abc` = `abc*` = `abc%`
+   - `date` 日期范围匹配, see also `sqlutil.DateRange`
    - `great` 大于
    - `less` 小于
 
 - 扩展:
-   - `decode` 此类型有自己的解码方法 `Decode(string) error`
-   - `hasVals` 整数类型可多选，只适用于位枚举
+   - `decode` 此类型有自己的解码方法 `(t *T) Decode(string) error`
+   - `hasVals` 整数类型可多选，只适用于位枚举 `(t T) Vals() []T`
    - `ints` 可多选的整数类型
    - `strs` 可多选的字串类型
    - `oids` 可多选的 `OID` 类型
@@ -107,7 +107,7 @@
 
 - `name`: 存储对象名称 必需
 
-- `iname`: 接口对象名称 如不提供会由`name`导出
+- `iname`: 接口对象名称 如不提供会由`name`推导出
 
 - `embed`: 嵌入接口名称
 
@@ -117,13 +117,15 @@
 
 - `hodGL`: 集合类型 俱备只读即浏览和读取功能的对象清单
 
-- `methods`: 方法列表，如果提供了`hodBread`或`hodPrdb`，此项可省略
+- `methods`: 方法列表，如果提供了`hodBread`或`hodPrdb`，此项可省略，not in `hod*` only
   
   - `name`: 方法名称 必需
   
   - `simple`: 是否使用简单实现
 
 ### 存储方法名称规则 （仅非hod集）
+
+**not in `hod*` only**
 
 - 名称由动词和一个名词对象组成，名词对象必须是前面的models里已经定义过的同名对象，即结构体，故需导出，也是说名称首字母要为大写，动词也是；
 
