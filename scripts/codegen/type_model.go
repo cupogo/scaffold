@@ -98,7 +98,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		}
 		code.Id(field.Name)
 		cn, isInDb, _ := field.ColName()
-		qn, tn, _ := field.cutType()
+		qn, tn, isptr := field.cutType()
 		if qn == "oid" && tn == "OID" {
 			field.Type = "string"
 			field.isOid = true
@@ -122,6 +122,8 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 				g.Id("z").Dot(field.Name).Op("=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(field.Name))
 			} else if field.IsChangeWith {
 				g.Id("z").Dot(field.Name).Dot("ChangeWith").Call(jen.Id("o").Dot(field.Name))
+			} else if isptr {
+				g.Id("z").Dot(field.Name).Op("=").Id("o").Dot(field.Name)
 			} else {
 				g.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name)
 			}
