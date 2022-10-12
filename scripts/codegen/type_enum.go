@@ -14,6 +14,7 @@ type Enum struct {
 	Values  []EnumVal `yaml:"values,omitempty"`
 
 	Decodable       bool `yaml:"decodable,omitempty"`
+	Stringer        bool `yaml:"stringer,omitempty"`
 	TextUnmarshaler bool `yaml:"textUnmarshaler,omitempty"`
 }
 
@@ -57,6 +58,19 @@ func (e *Enum) Code() jen.Code {
 				st.Func().Params(jen.Id("z").Op("*").Id(e.Name)).Id("UnmarshalText").Params(jen.Id("b").Index().Byte()).Error()
 				st.Block(jen.Return(jen.Id("z").Dot("Decode").Call(jen.String().Call(jen.Id("b")))))
 			}
+		}
+
+		if e.Stringer {
+			st.Line()
+			st.Func().Params(jen.Id("z").Id(e.Name)).Id("String").Params().String()
+			st.Block(jen.Switch(jen.Id("z")).BlockFunc(func(g *jen.Group) {
+				for _, ev := range e.Values {
+					name := e.Name + ev.Suffix
+					g.Case(jen.Id(name))
+					g.Return(jen.Lit(LcFirst(ev.Suffix)))
+				}
+				g.Default().Return(jen.Qual("fmt", "Sprintf").Call(jen.Lit(LcFirst(e.Name)+" %d"), jen.Id(e.Type).Call(jen.Id("z"))))
+			}))
 		}
 	}
 
