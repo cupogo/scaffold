@@ -68,6 +68,7 @@ type Document struct {
 	modtypes map[string]empty
 	dbcode   string
 
+	Enums     []Enum  `yaml:"enums"`
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
 	Qualified Tags    `yaml:"depends"` // imports name
@@ -197,7 +198,11 @@ func (doc *Document) ModelIPath() string {
 func (doc *Document) genModels(dropfirst bool) error {
 	mgf := jen.NewFile(doc.ModelPkg)
 	mgf.HeaderComment(headerComment)
-	mgf.ImportNames(doc.Qualified.Copy())
+	// mgf.ImportNames(doc.Qualified.Copy())
+
+	for _, enum := range doc.Enums {
+		mgf.Add(enum.Code())
+	}
 
 	var mods []string
 	for _, model := range doc.Models {
