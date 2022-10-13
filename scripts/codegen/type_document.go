@@ -310,16 +310,18 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 	sgf.Line()
 
-	sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
-		var args []jen.Code
+	var tables []jen.Code
 		for _, model := range doc.Models {
+		if model.IsTable() {
 			// name, _ := doc.getModQual(model.Name)
-			args = append(args, jen.Op("(*").Qual(ipath, model.Name).Op(")(nil)"))
+			tables = append(tables, jen.Op("(*").Qual(ipath, model.Name).Op(")(nil)"))
 		}
-		if len(args) > 0 {
-			g.Id("RegisterModel").Call(args...)
-		}
+	}
+		if len(tables) > 0 {
+		sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
+			g.Id("RegisterModel").Call(tables...)
 	})
+	}
 
 	if !IsDir(doc.dirsto) {
 		if err := os.Mkdir(doc.dirsto, 0755); err != nil {

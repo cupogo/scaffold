@@ -155,7 +155,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 func (m *Model) Codes() jen.Code {
 	basicName := m.Name + "Basic"
 	var cs []jen.Code
-	cs = append(cs, m.TableField())
+	if m.IsTable() {
+		cs = append(cs, m.TableField())
+	}
 	mcs, bcs := m.Fields.Codes(basicName)
 	cs = append(cs, mcs...)
 	st := jen.Comment(m.Name + " " + m.Comment).Line()
@@ -227,6 +229,13 @@ func (m *Model) hasModHook() (bool, string) {
 		return true, "DateFields"
 	}
 	return false, ""
+}
+
+func (mod *Model) IsTable() bool {
+	if yes, _ := mod.hasModHook(); yes && len(mod.TableTag) > 0 {
+		return true
+	}
+	return false
 }
 
 func (m *Model) hookModelCodes() (st *jen.Statement) {

@@ -208,3 +208,11 @@ func (z *Clause) SetWith(o ClauseSet) (cs []string) {
 	}
 	return
 }
+
+// File a file instance
+type File struct {
+	Name string `extensions:"x-order=@" form:"name" json:"name"`
+	Path string `extensions:"x-order=A" form:"path" json:"path"`
+} // @name File
+
+type Files []File

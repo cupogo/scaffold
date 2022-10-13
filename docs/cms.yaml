@@ -109,6 +109,16 @@ models:
         query: 'match'
     oidcat: article
 
+  - name: File
+    comment: a file instance
+    fields:
+      - name: Name
+        type: string
+        tags: {json: 'name'}
+      - name: Path
+        type: string
+        tags: {json: 'path'}
+
 stores:
   - name: contentStore
     hodBread: [ Article ]
