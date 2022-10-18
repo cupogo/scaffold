@@ -27,6 +27,12 @@ const (
 	textSearchField = "comm.TextSearchField"
 )
 
+// consts of created
+const (
+	createdName   = "CreatedAt"
+	createdColumn = "created"
+)
+
 // consts of hooks
 const (
 	beforeSaving   = "beforeSaving"
