@@ -42,11 +42,15 @@ func (f *Field) isAudit() bool {
 	return f.Name == auditField || f.Type == auditField
 }
 
-func (f *Field) cutType() (qn string, typ string, isptr bool) {
-	typ = f.Type
-	if len(typ) == 0 && len(f.Name) > 0 {
-		typ = f.Name
+func (f *Field) getType() string {
+	if len(f.Type) == 0 && len(f.Name) > 0 {
+		return f.Name
 	}
+	return f.Type
+}
+
+func (f *Field) cutType() (qn string, typ string, isptr bool) {
+	typ = f.getType()
 	if len(typ) > 0 && typ[0] == '*' {
 		isptr = true
 		typ = typ[1:]
