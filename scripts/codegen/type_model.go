@@ -211,16 +211,17 @@ func (m *Model) hasModHook() (bool, string) {
 	var hasIDField bool
 	var hasDateFields bool
 	for _, field := range m.Fields {
-		if strings.HasSuffix(field.Name, modelDefault) {
+		typ := field.getType()
+		if strings.HasSuffix(typ, modelDefault) {
 			return true, modelDefault
 		}
-		if strings.HasSuffix(field.Name, modelDunce) {
+		if strings.HasSuffix(typ, modelDunce) {
 			return true, modelDunce
 		}
 
-		if strings.Contains(field.Name, "IDField") {
+		if strings.Contains(typ, "IDField") {
 			hasIDField = true
-		} else if strings.HasSuffix(field.Name, "DateFields") {
+		} else if strings.HasSuffix(typ, "DateFields") {
 			hasDateFields = true
 		}
 	}
