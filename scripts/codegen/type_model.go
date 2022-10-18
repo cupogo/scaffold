@@ -25,6 +25,7 @@ type Model struct {
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
 	WithColumnList bool `yaml:"withColumnList,omitempty"` // List时允许定制列
 	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 已存在保存时生效的数据表触发器
+	WithCreatedSet bool `yaml:"withCreatedSet,omitempty"` // 开放created的设置
 
 	doc *Document
 	pkg string
@@ -132,6 +133,16 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			}
 		}))
 	}
+
+	if m.WithCreatedSet {
+		// CreatedAt time.Time `bson:"createdAt" json:"createdAt" form:"createdAt" pg:"created,notnull,default:now()" extensions:"x-order=["` // 创建时间
+		ccs = append(ccs, createdUpCode())
+		scs = append(scs, jen.If(jen.Id("o").Dot(createdName).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
+			g.Id("z").Dot(createdName).Op("=").Op("*").Id("o").Dot(createdName)
+			g.Add(jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(createdColumn)))
+		})))
+	}
+
 	if hasMeta {
 		name := "MetaDiff"
 		ccs = append(ccs, metaUpCode())
@@ -555,6 +566,15 @@ func ownerUpCode() jen.Code {
 	tags := Tags{"json": "ownerID,omitempty"}
 	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
+	code.Tag(tags)
+	return code
+}
+
+func createdUpCode() jen.Code {
+	code := jen.Comment("创建时间").Line()
+
+	tags := Tags{"json": "created,omitempty"}
+	code.Id(createdName).Op("*").Qual("time", "Time")
 	code.Tag(tags)
 	return code
 }
