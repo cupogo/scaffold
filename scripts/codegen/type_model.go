@@ -218,61 +218,57 @@ func (m *Model) hasAudit() bool {
 	return false
 }
 
-func (m *Model) hasModHook() (bool, string) {
-	var hasIDField bool
-	var hasDateFields bool
+func (m *Model) hasModHook() (bool, string, string) {
+	var tIDField string
+	var tDateFields string
 	for _, field := range m.Fields {
 		typ := field.getType()
 		if strings.HasSuffix(typ, modelDefault) {
-			return true, modelDefault
+			return true, modelDefault, modelDefault
 		}
 		if strings.HasSuffix(typ, modelDunce) {
-			return true, modelDunce
+			return true, modelDunce, modelDunce
 		}
 
 		if strings.Contains(typ, "IDField") {
-			hasIDField = true
+			tIDField = "IDField"
 		} else if strings.HasSuffix(typ, "DateFields") {
-			hasDateFields = true
+			tDateFields = "DateFields"
 		}
 	}
 
-	if hasIDField && hasDateFields {
-		return true, "DateFields"
+	if len(tIDField) > 0 && len(tDateFields) > 0 {
+		return true, tIDField, tDateFields
 	}
-	return false, ""
+	return false, tIDField, tDateFields
 }
 
 func (mod *Model) IsTable() bool {
-	if yes, _ := mod.hasModHook(); yes && len(mod.TableTag) > 0 {
+	if /*yes, _ := mod.hasModHook(); yes &&*/ len(mod.TableTag) > 0 {
 		return true
 	}
 	return false
 }
 
 func (m *Model) hookModelCodes() (st *jen.Statement) {
-	if hasHooks, field := m.hasModHook(); hasHooks {
+	if hasHooks, idF, dtF := m.hasModHook(); hasHooks {
 		st = new(jen.Statement)
 		st.Comment("Creating function call to it's inner fields defined hooks").Line()
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
 		).Id("Creating").Params().Error().Block(
 			jen.If(jen.Id("z").Dot("IsZeroID").Call()).BlockFunc(func(g *jen.Group) {
-				switch field {
-				case modelDefault:
-					oidcat := CamelCased(m.OIDCat)
-					if oidcat == "" {
-						oidcat = "Default"
-					}
+				oidcat := CamelCased(m.OIDCat)
+				if len(oidcat) > 0 && (idF == modelDefault || idF == "IDField") {
 					oidQual, _ := m.doc.getQual("oid")
 					g.Id("z").Dot("SetID").Call(
 						jen.Qual(oidQual, "NewID").Call(jen.Qual(oidQual, "Ot"+oidcat)),
 					)
-				default:
+				} else {
 					g.Return(jen.Id("comm").Dot("ErrEmptyID"))
 				}
 			}).Line(),
-			jen.Return(jen.Id("z").Dot(field).Dot("Creating").Call()),
+			jen.Return(jen.Id("z").Dot(dtF).Dot("Creating").Call()),
 		).Line()
 
 	}
