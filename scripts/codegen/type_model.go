@@ -82,7 +82,8 @@ func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
 func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	var hasMeta bool
 	var hasOwner bool
-	for idx, field := range m.Fields {
+	var idx int
+	for i, field := range m.Fields {
 		if !field.IsSet || field.isEmbed() {
 			if field.isMeta() {
 				hasMeta = true
@@ -91,6 +92,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			}
 			continue
 		}
+		idx = i
 		var code *jen.Statement
 		if len(field.Comment) > 0 {
 			code = jen.Comment(field.Comment).Line()
@@ -135,8 +137,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	}
 
 	if m.WithCreatedSet {
+		idx++
 		// CreatedAt time.Time `bson:"createdAt" json:"createdAt" form:"createdAt" pg:"created,notnull,default:now()" extensions:"x-order=["` // 创建时间
-		ccs = append(ccs, createdUpCode())
+		ccs = append(ccs, createdUpCode(idx))
 		scs = append(scs, jen.If(jen.Id("o").Dot(createdName).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
 			g.Id("z").Dot(createdName).Op("=").Op("*").Id("o").Dot(createdName)
 			g.Add(jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(createdColumn)))
@@ -151,8 +154,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		))
 	}
 	if hasOwner {
+		idx++
 		name := "OwnerID"
-		ccs = append(ccs, ownerUpCode())
+		ccs = append(ccs, ownerUpCode(idx))
 		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("SetOwnerID").Call(jen.Op("*").Id("o").Dot(name)).Block(
 			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("owner_id")),
 		)))
@@ -558,18 +562,20 @@ func metaUpCode(a ...bool) jen.Code {
 	return code
 }
 
-func ownerUpCode() jen.Code {
+func ownerUpCode(idx int) jen.Code {
 	tags := Tags{"json": "ownerID,omitempty"}
+	tags.extOrder(idx)
 	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
 	code.Tag(tags)
 	return code
 }
 
-func createdUpCode() jen.Code {
+func createdUpCode(idx int) jen.Code {
 	code := jen.Comment("创建时间").Line()
 
 	tags := Tags{"json": "created,omitempty"}
+	tags.extOrder(idx)
 	code.Id(createdName).Op("*").Qual("time", "Time")
 	code.Tag(tags)
 	return code
