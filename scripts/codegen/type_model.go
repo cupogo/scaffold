@@ -248,7 +248,7 @@ func (m *Model) hasModHook() (bool, string, string) {
 }
 
 func (mod *Model) IsTable() bool {
-	if /*yes, _ := mod.hasModHook(); yes &&*/ len(mod.TableTag) > 0 {
+	if yes, _, _ := mod.hasModHook(); yes && len(mod.TableTag) > 0 {
 		return true
 	}
 	return false
