@@ -101,11 +101,11 @@ func (doc *Document) getQual(k string) (qu string, ok bool) {
 	return
 }
 
-func (doc *Document) getModQual(k string) (string, bool) {
+func (doc *Document) getModQual(k string) string {
 	if _, ok := doc.modtypes[k]; ok {
-		return doc.ModelPkg + "." + k, true
+		return doc.modipath
 	}
-	return k, false
+	return ""
 }
 
 func (doc *Document) qual(args ...string) jen.Code {
@@ -311,16 +311,16 @@ func (doc *Document) genStores(dropfirst bool) error {
 	sgf.Line()
 
 	var tables []jen.Code
-		for _, model := range doc.Models {
+	for _, model := range doc.Models {
 		if model.IsTable() {
 			// name, _ := doc.getModQual(model.Name)
 			tables = append(tables, jen.Op("(*").Qual(ipath, model.Name).Op(")(nil)"))
 		}
 	}
-		if len(tables) > 0 {
+	if len(tables) > 0 {
 		sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
 			g.Id("RegisterModel").Call(tables...)
-	})
+		})
 	}
 
 	if !IsDir(doc.dirsto) {

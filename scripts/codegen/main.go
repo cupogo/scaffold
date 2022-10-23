@@ -73,10 +73,3 @@ func getQual(k string) (string, bool) {
 	}
 	return "", false
 }
-
-func getModQual(k string) (string, bool) {
-	if doc != nil {
-		return doc.getModQual(k)
-	}
-	return k, false
-}

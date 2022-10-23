@@ -375,7 +375,7 @@ func (m *Model) getSpecCodes() jen.Code {
 		// log.Printf("specFields: %+v", specFields)
 		fcs = append(fcs, jen.Empty())
 		for i, field := range specFields {
-			fcs = append(fcs, field.queryCode(i))
+			fcs = append(fcs, field.queryCode(i, m.doc.getModQual(field.getType())))
 		}
 
 	}
@@ -449,7 +449,7 @@ func (m *Model) getSpecCodes() jen.Code {
 				jq := jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
 				if field.siftExt == "decode" {
 					g.If(jen.Len(jen.Id("spec").Dot(field.Name)).Op(">0")).Block(
-						jen.Var().Id("v").Add(field.queryTypeCode()),
+						jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
 						jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jen.Id("spec").Dot(field.Name)).Op(";").Err().Op("==").Nil()).Block(
 							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" = ?"), jen.Id("v")),
 						),

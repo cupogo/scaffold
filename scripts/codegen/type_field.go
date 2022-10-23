@@ -105,7 +105,7 @@ func (f *Field) typeCode(pkgs ...string) *jen.Statement {
 		}
 		return st.Qual(qn, typ)
 	}
-	if len(pkgs) == 1 {
+	if len(pkgs) == 1 && len(pkgs[0]) > 0 {
 		return st.Qual(pkgs[0], typ)
 	}
 	return st.Id(typ)
@@ -116,18 +116,15 @@ func (f *Field) isEmbed() bool {
 }
 
 func (f *Field) preCode() (st *jen.Statement) {
-	if len(f.Type) == 0 {
-		f.Type = f.Name
-		f.Name = ""
-	}
+	isEmbed := f.isEmbed()
 	st = jen.Empty()
-	if f.isEmbed() {
+	if isEmbed {
 		st.Line()
 	}
 	if len(f.Comment) > 0 {
 		st.Comment(f.Comment).Line()
 	}
-	if !f.isEmbed() {
+	if !isEmbed {
 		st.Id(f.Name)
 	}
 
@@ -175,7 +172,7 @@ func (f *Field) Code(idx int) jen.Code {
 		st.Tag(tags)
 	}
 
-	if len(f.Name) == 0 {
+	if f.isEmbed() {
 		st.Line()
 	}
 
@@ -226,14 +223,7 @@ func (f *Field) getArgTag() string {
 	return LcFirst(f.Name)
 }
 
-func (f *Field) queryTypeCode() jen.Code {
-	if len(f.Type) > 0 {
-		f.Type, _ = getModQual(f.Type)
-	}
-	return f.defCode()
-}
-
-func (f *Field) queryCode(idx int) jen.Code {
+func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 
 	if len(f.Comment) > 0 {
 		if f.isDate {
@@ -244,7 +234,7 @@ func (f *Field) queryCode(idx int) jen.Code {
 	if len(f.qtype) > 0 {
 		st.Id(f.qtype)
 	} else {
-		st.Add(f.queryTypeCode())
+		st.Add(f.typeCode(pkgs...))
 	}
 
 	if json, jok := f.Tags["json"]; jok {
@@ -303,7 +293,7 @@ func (z Fields) relHasOne() (cols []string) {
 	return
 }
 
-func (z Fields) relations() (cols []string) {
+func (z Fields) Relations() (cols []string) {
 	for i := range z {
 		if _, ok := z[i].relMode(); ok && i > 0 {
 			cols = append(cols, z[i].Name)
