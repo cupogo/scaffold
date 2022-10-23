@@ -233,6 +233,9 @@ func (m *Model) hasModHook() (bool, string, string) {
 		if strings.HasSuffix(typ, modelDunce) {
 			return true, modelDunce, modelDunce
 		}
+		if strings.HasSuffix(typ, modelSerial) {
+			return false, modelSerial, modelSerial
+		}
 
 		if strings.Contains(typ, "IDField") {
 			tIDField = "IDField"
@@ -248,7 +251,7 @@ func (m *Model) hasModHook() (bool, string, string) {
 }
 
 func (mod *Model) IsTable() bool {
-	if yes, _, _ := mod.hasModHook(); yes && len(mod.TableTag) > 0 {
+	if _, idf, _ := mod.hasModHook(); len(idf) > 0 && len(mod.TableTag) > 0 {
 		return true
 	}
 	return false
