@@ -3,7 +3,7 @@ module github.com/cupogo/scaffold
 go 1.18
 
 require (
-	github.com/cupogo/andvari v0.0.0-20220819145044-33017fb3a113
+	github.com/cupogo/andvari v0.0.0-20221020110313-3311ae52e794
 	github.com/dave/dst v0.27.1
 	github.com/dave/jennifer v1.5.1
 	github.com/gin-gonic/gin v1.7.7
@@ -16,8 +16,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/cupogo/andvari => ../andvari
-
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -27,7 +25,6 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/kr/text v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
