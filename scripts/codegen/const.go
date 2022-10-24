@@ -42,6 +42,8 @@ const (
 	beforeDeleting = "beforeDeleting"
 	afterDeleting  = "afterDeleting"
 	afterCreated   = "afterCreated"
+	afterUpdated   = "afterUpdated"
+	afterDeleted   = "afterDeleted"
 	afterLoad      = "afterLoad"
 	afterList      = "afterList"
 )

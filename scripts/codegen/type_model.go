@@ -518,17 +518,7 @@ func (m *Model) hasStoreHook(k string) (v string, ok bool) {
 }
 
 func (m *Model) storeHookName(k, v string) (string, bool) {
-	if strings.HasPrefix(v, "db") || strings.HasPrefix(v, "afterCreate") {
-		return v, true
-	} else if k == afterLoad || k == afterList { // store method
-		return k + m.Name, true
-	} else if v == "true" || v == "yes" { // true, yes
-		if strings.HasPrefix(k, "afterL") {
-			return k + m.Name, true
-		}
-		return "db" + ToExported(k) + m.Name, true
-	}
-	return "", false
+	return HookMethod(m.Name, k, v)
 }
 
 func (m *Model) StoreHooks() (out []storeHook) {
@@ -797,12 +787,12 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 	tname := mod.Name + "Set"
 	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
-		[]jen.Code{jen.Error()},
+		[]jen.Code{jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
-			g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
+			g.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
 				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
-			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
+			).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
 
 			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
@@ -815,7 +805,7 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			hkBS, okBS := mod.hasStoreHook(beforeSaving)
 			hkAS, okAS := mod.hasStoreHook(afterSaving)
 			if okBU || okBS || okAS {
-				g.Return().Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+				g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					g1.Id("ctx")
 					jbf := func(g2 *jen.Group) {
@@ -857,10 +847,18 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				if mod.hasMeta() {
 					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
 				}
-				g.Return().Id("dbUpdate").Call(
+				g.Err().Op("=").Id("dbUpdate").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"),
 				)
 			}
+
+			if hk, ok := mod.hasStoreHook(afterUpdated); ok {
+				g.If(jen.Err().Op("==").Nil()).Block(
+					jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+				)
+			}
+
+			g.Return()
 		})
 }
 
@@ -963,6 +961,8 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 				}
 
 			}
+
+			// TODO: afterDeleted
 
 		})
 }

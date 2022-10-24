@@ -261,6 +261,25 @@ func Plural(str string) string {
 	return inflection.Plural(str)
 }
 
+func HookMethod(model string, k, v string) (string, bool) {
+	if strings.HasPrefix(v, "db") {
+		return v, true
+	}
+	if v == "afterCreate"+model { // deprecated
+		return v, true
+	}
+	if v == "true" || v == "yes" { // true, yes
+		if strings.HasSuffix(k, "ing") {
+			return "db" + ToExported(k[len(k)-3:]+"e") + model, true
+		}
+	}
+	switch k {
+	case afterLoad, afterList, afterCreated, afterUpdated, afterDeleted:
+		return k + model, true
+	}
+	return "", false
+}
+
 func ensureGoFile(gfile, tplname string, data any) {
 	if !CheckFile(gfile) {
 		if err := renderTmpl(tplname, gfile, data); err != nil {
