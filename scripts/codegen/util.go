@@ -270,7 +270,7 @@ func HookMethod(model string, k, v string) (string, bool) {
 	}
 	if v == "true" || v == "yes" { // true, yes
 		if strings.HasSuffix(k, "ing") {
-			return "db" + ToExported(k[len(k)-3:]+"e") + model, true
+			return "db" + ToExported(k[0:len(k)-3]+"e") + model, true
 		}
 	}
 	switch k {

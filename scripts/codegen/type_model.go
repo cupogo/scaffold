@@ -776,7 +776,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			if hk, ok := mod.hasStoreHook(afterCreated); ok {
 				g.If(jen.Err().Op("==").Nil()).Block(
-					jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+					jen.Err().Op("=").Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("obj")),
 				)
 			}
 
@@ -787,12 +787,12 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 	tname := mod.Name + "Set"
 	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
-		[]jen.Code{jen.Err().Error()},
+		[]jen.Code{jen.Error()},
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
-			g.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
+			g.If(jen.Err().Op(":=").Id("getModelWithPKID").Call(
 				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
-			).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
 			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
@@ -801,11 +801,12 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			}
 			isPG10 := mod.doc.IsPG10()
 
+			jfbd := jen.Empty()
 			hkBU, okBU := mod.hasStoreHook(beforeUpdating)
 			hkBS, okBS := mod.hasStoreHook(beforeSaving)
 			hkAS, okAS := mod.hasStoreHook(afterSaving)
 			if okBU || okBS || okAS {
-				g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+				jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					g1.Id("ctx")
 					jbf := func(g2 *jen.Group) {
@@ -847,18 +848,20 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				if mod.hasMeta() {
 					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
 				}
-				g.Err().Op("=").Id("dbUpdate").Call(
+				jfbd.Id("dbUpdate").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"),
 				)
 			}
 
 			if hk, ok := mod.hasStoreHook(afterUpdated); ok {
-				g.If(jen.Err().Op("==").Nil()).Block(
-					jen.Err().Op("=").Id(hk).Call(jen.Id("ctx"), jen.Id("s").Dot("w"), jen.Id("obj")),
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
 				)
+				g.Return(jen.Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("exist")))
+			} else {
+				g.Return(jfbd)
 			}
 
-			g.Return()
 		})
 }
 
@@ -911,6 +914,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Error()},
 		jen.BlockFunc(func(g *jen.Group) {
+			jfbd := jen.Empty()
 			g.Id("obj").Op(":=").New(jqual)
 			hkBD, okBD := mod.hasStoreHook(beforeDeleting)
 			hkAD, okAD := mod.hasStoreHook(afterDeleting)
@@ -919,7 +923,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
 				).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-				g.Return().Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+				jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					g1.Id("ctx")
 					jbf := func(g2 *jen.Group) {
 						if okBD {
@@ -951,18 +955,25 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					g.If(jen.Op("!").Id("obj").Dot("SetID").Call(jen.Id("id"))).Block(
 						jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
 					)
-					g.Return(jen.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
+					jfbd.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
 						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
-					))
+					)
 				} else {
-					g.Return(jen.Add(swdb).Dot("DeleteModel").Call(
+					jfbd.Add(swdb).Dot("DeleteModel").Call(
 						jen.Id("ctx"), jen.Id("obj"), jen.Id("id"),
-					))
+					)
 				}
 
 			}
 
-			// TODO: afterDeleted
+			if hk, ok := mod.hasStoreHook(afterDeleted); ok {
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+				g.Return(jen.Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("obj")))
+			} else {
+				g.Return(jfbd)
+			}
 
 		})
 }
