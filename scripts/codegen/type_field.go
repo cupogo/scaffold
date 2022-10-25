@@ -261,15 +261,19 @@ type Fields []Field
 func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 	var hasMeta bool
 	var setBasic bool
-	for i, field := range z {
+	var idx int
+	for _, field := range z {
+		if !field.isEmbed() {
+			idx++
+		}
 		if field.IsSet || field.IsBasic {
-			bcs = append(bcs, field.Code(i))
+			bcs = append(bcs, field.Code(idx))
 			if !setBasic {
 				mcs = append(mcs, jen.Id(basicName).Line())
 				setBasic = true
 			}
 		} else {
-			mcs = append(mcs, field.Code(i))
+			mcs = append(mcs, field.Code(idx))
 		}
 		if field.isMeta() {
 			hasMeta = true

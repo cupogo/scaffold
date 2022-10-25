@@ -83,7 +83,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	var hasMeta bool
 	var hasOwner bool
 	var idx int
-	for i, field := range m.Fields {
+	for _, field := range m.Fields {
 		if !field.IsSet || field.isEmbed() {
 			if field.isMeta() {
 				hasMeta = true
@@ -92,7 +92,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			}
 			continue
 		}
-		idx = i
+		idx++
 		var code *jen.Statement
 		if len(field.Comment) > 0 {
 			code = jen.Comment(field.Comment).Line()
@@ -222,9 +222,7 @@ func (m *Model) hasAudit() bool {
 	return false
 }
 
-func (m *Model) hasModHook() (bool, string, string) {
-	var tIDField string
-	var tDateFields string
+func (m *Model) hasModHook() (ok bool, idf string, dtf string) {
 	for _, field := range m.Fields {
 		typ := field.getType()
 		if strings.HasSuffix(typ, modelDefault) {
@@ -237,17 +235,19 @@ func (m *Model) hasModHook() (bool, string, string) {
 			return false, modelSerial, modelSerial
 		}
 
-		if strings.Contains(typ, "IDField") {
-			tIDField = "IDField"
+		if strings.Contains(typ, "IDField") { // .IDField, .IDFieldStr
+			idf = "IDField"
+		} else if strings.HasSuffix(typ, "SerialField") {
+			idf = "SerialField"
 		} else if strings.HasSuffix(typ, "DateFields") {
-			tDateFields = "DateFields"
+			dtf = "DateFields"
 		}
 	}
 
-	if len(tIDField) > 0 && len(tDateFields) > 0 {
-		return true, tIDField, tDateFields
+	if len(idf) > 0 && len(dtf) > 0 {
+		ok = idf == "IDField"
 	}
-	return false, tIDField, tDateFields
+	return
 }
 
 func (mod *Model) IsTable() bool {
