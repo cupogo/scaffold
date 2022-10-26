@@ -7,19 +7,19 @@ import (
 	"strings"
 
 	"github.com/dave/jennifer/jen"
-	"github.com/jinzhu/inflection"
 )
 
 type Model struct {
-	Comment  string   `yaml:"comment,omitempty"`
-	Name     string   `yaml:"name"`
-	TableTag string   `yaml:"tableTag,omitempty"`
-	Fields   Fields   `yaml:"fields"`
-	Plural   string   `yaml:"plural,omitempty"`
-	OIDCat   string   `yaml:"oidcat,omitempty"`
-	StoHooks Tags     `yaml:"hooks,omitempty"`
-	Sifters  []string `yaml:"sifters,omitempty"`
-	SpecUp   string   `yaml:"specUp,omitempty"`
+	Comment    string   `yaml:"comment,omitempty"`
+	Name       string   `yaml:"name"`
+	TableTag   string   `yaml:"tableTag,omitempty"`
+	Fields     Fields   `yaml:"fields"`
+	Plural     string   `yaml:"plural,omitempty"`
+	OIDCat     string   `yaml:"oidcat,omitempty"`
+	StoHooks   Tags     `yaml:"hooks,omitempty"`
+	SpecExtras Fields   `yaml:"specExtras,omitempty"`
+	Sifters    []string `yaml:"sifters,omitempty"`
+	SpecUp     string   `yaml:"specUp,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
@@ -37,7 +37,7 @@ func (m *Model) String() string {
 
 func (m *Model) GetPlural() string {
 	if m.Plural == "" {
-		m.Plural = inflection.Plural(m.Name)
+		m.Plural = Plural(m.Name)
 	}
 	return m.Plural
 }
@@ -373,12 +373,14 @@ func (m *Model) getSpecCodes() jen.Code {
 		fcs = append(fcs, jen.Id("TextSearchSpec"))
 	}
 
+	var idx int
 	specFields := m.specFields()
 	if len(specFields) > 0 {
 		// log.Printf("specFields: %+v", specFields)
 		fcs = append(fcs, jen.Empty())
-		for i, field := range specFields {
-			fcs = append(fcs, field.queryCode(i, m.doc.getModQual(field.getType())))
+		for _, field := range specFields {
+			fcs = append(fcs, field.queryCode(idx, m.doc.getModQual(field.getType())))
+			idx++
 		}
 
 	}
@@ -397,7 +399,12 @@ func (m *Model) getSpecCodes() jen.Code {
 			Name: withRel,
 			Type: ftyp, Tags: Tags{"json": jtag},
 			Comment: "include relation column"}
-		fcs = append(fcs, jen.Empty(), field.queryCode(len(specFields)))
+		fcs = append(fcs, jen.Empty(), field.queryCode(idx))
+		idx++
+	}
+	for _, field := range m.SpecExtras {
+		fcs = append(fcs, field.queryCode(idx, m.doc.getModQual(field.getType())))
+		idx++
 	}
 
 	tname := m.Name + "Spec"
@@ -650,9 +657,24 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 				}
 			}
 
-			g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("List").Call(
-				jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
-			)
+			isPG10 := m.doc.IsPG10()
+			if hkBL, okBL := m.hasStoreHook(beforeList); okBL {
+				jdataptr := jen.Op("&").Id("data")
+				jspec := jen.Id("spec")
+				var jcall jen.Code
+				if isPG10 {
+					jcall = jen.Dot("ModelContext").Call(jen.Id("ctx"), jdataptr)
+				} else {
+					jcall = jen.Dot("NewSelect").Call().Dot("Model").Call(jdataptr)
+				}
+				g.Id("q").Op(":=").Add(swdb, jcall) //.Dot("Apply").Call(jen.Id("spec").Dot("Sift"))
+				g.If(jen.Err().Op("=").Id("s").Dot(hkBL).Call(jen.Id("ctx"), jspec, jen.Id("q")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jspec, jen.Id("q"))
+			} else {
+				g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("List").Call(
+					jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
+				)
+			}
 
 			if hkAL, okAL := m.hasStoreHook(afterList); okAL {
 				g.If(jen.Err().Op("==").Nil().Op("&&").Len(jen.Id("data")).Op(">0")).Block(

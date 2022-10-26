@@ -274,7 +274,7 @@ func HookMethod(model string, k, v string) (string, bool) {
 		}
 	}
 	switch k {
-	case afterLoad, afterList, afterCreated, afterUpdated, afterDeleted:
+	case afterLoad, afterList, beforeList, afterCreated, afterUpdated, afterDeleted:
 		return k + model, true
 	}
 	return "", false

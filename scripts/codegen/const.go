@@ -46,4 +46,5 @@ const (
 	afterDeleted   = "afterDeleted"
 	afterLoad      = "afterLoad"
 	afterList      = "afterList"
+	beforeList     = "beforeList"
 )
