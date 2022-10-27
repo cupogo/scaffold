@@ -9,7 +9,9 @@ import (
 	"github.com/cupogo/andvari/database/embeds"
 	"github.com/cupogo/andvari/models/comm"
 	"github.com/cupogo/andvari/stores/pgx"
+	"github.com/cupogo/andvari/utils"
 	"github.com/cupogo/andvari/utils/zlog"
+
 	"github.com/cupogo/scaffold/pkg/settings"
 )
 
@@ -51,6 +53,7 @@ var (
 	siftOID   = pgx.SiftOID   //nolint
 	siftOIDs  = pgx.SiftOIDs  //nolint
 	siftDate  = pgx.SiftDate  //nolint
+	isZero    = utils.IsZero  //nolint
 
 	ContextWithColumns  = pgx.ContextWithColumns
 	ColumnsFromContext  = pgx.ColumnsFromContext
