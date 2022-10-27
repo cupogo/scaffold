@@ -57,10 +57,10 @@ func (m *Model) TableField() jen.Code {
 	if tt == "" {
 		tt = Underscore(m.GetPlural())
 	}
+	if m.doc.IsPG10() {
 	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
 		tt += ",discard_unknown_columns"
 	}
-	if m.doc.IsPG10() {
 		return jen.Id("tableName").Add(jen.Struct()).Tag(Tags{"pg": tt}).Line()
 	}
 	return jen.Id("comm.BaseModel").Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
