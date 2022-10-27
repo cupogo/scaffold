@@ -58,9 +58,9 @@ func (m *Model) TableField() jen.Code {
 		tt = Underscore(m.GetPlural())
 	}
 	if m.doc.IsPG10() {
-	if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
-		tt += ",discard_unknown_columns"
-	}
+		if m.DiscardUnknown && !strings.Contains(tt, "discard_unknown_columns") {
+			tt += ",discard_unknown_columns"
+		}
 		return jen.Id("tableName").Add(jen.Struct()).Tag(Tags{"pg": tt}).Line()
 	}
 	return jen.Id("comm.BaseModel").Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
@@ -669,7 +669,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 				}
 				g.Id("q").Op(":=").Add(swdb, jcall) //.Dot("Apply").Call(jen.Id("spec").Dot("Sift"))
 				g.If(jen.Err().Op("=").Id("s").Dot(hkBL).Call(jen.Id("ctx"), jspec, jen.Id("q")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
-				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jspec, jen.Id("q"))
+				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jen.Id("ctx"), jspec, jen.Id("q"))
 			} else {
 				g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("List").Call(
 					jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
@@ -920,10 +920,10 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 					),
 				}
 				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-					g.If(jen.Id("in").Dot(fn).Op("==").Nil()).Block(
+					g.If(jen.Id("isZero").Call(jen.Id("obj").Dot(fn))).Block(
 						jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
 						jen.Return())
-					cpms = append(cpms, jen.Lit(cn), jen.Op("*").Id("in").Dot(fn))
+					cpms = append(cpms, jen.Lit(cn), jen.Id("obj").Dot(fn))
 				}
 				g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
 			}
