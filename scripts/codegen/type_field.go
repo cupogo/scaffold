@@ -196,13 +196,19 @@ func (f *Field) ColName() (cn string, hascol bool, unique bool) {
 	return
 }
 
-func (f *Field) relMode() (string, bool) {
-	if s, ok := f.Tags.GetAny("pg", "bun"); ok && len(s) > 4 {
+func (f *Field) relMode(dbtag ...string) (string, bool) {
+	if len(dbtag) == 0 {
+		dbtag = []string{"pg", "bun"}
+	}
+	if s, ok := f.Tags.GetAny(dbtag...); ok && len(s) > 4 {
+		if strings.HasPrefix(s, "rel:belongs-to") {
+			return relBelongsTo, true
+		}
 		if strings.HasPrefix(s, "rel:has-one") {
-			return "has-one", true
+			return relHasOne, true
 		}
 		if strings.HasPrefix(s, "rel:has-many") {
-			return "has-many", true
+			return relMasMany, true
 		}
 	}
 	return "", false

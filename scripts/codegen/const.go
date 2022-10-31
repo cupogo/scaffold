@@ -17,6 +17,12 @@ const (
 	modelSerial  = "SerialModel"
 )
 
+const (
+	relBelongsTo = "belongs-to"
+	relHasOne    = "has-one"
+	relMasMany   = "has-many"
+)
+
 // consts of qual
 const (
 	ginQual = "github.com/gin-gonic/gin"
