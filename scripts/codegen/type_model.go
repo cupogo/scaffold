@@ -43,11 +43,29 @@ func (m *Model) GetPlural() string {
 }
 
 func (m *Model) tableName() string {
+	if m.TableTag == "" {
+		return Underscore(m.GetPlural())
+	}
 	tt := m.TableTag
-	if tt == "" {
-		tt = Underscore(m.GetPlural())
-	} else if pos := strings.Index(tt, ","); pos > 0 {
+	if pos := strings.Index(tt, "table:"); pos > -1 {
+		tt = tt[pos+6:]
+	}
+	if pos := strings.Index(tt, ","); pos > 0 {
 		tt = tt[0:pos]
+	}
+	return tt
+}
+
+func (m *Model) tableAlias() string {
+	if m.TableTag == "" {
+		return Underscore(m.GetPlural())
+	}
+	tt := m.TableTag
+	if pos := strings.Index(tt, "alias:"); pos > -1 {
+		return tt[pos+6:]
+	}
+	if pos := strings.Index(tt, "table:"); pos > -1 {
+		tt = tt[pos+6:]
 	}
 	return tt
 }
@@ -426,10 +444,12 @@ func (m *Model) getSpecCodes() jen.Code {
 		st.BlockFunc(func(g *jen.Group) {
 			if len(relNames) > 0 && !okAL {
 				log.Printf("%s relNames %+v", m.Name, relNames)
+				// g.Var().Id("pre").String()
 				g.If(jen.Id("spec").Dot(withRel)).BlockFunc(func(g *jen.Group) {
 					for _, relName := range relNames {
 						g.Id("q").Dot("Relation").Call(jen.Lit(relName))
 					}
+					// g.Id("pre").Op("=").Lit("?TableAlias.")
 				}).Line()
 			}
 			g.Add(jfsiftcall("ModelSpec"))
@@ -450,6 +470,9 @@ func (m *Model) getSpecCodes() jen.Code {
 					i++
 				}
 				cn, _, _ := field.ColName()
+				if !isPG10 && len(withRel) > 0 {
+					cn = m.tableAlias() + "." + cn
+				}
 				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name)}
 				cfn := field.siftFn
 				if field.isDate && field.isIntDt {
@@ -671,7 +694,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.If(jen.Err().Op("=").Id("s").Dot(hkBL).Call(jen.Id("ctx"), jspec, jen.Id("q")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
 				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jen.Id("ctx"), jspec, jen.Id("q"))
 			} else {
-				g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("List").Call(
+				g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("ListModel").Call(
 					jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
 				)
 			}
