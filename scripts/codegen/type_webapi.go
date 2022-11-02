@@ -169,7 +169,10 @@ func (h *Handle) GetProduce() string {
 
 func (h *Handle) GenID() string {
 	s := h.Route
-	s = strings.TrimPrefix(s, "/api/")
+	if n := strings.Index(s, "/api/"); n >= 0 {
+		s = s[0:n] + s[n+4:]
+	}
+	s = strings.TrimPrefix(s, "/")
 	s = replRoute.Replace(s)
 
 	return strings.TrimSpace(s)
@@ -187,8 +190,16 @@ func (h *Handle) GetPermID() string {
 
 func (h *Handle) GenPathMethod() (string, string) {
 	s := h.Route
-	if strings.HasPrefix(s, "/api/") && len(s) > 13 { // '/api/v1/x [xxx]'
-		if a, b, ok := strings.Cut(s[7:], " "); ok {
+	if n := strings.Index(s, "/api/"); n >= 0 {
+		if len(s) > n+7 {
+			if s[n+6] == '1' && s[n+7] == '/' { // '/api/v1/x [xxx]'
+				n += 7
+			} else {
+				n += 4
+			}
+		}
+
+		if a, b, ok := strings.Cut(s[n:], " "); ok {
 			return replPath.Replace(a), strings.ToUpper(strings.Trim(b, "[]"))
 		}
 	}
