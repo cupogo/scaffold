@@ -72,7 +72,7 @@ package: dist
 	ls dist/darwin_amd64 | xargs tar -cvJf $(NAME)-darwin-amd64-$(TAG).tar.xz -C dist/darwin_amd64
 
 docs/swagger.json: $(WEBAPIS)
-	GO111MODULE=on swag init -g ./pkg/web/docs.go -d ./ --ot json,yaml --parseDependency
+	GO111MODULE=on swag init -g ./pkg/web/docs.go -d ./ --ot json,yaml --parseDependency --parseInternal
 
 touch-web-api:
 	touch pkg/web/docs.go
