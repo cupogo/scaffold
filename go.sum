@@ -1,7 +1,7 @@
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cupogo/andvari v0.0.0-20221020110313-3311ae52e794 h1:LZH++xQJk9azsUT3gzF3J7rMauyLvD/trcriiQupEn4=
-github.com/cupogo/andvari v0.0.0-20221020110313-3311ae52e794/go.mod h1:RYfahxIUsoVJ/FYQQfxQCWKQ8uxPJ0f7q0XPOGz30bA=
+github.com/cupogo/andvari v0.0.0-20221102170039-e08e387014d6 h1:q0GE5NX1twy3zp4a83lSGKw1Kp1nOfCVjmOFRmb/N5g=
+github.com/cupogo/andvari v0.0.0-20221102170039-e08e387014d6/go.mod h1:YyFU+4+mi9xoPLUG8WUAiwaLgMVPg5YNlPDbCSq7y6Q=
 github.com/dave/dst v0.27.1 h1:TO1Jlnfvkxj5OrJTqUexWBQKVhim8PfefUDOH0yrLUw=
 github.com/dave/dst v0.27.1/go.mod h1:eF/UOVnw9Ech3NkZFCdtujtISJFRYf11+I93p+RI5S4=
 github.com/dave/jennifer v1.5.1 h1:AI8gaM02nCYRw6/WTH0W+S6UNck9YqPZ05xoIxQtuoE=
@@ -101,6 +101,8 @@ github.com/vmihailenco/msgpack/v5 v5.3.5 h1:5gO0H1iULLWGhs2H5tbAHIZTV8/cYafcFOr9
 github.com/vmihailenco/msgpack/v5 v5.3.5/go.mod h1:7xyJ9e+0+9SaZT0Wt1RGleJXzli6Q/V5KbhBonMG9jc=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
+github.com/yalue/merged_fs v1.2.2 h1:vXHTpJBluJryju7BBpytr3PDIkzsPMpiEknxVGPhN/I=
+github.com/yalue/merged_fs v1.2.2/go.mod h1:WqqchfVYQyclV2tnR7wtRhBddzBvLVR83Cjw9BKQw0M=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
 go.uber.org/multierr v1.6.0 h1:y6IPFStTAIT5Ytl7/XYmHvzXQ7S3g/IeZW9hyZ5thw4=

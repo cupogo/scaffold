@@ -3,7 +3,7 @@ module github.com/cupogo/scaffold
 go 1.18
 
 require (
-	github.com/cupogo/andvari v0.0.0-20221031040201-6c166e36f179
+	github.com/cupogo/andvari v0.0.0-20221102170039-e08e387014d6
 	github.com/dave/dst v0.27.1
 	github.com/dave/jennifer v1.5.1
 	github.com/gin-gonic/gin v1.7.7
@@ -35,6 +35,7 @@ require (
 	github.com/uptrace/bun/driver/pgdriver v1.1.8 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/yalue/merged_fs v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
