@@ -10,6 +10,11 @@ import (
 	"github.com/cupogo/scaffold/pkg/web/routes"
 )
 
+type Done = resp.Done
+type Failure = resp.Failure
+type ResultData = resp.ResultData
+type ResultID = resp.ResultID
+
 var handles = []handleIn{}
 
 type haFunc func(a *api) gin.HandlerFunc

@@ -53,11 +53,11 @@ func init() {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Success 200 {object} resp.Done{result=cms1.Clause}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 404 {object} resp.Failure "目标未找到"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=cms1.Clause}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 404 {object} Failure "目标未找到"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/clauses/{id} [get]
 func (a *api) getCmsClause(c *gin.Context) {
 	id := c.Param("id")
@@ -78,11 +78,11 @@ func (a *api) getCmsClause(c *gin.Context) {
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
 // @Param   query  formData   cms1.ClauseSet  true   "Object"
-// @Success 200 {object} resp.Done{result=string}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 403 {object} resp.Failure "无权限"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=string}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/clauses/{id} [put]
 func (a *api) putCmsClause(c *gin.Context) {
 	id := c.Param("id")
@@ -107,11 +107,11 @@ func (a *api) putCmsClause(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   query  query   stores.ClauseSpec  true   "Object"
-// @Success 200 {object} resp.Done{result=resp.ResultData{data=cms1.Clauses}}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 404 {object} resp.Failure "目标未找到"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=ResultData{data=cms1.Clauses}}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 404 {object} Failure "目标未找到"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/clauses [get]
 func (a *api) getCmsClauses(c *gin.Context) {
 	var spec stores.ClauseSpec
@@ -137,11 +137,11 @@ func (a *api) getCmsClauses(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Success 200 {object} resp.Done
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 403 {object} resp.Failure "无权限"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/clauses/{id} [delete]
 func (a *api) deleteCmsClause(c *gin.Context) {
 	id := c.Param("id")
@@ -159,11 +159,11 @@ func (a *api) deleteCmsClause(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param   query  query   stores.ArticleSpec  true   "Object"
-// @Success 200 {object} resp.Done{result=resp.ResultData{data=cms1.Articles}}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 404 {object} resp.Failure "目标未找到"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=ResultData{data=cms1.Articles}}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 404 {object} Failure "目标未找到"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles [get]
 func (a *api) getContentArticles(c *gin.Context) {
 	var spec stores.ArticleSpec
@@ -187,11 +187,11 @@ func (a *api) getContentArticles(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param   id    path   string  true   "编号"
-// @Success 200 {object} resp.Done{result=cms1.Article}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 404 {object} resp.Failure "目标未找到"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=cms1.Article}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 404 {object} Failure "目标未找到"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [get]
 func (a *api) getContentArticle(c *gin.Context) {
 	id := c.Param("id")
@@ -211,11 +211,11 @@ func (a *api) getContentArticle(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   query  formData   cms1.ArticleBasic  true   "Object"
-// @Success 200 {object} resp.Done{result=resp.ResultID}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 403 {object} resp.Failure "无权限"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=ResultID}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles [post]
 func (a *api) postContentArticle(c *gin.Context) {
 	var in cms1.ArticleBasic
@@ -241,11 +241,11 @@ func (a *api) postContentArticle(c *gin.Context) {
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
 // @Param   query  formData   cms1.ArticleSet  true   "Object"
-// @Success 200 {object} resp.Done{result=string}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 403 {object} resp.Failure "无权限"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=string}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [put]
 func (a *api) putContentArticle(c *gin.Context) {
 	id := c.Param("id")
@@ -271,11 +271,11 @@ func (a *api) putContentArticle(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Success 200 {object} resp.Done
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 403 {object} resp.Failure "无权限"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [delete]
 func (a *api) deleteContentArticle(c *gin.Context) {
 	id := c.Param("id")
@@ -293,11 +293,11 @@ func (a *api) deleteContentArticle(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param   query  query   stores.AttachmentSpec  true   "Object"
-// @Success 200 {object} resp.Done{result=resp.ResultData{data=cms1.Attachments}}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 404 {object} resp.Failure "目标未找到"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=ResultData{data=cms1.Attachments}}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 404 {object} Failure "目标未找到"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/attachments [get]
 func (a *api) getContentAttachments(c *gin.Context) {
 	var spec stores.AttachmentSpec
@@ -321,11 +321,11 @@ func (a *api) getContentAttachments(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param   id    path   string  true   "编号"
-// @Success 200 {object} resp.Done{result=cms1.Attachment}
-// @Failure 400 {object} resp.Failure "请求或参数错误"
-// @Failure 401 {object} resp.Failure "未登录"
-// @Failure 404 {object} resp.Failure "目标未找到"
-// @Failure 503 {object} resp.Failure "服务端错误"
+// @Success 200 {object} Done{result=cms1.Attachment}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 404 {object} Failure "目标未找到"
+// @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/attachments/{id} [get]
 func (a *api) getContentAttachment(c *gin.Context) {
 	id := c.Param("id")

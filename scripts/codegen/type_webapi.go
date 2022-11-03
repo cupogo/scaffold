@@ -10,11 +10,11 @@ import (
 )
 
 var preFails = map[int]string{
-	400: `400 {object} resp.Failure "请求或参数错误"`,
-	401: `401 {object} resp.Failure "未登录"`,
-	403: `403 {object} resp.Failure "无权限"`,
-	404: `404 {object} resp.Failure "目标未找到"`,
-	503: `503 {object} resp.Failure "服务端错误"`,
+	400: `400 {object} Failure "请求或参数错误"`,
+	401: `401 {object} Failure "未登录"`,
+	403: `403 {object} Failure "无权限"`,
+	404: `404 {object} Failure "目标未找到"`,
+	503: `503 {object} Failure "服务端错误"`,
 }
 
 var msmethods = map[string]string{
@@ -280,19 +280,19 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 		if len(mth.Rets) > 0 && mth.Rets[0].Type != "error" {
 			success = true
 			if act == "List" {
-				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultData{data=" + mth.Rets[0].Type + "}}").Line()
+				st.Comment("@Success 200 {object} Done{result=ResultData{data=" + mth.Rets[0].Type + "}}").Line()
 			} else if act == "Create" {
-				st.Comment("@Success 200 {object} resp.Done{result=resp.ResultID}").Line()
+				st.Comment("@Success 200 {object} Done{result=ResultID}").Line()
 			} else {
-				st.Comment("@Success 200 {object} resp.Done{result=" + mth.Rets[0].Type + "}").Line()
+				st.Comment("@Success 200 {object} Done{result=" + mth.Rets[0].Type + "}").Line()
 			}
 		}
 	}
 	if !success {
 		if act == "Put" || act == "Update" {
-			st.Comment("@Success 200 {object} resp.Done{result=string}").Line()
+			st.Comment("@Success 200 {object} Done{result=string}").Line()
 		} else {
-			st.Comment("@Success 200 {object} resp.Done").Line()
+			st.Comment("@Success 200 {object} Done").Line()
 		}
 	}
 	for _, fi := range h.GetFails(act) {

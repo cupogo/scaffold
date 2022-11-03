@@ -137,7 +137,7 @@ type contentStore struct {
 }
 
 func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error) {
-	total, err = s.w.db.List(ctx, spec, &data)
+	total, err = s.w.db.ListModel(ctx, spec, &data)
 	return
 }
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
@@ -161,7 +161,7 @@ func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
 	spec.SetTsConfig(s.w.db.GetTsCfg())
 	spec.SetTsFallback("title", "content")
-	total, err = s.w.db.List(ctx, spec, &data)
+	total, err = s.w.db.ListModel(ctx, spec, &data)
 	return
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
@@ -222,7 +222,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 }
 
 func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error) {
-	total, err = s.w.db.List(ctx, spec, &data)
+	total, err = s.w.db.ListModel(ctx, spec, &data)
 	return
 }
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
