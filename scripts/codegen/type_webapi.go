@@ -49,13 +49,14 @@ type UriSpot struct {
 }
 
 type WebAPI struct {
-	Pkg      string    `yaml:"pkg"`
-	Handles  []Handle  `yaml:"handles,omitempty"`
-	URIs     []UriSpot `yaml:"uris,omitempty"`
-	HandReg  bool      `yaml:"handReg,omitempty"`
-	NeedAuth bool      `yaml:"needAuth,omitempty"`
-	NeedPerm bool      `yaml:"needPerm,omitempty"`
-	TagLabel string    `yaml:"tagLabel,omitempty"`
+	Pkg       string    `yaml:"pkg"`
+	Handles   []Handle  `yaml:"handles,omitempty"`
+	URIs      []UriSpot `yaml:"uris,omitempty"`
+	HandReg   bool      `yaml:"handReg,omitempty"`
+	NeedAuth  bool      `yaml:"needAuth,omitempty"`
+	NeedPerm  bool      `yaml:"needPerm,omitempty"`
+	TagLabel  string    `yaml:"tagLabel,omitempty"`
+	UriPrefix string    `yaml:"uriPrefix,omitempty"`
 
 	doc *Document
 }
@@ -73,9 +74,13 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	if len(plural) == 0 {
 		log.Printf("WARN: empty name of %s[%s]", us.Model, mod.Name)
 	}
+	prefix := us.Prefix
+	if len(prefix) == 0 {
+		prefix = wa.UriPrefix
+	}
 	uri := us.URI
 	if len(uri) == 0 {
-		uri = us.Prefix + "/" + strings.ToLower(plural)
+		uri = prefix + "/" + strings.ToLower(plural)
 	}
 
 	method := msmethods[mth.action]
@@ -102,6 +107,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 		Store:   stoName,
 		Route:   fmt.Sprintf("%s [%s]", uri, strings.ToLower(method)),
 		Summary: mslabels[mth.action] + cname,
+		prefix:  prefix,
 	}
 	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
 		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm
@@ -151,6 +157,8 @@ type Handle struct {
 	Params   []string `yaml:"params,omitempty"`
 	Success  string   `yaml:"success,omitempty" `
 	Failures []int    `yaml:"failures,flow,omitempty"`
+
+	prefix string
 }
 
 func (h *Handle) GetAccept() string {
@@ -190,6 +198,9 @@ func (h *Handle) GetPermID() string {
 
 func (h *Handle) GenPathMethod() (string, string) {
 	s := h.Route
+	if len(h.prefix) > 0 {
+		s = strings.TrimPrefix(s, h.prefix)
+	}
 	if n := strings.Index(s, "/api/"); n >= 0 {
 		if len(s) > n+7 {
 			if s[n+6] == '1' && s[n+7] == '/' { // '/api/v1/x [xxx]'
@@ -198,10 +209,10 @@ func (h *Handle) GenPathMethod() (string, string) {
 				n += 4
 			}
 		}
-
-		if a, b, ok := strings.Cut(s[n:], " "); ok {
-			return replPath.Replace(a), strings.ToUpper(strings.Trim(b, "[]"))
-		}
+		s = s[n:]
+	}
+	if a, b, ok := strings.Cut(s, " "); ok {
+		return replPath.Replace(a), strings.ToUpper(strings.Trim(b, "[]"))
 	}
 	panic("invalid route: " + s)
 }
