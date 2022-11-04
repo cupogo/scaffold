@@ -74,12 +74,12 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	if len(plural) == 0 {
 		log.Printf("WARN: empty name of %s[%s]", us.Model, mod.Name)
 	}
-	prefix := us.Prefix
-	if len(prefix) == 0 {
-		prefix = wa.UriPrefix
-	}
 	uri := us.URI
 	if len(uri) == 0 {
+		prefix := us.Prefix
+		if len(prefix) == 0 {
+			prefix = wa.UriPrefix
+		}
 		uri = prefix + "/" + strings.ToLower(plural)
 	}
 
@@ -96,6 +96,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	case "List":
 		name = fct + cat + plural
 	}
+	// log.Printf("uri: %s [%s]", uri, method)
 
 	cname := mod.Comment
 	if a, _, ok := strings.Cut(cname, " "); ok {
@@ -107,7 +108,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 		Store:   stoName,
 		Route:   fmt.Sprintf("%s [%s]", uri, strings.ToLower(method)),
 		Summary: mslabels[mth.action] + cname,
-		prefix:  prefix,
+		wa:      wa,
 	}
 	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
 		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm
@@ -158,7 +159,7 @@ type Handle struct {
 	Success  string   `yaml:"success,omitempty" `
 	Failures []int    `yaml:"failures,flow,omitempty"`
 
-	prefix string
+	wa *WebAPI
 }
 
 func (h *Handle) GetAccept() string {
@@ -198,8 +199,8 @@ func (h *Handle) GetPermID() string {
 
 func (h *Handle) GenPathMethod() (string, string) {
 	s := h.Route
-	if len(h.prefix) > 0 {
-		s = strings.TrimPrefix(s, h.prefix)
+	if h.wa != nil && len(h.wa.UriPrefix) > 0 {
+		s = strings.TrimPrefix(s, h.wa.UriPrefix)
 	}
 	if n := strings.Index(s, "/api/"); n >= 0 {
 		if len(s) > n+7 {
