@@ -42,6 +42,16 @@ var replPkg = strings.NewReplacer("_", "", "-", "")
 var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
 var replPath = strings.NewReplacer("{", ":", "}", "")
 
+func GenRouteID(s string) string {
+	if n := strings.Index(s, "/api/"); n >= 0 {
+		s = s[0:n] + s[n+4:]
+	}
+	s = strings.TrimPrefix(s, "/")
+	s = replRoute.Replace(s)
+
+	return strings.TrimSpace(s)
+}
+
 type UriSpot struct {
 	Model  string `yaml:"model"`
 	Prefix string `yaml:"prefix,omitempty"`
@@ -177,14 +187,7 @@ func (h *Handle) GetProduce() string {
 }
 
 func (h *Handle) GenID() string {
-	s := h.Route
-	if n := strings.Index(s, "/api/"); n >= 0 {
-		s = s[0:n] + s[n+4:]
-	}
-	s = strings.TrimPrefix(s, "/")
-	s = replRoute.Replace(s)
-
-	return strings.TrimSpace(s)
+	return GenRouteID(h.Route)
 }
 
 func (h *Handle) GetPermID() string {
