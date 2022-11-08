@@ -120,11 +120,6 @@ func OpenBases(args ...string) (db *pgx.DB, rc redis.UniversalClient, err error)
 	return
 }
 
-// opModelMeta prepare values from Context
-func (w *Wrap) opModelMeta(ctx context.Context, obj comm.ModelMeta, ups ...*comm.MetaDiff) {
-	dbOpModelMeta(ctx, w.db, obj, ups...)
-}
-
 // dbOpModelMeta prepare meta from Context
 func dbOpModelMeta(ctx context.Context, db ormDB, obj comm.ModelMeta, ups ...*comm.MetaDiff) {
 	if len(ups) > 0 {
