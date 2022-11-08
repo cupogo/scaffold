@@ -27,12 +27,12 @@ before_script:
   # Go Environments
   - go env
 
-  - cd ../
-  - ls -al . */*
-  - test -d andvari && git -C andvari checkout develop && git -C andvari pull --rebase origin develop || git clone -b develop https://git.hyyl.xyz/cupola/andvari.git
-  - test -e go.work || go work init ./andvari ./scaffold
-  - cd ${CI_PROJECT_DIR}
-  - ls -al ../*
+  # - cd ../
+  # - ls -al . */*
+  # - test -d andvari && git -C andvari checkout develop && git -C andvari pull --rebase origin develop || git clone -b develop https://git.hyyl.xyz/cupola/andvari.git
+  # - test -e go.work || go work init ./andvari ./scaffold
+  # - cd ${CI_PROJECT_DIR}
+  # - ls -al ../*
 
 
 test-lint:
