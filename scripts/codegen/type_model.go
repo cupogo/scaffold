@@ -340,6 +340,7 @@ func (m *Model) specFields() (out Fields) {
 				f.isOid = true
 				f.siftFn = "sift"
 				f.siftOp = "any"
+				f.Comment += " (多值逗号分隔)"
 			} else if strings.HasSuffix(f.Type, "DateTime") {
 				f.Type = "string"
 				f.isDate = true
