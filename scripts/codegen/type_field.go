@@ -24,6 +24,7 @@ type Field struct {
 	isDate   bool
 	isIntDt  bool
 	siftFn   string
+	siftOp   string
 	siftExt  string
 	multable bool
 	qtype    string

@@ -335,6 +335,11 @@ func (m *Model) specFields() (out Fields) {
 				} else {
 					f.siftFn = "siftOID"
 				}
+			} else if f.Type == "oid.OIDs" {
+				f.Type = "string"
+				f.isOid = true
+				f.siftFn = "sift"
+				f.siftOp = "any"
 			} else if strings.HasSuffix(f.Type, "DateTime") {
 				f.Type = "string"
 				f.isDate = true
@@ -480,6 +485,7 @@ func (m *Model) getSpecCodes() jen.Code {
 				}
 				params = append(params, jen.False())
 				jq := jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
+				jSiftVals := jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit("IN"), jen.Id("vals"), jen.Lit(false))
 				if field.siftExt == "decode" {
 					g.If(jen.Len(jen.Id("spec").Dot(field.Name)).Op(">0")).Block(
 						jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
@@ -487,21 +493,30 @@ func (m *Model) getSpecCodes() jen.Code {
 							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" = ?"), jen.Id("v")),
 						),
 					)
+				} else if field.siftOp == "any" {
+					g.If(jen.Id("vals").Op(":=").Qual("strings", "Split").Call(jen.Id("spec").Dot(field.Name), jen.Lit(",")).Op(";").Len(jen.Id("vals")).Op(">0")).Block(
+						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit(field.siftOp), jen.Id("vals"), jen.Lit(false)),
+					)
 				} else if field.siftExt == "hasVals" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jSiftVals,
 					).Else().Block(jq)
 				} else if field.siftExt == "ints" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jSiftVals,
 					).Else().Block(jq)
 				} else if field.siftExt == "strs" {
 					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseStrs").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jSiftVals,
 					).Else().Block(jq)
 				} else if field.siftExt == "oids" {
 					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(fieldM.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+						jSiftVals,
 					).Else().Block(jq)
 				} else {
 					g.Add(jq)
