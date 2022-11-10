@@ -479,7 +479,8 @@ func (m *Model) getSpecCodes() jen.Code {
 				if !isPG10 && len(withRel) > 0 {
 					cn = m.tableAlias() + "." + cn
 				}
-				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jen.Id("spec").Dot(field.Name)}
+				jSV := jen.Id("spec").Dot(field.Name)
+				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jSV}
 				cfn := field.siftFn
 				if field.isDate && field.isIntDt {
 					params = append(params, jen.True())
@@ -488,14 +489,14 @@ func (m *Model) getSpecCodes() jen.Code {
 				jq := jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
 				jSiftVals := jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit("IN"), jen.Id("vals"), jen.Lit(false))
 				if field.siftExt == "decode" {
-					g.If(jen.Len(jen.Id("spec").Dot(field.Name)).Op(">0")).Block(
+					g.If(jen.Len(jSV).Op(">0")).Block(
 						jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
-						jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jen.Id("spec").Dot(field.Name)).Op(";").Err().Op("==").Nil()).Block(
+						jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jSV).Op(";").Err().Op("==").Nil()).Block(
 							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" = ?"), jen.Id("v")),
 						),
 					)
 				} else if field.siftOp == "any" {
-					g.If(jen.Id("vals").Op(":=").Qual("strings", "Split").Call(jen.Id("spec").Dot(field.Name), jen.Lit(",")).Op(";").Len(jen.Id("vals")).Op(">0")).Block(
+					g.If(jen.Id("vals").Op(":=").Qual("strings", "Split").Call(jSV, jen.Lit(",")).Op(";").Len(jSV).Op(">0").Op("&&").Len(jen.Id("vals")).Op(">0")).Block(
 						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
 						jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit(field.siftOp), jen.Id("vals"), jen.Lit(false)),
 					)
