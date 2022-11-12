@@ -476,6 +476,9 @@ func (m *Model) getSpecCodes() jen.Code {
 					i++
 				}
 				cn, _, _ := field.ColName()
+				if len(cn) == 0 {
+					continue
+				}
 				if !isPG10 && len(withRel) > 0 {
 					cn = m.tableAlias() + "." + cn
 				}
