@@ -475,8 +475,8 @@ func (m *Model) getSpecCodes() jen.Code {
 					field = specFields[i+1]
 					i++
 				}
-				cn, _, _ := field.ColName()
-				if len(cn) == 0 {
+				cn, indb, _ := field.ColName()
+				if !indb {
 					continue
 				}
 				if !isPG10 && len(withRel) > 0 {
