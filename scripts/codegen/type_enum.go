@@ -20,6 +20,7 @@ type Enum struct {
 
 	Decodable       bool `yaml:"decodable,omitempty"`
 	Stringer        bool `yaml:"stringer,omitempty"`
+	TextMarshaler   bool `yaml:"textMarshaler,omitempty"`
 	TextUnmarshaler bool `yaml:"textUnmarshaler,omitempty"`
 	Multiple        bool `yaml:"multiple,omitempty"`
 	Shorted         bool `yaml:"shorted,omitempty"`
@@ -42,16 +43,21 @@ func (e *Enum) Code() jen.Code {
 	st := jen.Comment(e.Comment).Line()
 	st.Type().Id(e.Name).Id(e.Type).Line()
 
-	if len(e.Values) > 0 {
+	if len(e.Values) > 1 {
+		zeroStart := e.Start < 1
+		var zeroValue *EnumVal
 		st.Const().DefsFunc(func(g *jen.Group) {
+			vals := e.Values
 			op := "+"
 			if e.Multiple {
-				if e.Start < 1 {
+				if zeroStart {
 					e.Start = 1
+					zeroValue = &vals[0]
+					vals = vals[1:]
 				}
 				op = "<<"
 			}
-			for i, ev := range e.Values {
+			for i, ev := range vals {
 				val := e.Start + i
 				if e.Multiple {
 					val = e.Start << i
@@ -63,6 +69,11 @@ func (e *Enum) Code() jen.Code {
 				} else {
 					g.Id(name).Comment(cmt)
 				}
+			}
+
+			if zeroValue != nil {
+				g.Line()
+				g.Id(e.Name + zeroValue.Suffix).Id(e.Name).Op("=0").Comment(zeroValue.Label)
 			}
 		})
 
@@ -96,7 +107,7 @@ func (e *Enum) Code() jen.Code {
 			}
 		}
 
-		if e.Stringer {
+		if e.Stringer || e.TextMarshaler {
 			st.Line()
 			st.Func().Params(jen.Id("z").Id(e.Name)).Id("String").Params().String()
 			st.Block(jen.Switch(jen.Id("z")).BlockFunc(func(g *jen.Group) {
@@ -107,6 +118,12 @@ func (e *Enum) Code() jen.Code {
 				}
 				g.Default().Return(jen.Qual("fmt", "Sprintf").Call(jen.Lit(LcFirst(e.Name)+" %d"), jen.Id(e.Type).Call(jen.Id("z"))))
 			}))
+
+			if e.TextMarshaler {
+				st.Line()
+				st.Func().Params(jen.Id("z").Id(e.Name)).Id("MarshalText").Params().Params(jen.Index().Byte(), jen.Error())
+				st.Block(jen.Return(jen.Index().Byte().Params(jen.Id("z").Dot("String").Call()), jen.Nil()))
+			}
 		}
 	}
 
