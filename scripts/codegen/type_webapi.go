@@ -39,8 +39,8 @@ const paramAuth = `token    header   string  true "登录票据凭证"`
 const swagTags = "默认 文档生成"
 
 var replPkg = strings.NewReplacer("_", "", "-", "")
-var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
 var replPath = strings.NewReplacer("{", ":", "}", "")
+var replRoute = strings.NewReplacer("[", "", "]", "", "{", "", "}", "", "/", "-", " ", "-")
 
 func GenRouteID(s string) string {
 	if n := strings.Index(s, "/api/"); n >= 0 {
