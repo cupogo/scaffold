@@ -46,15 +46,16 @@ func (e *Enum) Code() jen.Code {
 	if len(e.Values) > 1 {
 		zeroStart := e.Start < 1
 		var zeroValue *EnumVal
+		vals := e.Values
+		if e.Multiple && zeroStart {
+			e.Start = 1
+			zeroValue = &vals[0]
+			vals = vals[1:]
+
+		}
 		st.Const().DefsFunc(func(g *jen.Group) {
-			vals := e.Values
 			op := "+"
 			if e.Multiple {
-				if zeroStart {
-					e.Start = 1
-					zeroValue = &vals[0]
-					vals = vals[1:]
-				}
 				op = "<<"
 			}
 			for i, ev := range vals {
@@ -81,7 +82,7 @@ func (e *Enum) Code() jen.Code {
 			st.Line()
 			st.Func().Params(jen.Id("z").Op("*").Id(e.Name)).Id("Decode").Params(jen.Id("s").String()).Error()
 			st.Block(jen.Switch(jen.Id("s")).BlockFunc(func(g *jen.Group) {
-				for i, ev := range e.Values {
+				for i, ev := range vals {
 					val := e.Start + i
 					if e.Multiple {
 						val = e.Start << i
@@ -95,6 +96,15 @@ func (e *Enum) Code() jen.Code {
 					}
 					g.Case(cases...)
 					g.Op("*").Id("z").Op("=").Id(name)
+				}
+				if zeroValue != nil {
+					label := zeroValue.getLabel(e.Shorted)
+					cases := []jen.Code{jen.Lit("0"), jen.Lit(label)}
+					if ss := zeroValue.getLabel(false); ss != label && e.Shorted {
+						cases = append(cases, jen.Lit(ss))
+					}
+					g.Case(cases...)
+					g.Op("*").Id("z").Op("=").Id(e.Name + zeroValue.Suffix)
 				}
 				g.Default().Return(jen.Qual("fmt", "Errorf").Call(jen.Lit("invalid "+LcFirst(e.Name)+": %q"), jen.Id("s")))
 
