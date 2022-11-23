@@ -26,6 +26,7 @@ type Model struct {
 	WithColumnList bool `yaml:"withColumnList,omitempty"` // List时允许定制列
 	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 已存在保存时生效的数据表触发器
 	WithCreatedSet bool `yaml:"withCreatedSet,omitempty"` // 开放created的设置
+	ForceCreate    bool `yaml:"forceCreate,omitempty"`    // 强行创建不报错
 
 	doc *Document
 	pkg string
@@ -782,6 +783,8 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Err().Op("=").Id("ErrEmptyKey"),
 					jen.Return())
 				targs = append(targs, jen.Lit(cn))
+			} else if mod.ForceCreate {
+				targs = append(targs, jen.Lit(true))
 			}
 
 			if jt, ok := mod.textSearchCodes("obj"); ok {
