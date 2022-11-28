@@ -207,6 +207,7 @@ func (m *Model) Codes() jen.Code {
 	if jhk := m.hookModelCodes(); jhk != nil {
 		st.Add(jhk)
 	}
+	st.Add(m.basicCodes())
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
@@ -298,6 +299,20 @@ func (m *Model) hookModelCodes() (st *jen.Statement) {
 		).Line()
 
 	}
+	return st
+}
+
+func (m *Model) basicCodes() jen.Code {
+	st := new(jen.Statement)
+	basicName := m.Name + "Basic"
+	st.Func().Id("New" + m.Name + "WithBasic").Params(jen.Id("in").Id(basicName)).Op("*").Id(m.Name).BlockFunc(func(g *jen.Group) {
+		g.Id("obj").Op(":=&").Id(m.Name).Block(jen.Id(basicName).Op(":").Id("in").Op(","))
+		if m.hasMeta() {
+			g.Op("_=").Id("obj").Dot("MetaUp").Call(jen.Id("in").Dot("MetaDiff"))
+		}
+		g.Return(jen.Id("obj"))
+	})
+	st.Line()
 	return st
 }
 
@@ -775,7 +790,8 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 	return []jen.Code{jen.Id("in").Qual(mod.getIPath(), tname)},
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
-			g.Id("obj").Op("=&").Qual(mod.getIPath(), mod.Name).Block(jen.Id(tname).Op(":").Id("in").Op(","))
+			nname := "New" + mod.Name + "WithBasic"
+			g.Id("obj").Op("=").Qual(mod.getIPath(), nname).Call(jen.Id("in"))
 
 			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
@@ -811,8 +827,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 							)
 						}
 						if mod.hasMeta() {
-							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"),
-								jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
+							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj"))
 						}
 
 						g2.Err().Op("=").Id("dbInsert").Call(targs...)
@@ -835,8 +850,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			} else {
 				if mod.hasMeta() {
-					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb,
-						jen.Id("obj"), jen.Id("obj").Dot("MetaDiff"))
+					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
 				}
 
 				g.Err().Op("=").Id("dbInsert").Call(targs...)
