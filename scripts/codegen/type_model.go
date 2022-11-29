@@ -27,6 +27,9 @@ type Model struct {
 	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 已存在保存时生效的数据表触发器
 	WithCreatedSet bool `yaml:"withCreatedSet,omitempty"` // 开放created的设置
 	ForceCreate    bool `yaml:"forceCreate,omitempty"`    // 强行创建不报错
+	PostNew        bool `yaml:"postNew,omitempty"`
+	PreSet         bool `yaml:"preSet,omitempty"`
+	PostSet        bool `yaml:"postSet,omitempty"`
 
 	doc *Document
 	pkg string
@@ -99,6 +102,9 @@ func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
 }
 
 func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
+	if m.PreSet {
+		scs = append(scs, jen.Id("z").Dot("PreSet").Call(jen.Op("&").Id("o")))
+	}
 	var hasMeta bool
 	var hasOwner bool
 	var idx int
@@ -183,6 +189,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	scs = append(scs, jen.If(jen.Len(jen.Id("cs")).Op(">").Lit(0)).Block(
 		jen.Id("z").Dot("SetChange").Call(jen.Id("cs").Op("...")),
 	))
+	if m.PostSet {
+		scs = append(scs, jen.Id("z").Dot("PostSet").Call(jen.Op("&").Id("o")))
+	}
 	return
 }
 
@@ -309,6 +318,9 @@ func (m *Model) basicCodes() jen.Code {
 		g.Id("obj").Op(":=&").Id(m.Name).Block(jen.Id(basicName).Op(":").Id("in").Op(","))
 		if m.hasMeta() {
 			g.Op("_=").Id("obj").Dot("MetaUp").Call(jen.Id("in").Dot("MetaDiff"))
+		}
+		if m.PostNew {
+			g.Id("obj").Dot("PostNew").Call(jen.Op("&").Id("in"))
 		}
 		g.Return(jen.Id("obj"))
 	})

@@ -49,11 +49,19 @@
 
 - `oidcat`:  指定使用在oid包中定义的类型名称
 
-- `discardUnknown`: 布尔类型，忽略未知的列
+- `discardUnknown`: 布尔类型，忽略未知的列，只`pg`需要，`bun`设定在连接时
 
 - `withColumnGet`: 布尔类型，Get时允许定制列
 
 - `dbTriggerSave`: 布尔类型，已存在保存时生效的数据表触发器
+
+- `forceCreate`: 布尔类型，强行创建不报错
+
+- `postNew`: 布尔类型，在函数`NewModelWithBasic`结束前调用
+
+- `preSet`: 布尔类型，在方法`SetWith`开始前调用
+
+- `postSet`: 布尔类型，在方法`SetWith`结束前调用
 
 - `hooks`：字典类型，钩子方法集
 
