@@ -255,6 +255,9 @@ func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 		} else {
 			tags["form"] = f.Tags["form"]
 		}
+		if f.Tags.Has(TagSwaggerIgnore) {
+			tags[TagSwaggerIgnore] = f.Tags[TagSwaggerIgnore]
+		}
 		tags.extOrder(idx + 1)
 		st.Tag(tags)
 	}

@@ -49,9 +49,9 @@ func (m Tags) extOrder(idx int) {
 	if idx > 55 { // max ascii offset
 		return
 	}
-	if _, ok := m["swaggerignore"]; !ok {
-		if _, ok = m["extensions"]; !ok {
-			m["extensions"] = fmt.Sprintf("x-order=%c", getRune(idx))
+	if _, ok := m[TagSwaggerIgnore]; !ok {
+		if _, ok = m[TagExtensions]; !ok {
+			m[TagExtensions] = fmt.Sprintf("x-order=%c", getRune(idx))
 		}
 	}
 }

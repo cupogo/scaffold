@@ -621,7 +621,7 @@ func (m *Model) StoreHooks() (out []storeHook) {
 }
 
 func metaUpCode(a ...bool) jen.Code {
-	tags := Tags{"json": "metaUp,omitempty", "swaggerignore": "true"}
+	tags := Tags{"json": "metaUp,omitempty", TagSwaggerIgnore: "true"}
 	if len(a) > 0 && a[0] {
 		tags["bson"] = "-"
 		tags["bun"] = "-"

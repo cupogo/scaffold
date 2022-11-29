@@ -54,3 +54,8 @@ const (
 	afterList      = "afterList"
 	beforeList     = "beforeList"
 )
+
+const (
+	TagSwaggerIgnore = "swaggerignore"
+	TagExtensions    = "extensions"
+)
