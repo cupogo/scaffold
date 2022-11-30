@@ -7,9 +7,11 @@ import (
 	oid "github.com/cupogo/andvari/models/oid"
 )
 
-// table name of Article 文章
-const TableArticle = "cms_article"
-const TableArticleAlias = "a"
+// consts of Article 文章
+const (
+	ArticleTable = "cms_article"
+	ArticleAlias = "a"
+)
 
 // Article 文章
 type Article struct {
@@ -118,9 +120,11 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	return
 }
 
-// table name of Attachment 附件
-const TableAttachment = "cms_attachment"
-const TableAttachmentAlias = "att"
+// consts of Attachment 附件
+const (
+	AttachmentTable = "cms_attachment"
+	AttachmentAlias = "att"
+)
 
 // Attachment 附件
 type Attachment struct {
@@ -191,9 +195,11 @@ func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 	return
 }
 
-// table name of Clause 条款
-const TableClause = "cms_clause"
-const TableClauseAlias = "c"
+// consts of Clause 条款
+const (
+	ClauseTable = "cms_clause"
+	ClauseAlias = "c"
+)
 
 // Clause 条款
 type Clause struct {

@@ -200,9 +200,11 @@ func (m *Model) Codes() jen.Code {
 	basicName := m.Name + "Basic"
 	var cs []jen.Code
 	if m.IsTable() {
-		st.Comment("table name of " + m.Name + " " + m.Comment).Line()
-		st.Const().Id("Table" + m.Name).Op("=").Lit(m.tableName()).Line()
-		st.Const().Id("Table" + m.Name + "Alias").Op("=").Lit(m.tableAlias()).Line()
+		st.Comment("consts of " + m.Name + " " + m.Comment).Line()
+		st.Const().DefsFunc(func(g *jen.Group) {
+			g.Id(m.Name + "Table").Op("=").Lit(m.tableName())
+			g.Id(m.Name + "Alias").Op("=").Lit(m.tableAlias())
+		}).Line()
 		cs = append(cs, m.TableField())
 	}
 	mcs, bcs := m.Fields.Codes(basicName)
