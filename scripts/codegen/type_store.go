@@ -86,19 +86,16 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 	// }
 
 	for _, mth := range s.Methods {
+
 		var args, rets []jen.Code
 		var cs *jen.Statement
-		act, mname, ok := cutMethod(mth.Name)
-		if !ok {
-			log.Fatalf("inalid method: %s", mth.Name)
-			return
-		}
-		mod, modok := doc.modelWithName(mname)
+
+		mod, modok := doc.modelWithName(mth.model)
 		if !modok {
-			panic("invalid model: " + mname)
+			panic("invalid model: " + mth.model)
 		}
 
-		switch act {
+		switch mth.action {
 		case "List":
 			tcs = append(tcs, mod.getSpecCodes())
 			args, rets, cs = mod.codestoreList()
@@ -126,7 +123,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 			bcs = append(bcs, cs.Line())
 			nap = append(nap, true)
 		default:
-			log.Printf("unknown action: %s", act)
+			log.Printf("unknown action: %s", mth.action)
 			bcs = append(bcs, jen.Block())
 			nap = append(nap, false)
 		}
