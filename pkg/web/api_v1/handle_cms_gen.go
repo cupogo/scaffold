@@ -73,7 +73,7 @@ func (a *api) getCmsClause(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-clauses-id-put
 // @Summary 录入内容条款
-// @Accept json
+// @Accept mpfd,json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
@@ -207,7 +207,7 @@ func (a *api) getContentArticle(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-post
 // @Summary 录入文章
-// @Accept json
+// @Accept mpfd,json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   query  formData   cms1.ArticleBasic  true   "Object"
@@ -236,7 +236,7 @@ func (a *api) postContentArticle(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-id-put
 // @Summary 更新文章
-// @Accept json
+// @Accept mpfd,json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"

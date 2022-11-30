@@ -49,6 +49,13 @@ func (z *Article) Creating() error {
 
 	return z.DefaultModel.Creating()
 }
+func NewArticleWithBasic(in ArticleBasic) *Article {
+	obj := &Article{
+		ArticleBasic: in,
+	}
+	_ = obj.MetaUp(in.MetaDiff)
+	return obj
+}
 
 type ArticleSet struct {
 	// 作者
@@ -136,6 +143,12 @@ func (z *Attachment) Creating() error {
 
 	return z.DefaultModel.Creating()
 }
+func NewAttachmentWithBasic(in AttachmentBasic) *Attachment {
+	obj := &Attachment{
+		AttachmentBasic: in,
+	}
+	return obj
+}
 
 type AttachmentSet struct {
 	// 文章编号
@@ -192,6 +205,12 @@ func (z *Clause) Creating() error {
 	}
 
 	return z.DefaultModel.Creating()
+}
+func NewClauseWithBasic(in ClauseBasic) *Clause {
+	obj := &Clause{
+		ClauseBasic: in,
+	}
+	return obj
 }
 
 type ClauseSet struct {

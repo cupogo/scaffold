@@ -86,13 +86,13 @@ func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
 	q, _ = siftMatch(q, "title", spec.Title, false)
 	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
-		q.Where("status IN(?)", pgIn(vals))
+		q, _ = sift(q, "status", "IN", vals, false)
 	} else {
 		q, _ = siftEquel(q, "status", spec.Status, false)
 	}
 	q, _ = siftOIDs(q, "author_id", spec.AuthorID, false)
 	if vals, ok := utils.ParseStrs(spec.Srcs); ok {
-		q.Where("src IN(?)", pgIn(vals))
+		q, _ = sift(q, "src", "IN", vals, false)
 	} else {
 		q, _ = siftEquel(q, "src", spec.Src, false)
 	}
@@ -170,9 +170,7 @@ func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Art
 	return
 }
 func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) (obj *cms1.Article, err error) {
-	obj = &cms1.Article{
-		ArticleBasic: in,
-	}
+	obj = cms1.NewArticleWithBasic(in)
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		obj.TsCfgName = tscfg
 		obj.SetTsColumns("title", "content")
@@ -182,7 +180,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
 		}
-		dbOpModelMeta(ctx, tx, obj, obj.MetaDiff)
+		dbOpModelMeta(ctx, tx, obj)
 		err = dbInsert(ctx, tx, obj)
 		return err
 	})
