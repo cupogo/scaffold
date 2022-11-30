@@ -216,7 +216,9 @@ func (m *Model) Codes() jen.Code {
 	if jhk := m.hookModelCodes(); jhk != nil {
 		st.Add(jhk)
 	}
-	st.Add(m.basicCodes())
+	if jc := m.basicCodes(); jc != nil {
+		st.Add(jc)
+	}
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
@@ -231,6 +233,15 @@ func (m *Model) Codes() jen.Code {
 		)
 	}
 	return st
+}
+
+func (m *Model) hasBasic() bool {
+	for i := range m.Fields {
+		if m.Fields[i].IsBasic || m.Fields[i].IsSet {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) hasMeta() bool {
@@ -311,8 +322,11 @@ func (m *Model) hookModelCodes() (st *jen.Statement) {
 	return st
 }
 
-func (m *Model) basicCodes() jen.Code {
-	st := new(jen.Statement)
+func (m *Model) basicCodes() (st *jen.Statement) {
+	if !m.hasBasic() {
+		return
+	}
+	st = new(jen.Statement)
 	basicName := m.Name + "Basic"
 	st.Func().Id("New" + m.Name + "WithBasic").Params(jen.Id("in").Id(basicName)).Op("*").Id(m.Name).BlockFunc(func(g *jen.Group) {
 		g.Id("obj").Op(":=&").Id(m.Name).Block(jen.Id(basicName).Op(":").Id("in").Op(","))
