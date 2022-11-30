@@ -7,6 +7,10 @@ import (
 	oid "github.com/cupogo/andvari/models/oid"
 )
 
+// table name of Article 文章
+const TableArticle = "cms_article"
+const TableArticleAlias = "a"
+
 // Article 文章
 type Article struct {
 	comm.BaseModel `bun:"table:cms_article,alias:a" json:"-"`
@@ -114,6 +118,10 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	return
 }
 
+// table name of Attachment 附件
+const TableAttachment = "cms_attachment"
+const TableAttachmentAlias = "att"
+
 // Attachment 附件
 type Attachment struct {
 	comm.BaseModel `bun:"table:cms_attachment,alias:att" json:"-"`
@@ -182,6 +190,10 @@ func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 	}
 	return
 }
+
+// table name of Clause 条款
+const TableClause = "cms_clause"
+const TableClauseAlias = "c"
 
 // Clause 条款
 type Clause struct {

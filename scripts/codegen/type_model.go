@@ -196,14 +196,18 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 }
 
 func (m *Model) Codes() jen.Code {
+	st := jen.Empty()
 	basicName := m.Name + "Basic"
 	var cs []jen.Code
 	if m.IsTable() {
+		st.Comment("table name of " + m.Name + " " + m.Comment).Line()
+		st.Const().Id("Table" + m.Name).Op("=").Lit(m.tableName()).Line()
+		st.Const().Id("Table" + m.Name + "Alias").Op("=").Lit(m.tableAlias()).Line()
 		cs = append(cs, m.TableField())
 	}
 	mcs, bcs := m.Fields.Codes(basicName)
 	cs = append(cs, mcs...)
-	st := jen.Comment(m.Name + " " + m.Comment).Line()
+	st.Comment(m.Name + " " + m.Comment).Line()
 
 	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + m.Name)).Line().Line()
 
