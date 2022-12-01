@@ -108,16 +108,12 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	}
 	// log.Printf("uri: %s [%s]", uri, method)
 
-	cname := mod.Comment
-	if a, _, ok := strings.Cut(cname, " "); ok {
-		cname = a
-	}
 	hdl = Handle{
 		Name:    name,
 		Method:  mth.Name,
 		Store:   stoName,
 		Route:   fmt.Sprintf("%s [%s]", uri, strings.ToLower(method)),
-		Summary: mslabels[mth.action] + cname,
+		Summary: mslabels[mth.action] + mod.shortComment(),
 		wa:      wa,
 	}
 	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||

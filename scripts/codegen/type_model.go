@@ -200,7 +200,7 @@ func (m *Model) Codes() jen.Code {
 	basicName := m.Name + "Basic"
 	var cs []jen.Code
 	if m.IsTable() {
-		st.Comment("consts of " + m.Name + " " + m.Comment).Line()
+		st.Comment("consts of " + m.Name + " " + m.shortComment()).Line()
 		st.Const().DefsFunc(func(g *jen.Group) {
 			g.Id(m.Name + "Table").Op("=").Lit(m.tableName())
 			g.Id(m.Name + "Alias").Op("=").Lit(m.tableAlias())
@@ -639,6 +639,14 @@ func (m *Model) StoreHooks() (out []storeHook) {
 	sort.Slice(out, func(i, j int) bool { return out[i].FunName > out[j].FunName })
 
 	return out
+}
+
+func (m *Model) shortComment() string {
+	s := m.Comment
+	if a, _, ok := strings.Cut(s, " "); ok {
+		return a
+	}
+	return s
 }
 
 func metaUpCode(a ...bool) jen.Code {
