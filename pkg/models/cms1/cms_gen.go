@@ -11,6 +11,7 @@ import (
 const (
 	ArticleTable = "cms_article"
 	ArticleAlias = "a"
+	ArticleLabel = "article"
 )
 
 // Article 文章
@@ -124,6 +125,7 @@ func (z *Article) SetWith(o ArticleSet) (cs []string) {
 const (
 	AttachmentTable = "cms_attachment"
 	AttachmentAlias = "att"
+	AttachmentLabel = "attachment"
 )
 
 // Attachment 附件
@@ -199,6 +201,7 @@ func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 const (
 	ClauseTable = "cms_clause"
 	ClauseAlias = "c"
+	ClauseLabel = "clause"
 )
 
 // Clause 条款

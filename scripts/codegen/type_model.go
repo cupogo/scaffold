@@ -204,6 +204,7 @@ func (m *Model) Codes() jen.Code {
 		st.Const().DefsFunc(func(g *jen.Group) {
 			g.Id(m.Name + "Table").Op("=").Lit(m.tableName())
 			g.Id(m.Name + "Alias").Op("=").Lit(m.tableAlias())
+			g.Id(m.Name + "Label").Op("=").Lit(LcFirst(m.Name))
 		}).Line()
 		cs = append(cs, m.TableField())
 	}
