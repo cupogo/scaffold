@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/dave/dst"
 	"github.com/dave/jennifer/jen"
 )
 
@@ -181,4 +182,40 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 type storeHook struct {
 	FunName string
 	ObjName string
+
+	k string
+	m *Model
+}
+
+func (sh *storeHook) IsDB() bool {
+	return len(sh.FunName) > 2 && sh.FunName[0:2] == "db"
+}
+
+func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
+	ctxIdent := dst.NewIdent("Context")
+	ctxIdent.Path = "context"
+	objIdent := dst.NewIdent(sh.ObjName)
+	objIdent.Path = modipath
+	bretst := &dst.ReturnStmt{Results: []dst.Expr{
+		dst.NewIdent("nil"),
+	}}
+	bretst.Decs.Before = dst.NewLine
+	bretst.Decs.Start.Append("// TODO: ")
+	f := &dst.FuncDecl{
+		Name: dst.NewIdent(sh.FunName),
+		Type: &dst.FuncType{
+			Params: &dst.FieldList{List: []*dst.Field{
+				{Names: []*dst.Ident{dst.NewIdent("ctx")}, Type: ctxIdent},
+				{Names: []*dst.Ident{dst.NewIdent("db")}, Type: dst.NewIdent("ormDB")},
+				{Names: []*dst.Ident{dst.NewIdent("obj")}, Type: &dst.StarExpr{X: objIdent}},
+			}},
+			Results: &dst.FieldList{List: []*dst.Field{
+				{Type: dst.NewIdent("error")},
+			}}},
+		Body: &dst.BlockStmt{List: []dst.Stmt{bretst}},
+	}
+	// f.Decorations().Start.Prepend("\n")
+	// f.Decorations().End.Append("// " + sh.FunName + " gened")
+
+	return f
 }

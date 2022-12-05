@@ -5,8 +5,8 @@ import (
 
 	"{{ .ModelIPath }}"
 )
-{{ $modpkg := .ModelPkg }}{{ range .Models }}{{ range .StoreHooks }}
+{{ $modpkg := .ModelPkg }}{{ range .Models }}{{ range .StoreHooks }}{{ if .IsDB }}
 func {{.FunName}}(ctx context.Context, db ormDB, obj *{{$modpkg}}.{{.ObjName}}) error {
 	// TODO:
 	return nil
-}{{ end }}{{ end }}
+}{{ end }}{{ end }}{{ end }}

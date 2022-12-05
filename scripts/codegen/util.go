@@ -13,6 +13,8 @@ import (
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
+	"github.com/dave/dst/decorator/resolver/goast"
+	"github.com/dave/dst/decorator/resolver/guess"
 	"github.com/dave/dst/dstutil"
 	"github.com/jinzhu/inflection"
 	"golang.org/x/tools/go/packages"
@@ -153,16 +155,18 @@ func existBlockAssign(block *dst.BlockStmt, name string) bool {
 
 type vdst struct {
 	name string
+	pkgn string
 	fset *token.FileSet
 	file *dst.File
 
 	body []byte
 }
 
-func newDST(name string) (*vdst, error) {
+func newDST(name, pkg string) (*vdst, error) {
 	fset := token.NewFileSet()
+	dec := decorator.NewDecoratorWithImports(fset, "main", goast.New())
 	var err error
-	file, err := decorator.ParseFile(fset, name, nil, parser.ParseComments|parser.DeclarationErrors)
+	file, err := dec.ParseFile(name, nil, parser.ParseComments|parser.DeclarationErrors)
 	if err != nil {
 		log.Printf("parse %s fail %s", name, err)
 		return nil, err
@@ -170,6 +174,7 @@ func newDST(name string) (*vdst, error) {
 
 	o := &vdst{
 		name: name,
+		pkgn: pkg,
 		fset: fset,
 		file: file,
 	}
@@ -178,16 +183,47 @@ func newDST(name string) (*vdst, error) {
 
 }
 
+func (v *vdst) existFunc(name string) bool {
+	for _, decl := range v.file.Decls {
+		if fd, ok := decl.(*dst.FuncDecl); ok && fd.Name.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *vdst) ensureFunc(name string, fd *dst.FuncDecl) {
+	if fd != nil && !v.existFunc(name) {
+		v.file.Decls = append(v.file.Decls, fd)
+	}
+}
+
 func (w *vdst) rewrite(pre, post dstutil.ApplyFunc) (ok bool) {
 	n := dstutil.Apply(w.file, pre, post).(*dst.File)
 	var buf bytes.Buffer
-	if err := decorator.Fprint(&buf, n); err != nil {
+	res := decorator.NewRestorerWithImports(w.pkgn, guess.New())
+	if err := res.Fprint(&buf, n); err != nil {
 		log.Printf("format fail %s", err)
 		return
 	}
 	w.body = buf.Bytes()
 	ok = true
 	return
+}
+
+func (w *vdst) overwrite() error {
+	res := decorator.NewRestorerWithImports(w.pkgn, guess.New())
+	var buf bytes.Buffer
+	if err := res.Fprint(&buf, w.file); err != nil {
+		log.Printf("format fali: %s", err)
+		return err
+	}
+	if err := os.WriteFile(w.name, buf.Bytes(), 0644); err != nil {
+		log.Printf("write file %q fali: %s", w.name, err)
+		return err
+	}
+	log.Printf("write file %q ok", w.name)
+	return nil
 }
 
 func existInterfaceMethod(it *dst.InterfaceType, name string) bool {

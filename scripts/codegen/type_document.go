@@ -140,7 +140,7 @@ func NewDoc(docfile string) (*Document, error) {
 	}
 	doc.gened, doc.extern = getOutName(docfile)
 	doc.dirmod = path.Join("pkg", "models", doc.ModelPkg)
-	doc.dirsto = path.Join("pkg", "services", "stores")
+	doc.dirsto = path.Join("pkg", "services", storepkg)
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
 	doc.methods = make(map[string]Method)
 	doc.modtypes = make(map[string]empty)
@@ -198,6 +198,13 @@ func (doc *Document) hasStoreHooks() bool {
 		}
 	}
 	return false
+}
+
+func (doc *Document) storeHooks() (out []storeHook) {
+	for _, m := range doc.Models {
+		out = append(out, m.StoreHooks()...)
+	}
+	return
 }
 
 func (doc *Document) ModelIPath() string {
@@ -355,12 +362,22 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	if doc.hasStoreHooks() {
-		ensureGoFile(path.Join(doc.dirsto, doc.extern), "stores/doc_x", doc)
+		gfile := path.Join(doc.dirsto, doc.extern)
+		ensureGoFile(gfile, "stores/doc_x", doc)
+		svd, err := newDST(gfile, storepkg)
+		if err != nil {
+			return err
+		}
+		for _, sh := range doc.storeHooks() {
+			log.Printf("check storeHook: %s, %+v", sh.FunName, svd.existFunc(sh.FunName))
+			svd.ensureFunc(sh.FunName, sh.dstFuncDecl(doc.modipath))
+		}
+		_ = svd.overwrite()
 	}
 
 	sfile := path.Join(doc.dirsto, storewf)
 	ensureGoFile(sfile, "stores/wrap", nil)
-	wvd, err := newDST(sfile)
+	wvd, err := newDST(sfile, storepkg)
 	if err != nil {
 		return err
 	}
@@ -377,7 +394,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 
 	iffile := path.Join(doc.dirsto, "interfaces.go")
 	ensureGoFile(iffile, "stores/interfaces", nil)
-	svd, err := newDST(iffile)
+	svd, err := newDST(iffile, storepkg)
 	if err != nil {
 		// TODO: new file
 		return err

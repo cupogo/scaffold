@@ -633,6 +633,8 @@ func (m *Model) StoreHooks() (out []storeHook) {
 		out = append(out, storeHook{
 			FunName: fn,
 			ObjName: m.Name,
+			k:       k,
+			m:       m,
 		})
 	}
 
