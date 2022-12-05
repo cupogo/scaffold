@@ -92,7 +92,7 @@ func showNode(node dst.Node) string {
 	return info
 }
 
-func wnasstmt(name string) *dst.AssignStmt {
+func wrapVarAsstmt(name string) *dst.AssignStmt {
 	st := &dst.AssignStmt{
 		Lhs: []dst.Expr{&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(name)}},
 		Tok: token.ASSIGN,

@@ -420,7 +420,7 @@ func (doc *Document) ensureWrapPatch(vd *vdst) bool {
 					if existBlockAssign(cn, store.Name) {
 						continue
 					}
-					nst := wnasstmt(store.Name)
+					nst := wrapVarAsstmt(store.Name)
 					var arr []dst.Stmt
 					n := len(cn.List)
 					arr = append(arr, cn.List[0:n-1]...)
