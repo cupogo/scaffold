@@ -78,23 +78,26 @@ type ArticleSpec struct {
 	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs,omitempty"`
 	// 来源
 	Src string `extensions:"x-order=H" form:"src" json:"src"`
+
+	// include relation column
+	WithRel string `extensions:"x-order=I" form:"rel" json:"rel"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
 	q = spec.ModelSpec.Sift(q)
-	q, _ = siftICE(q, "author", spec.Author, false)
-	q, _ = siftMatch(q, "title", spec.Title, false)
-	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
+	q, _ = siftICE(q, "a.author", spec.Author, false)
+	q, _ = siftMatch(q, "a.title", spec.Title, false)
+	q, _ = siftDate(q, "a.news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
-		q, _ = sift(q, "status", "IN", vals, false)
+		q, _ = sift(q, "a.status", "IN", vals, false)
 	} else {
-		q, _ = siftEquel(q, "status", spec.Status, false)
+		q, _ = siftEquel(q, "a.status", spec.Status, false)
 	}
-	q, _ = siftOIDs(q, "author_id", spec.AuthorID, false)
+	q, _ = siftOIDs(q, "a.author_id", spec.AuthorID, false)
 	if vals, ok := utils.ParseStrs(spec.Srcs); ok {
-		q, _ = sift(q, "src", "IN", vals, false)
+		q, _ = sift(q, "a.src", "IN", vals, false)
 	} else {
-		q, _ = siftEquel(q, "src", spec.Src, false)
+		q, _ = siftEquel(q, "a.src", spec.Src, false)
 	}
 	q = spec.TextSearchSpec.Sift(q)
 
@@ -161,12 +164,22 @@ func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
 	spec.SetTsConfig(s.w.db.GetTsCfg())
 	spec.SetTsFallback("title", "content")
-	total, err = s.w.db.ListModel(ctx, spec, &data)
+	q := s.w.db.NewSelect().Model(&data)
+	if err = s.beforeListArticle(ctx, spec, q); err != nil {
+		return
+	}
+	total, err = queryPager(ctx, spec, q)
+	if err == nil && len(data) > 0 {
+		err = s.afterListArticle(ctx, spec, data)
+	}
 	return
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
 	obj = new(cms1.Article)
 	err = s.w.db.GetModel(ctx, obj, id)
+	if err == nil {
+		err = s.afterLoadArticle(ctx, obj)
+	}
 	return
 }
 func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) (obj *cms1.Article, err error) {

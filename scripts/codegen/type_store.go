@@ -39,13 +39,16 @@ type Store struct {
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
 
 	allMM map[string]bool
+	hodMn map[string]bool
 
 	doc *Document
 }
 
 func (s *Store) prepareMethods() {
 	s.allMM = make(map[string]bool)
+	s.hodMn = make(map[string]bool)
 	for _, m := range s.HodBread {
+		s.hodMn[m] = true
 		for _, a := range []string{"List", "Get", "Create", "Update", "Delete"} {
 			k := a + m
 			if _, ok := s.allMM[k]; !ok {
@@ -55,6 +58,7 @@ func (s *Store) prepareMethods() {
 		}
 	}
 	for _, m := range s.HodPrdb {
+		s.hodMn[m] = true
 		for _, a := range []string{"List", "Get", "Put", "Delete"} {
 			k := a + m
 			if _, ok := s.allMM[k]; !ok {
@@ -64,6 +68,7 @@ func (s *Store) prepareMethods() {
 		}
 	}
 	for _, m := range s.HodGL {
+		s.hodMn[m] = true
 		for _, a := range []string{"List", "Get"} {
 			k := a + m
 			if _, ok := s.allMM[k]; !ok {
@@ -79,6 +84,13 @@ func (s *Store) prepareMethods() {
 		}
 	}
 	log.Printf("inited store methods: %d", len(s.Methods))
+}
+
+func (s *Store) hasModel(name string) bool {
+	if _, ok := s.hodMn[name]; ok {
+		return true
+	}
+	return false
 }
 
 func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bcs []*jen.Statement) {
@@ -185,6 +197,7 @@ type storeHook struct {
 
 	k string
 	m *Model
+	s *Store
 }
 
 func (sh *storeHook) IsDB() bool {
@@ -192,6 +205,7 @@ func (sh *storeHook) IsDB() bool {
 }
 
 func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
+	// log.Printf("dst FuncDecl: ObjName: %q, mod: %q", sh.ObjName, sh.m.Name)
 	ctxIdent := dst.NewIdent("Context")
 	ctxIdent.Path = "context"
 	objIdent := dst.NewIdent(sh.ObjName)
@@ -201,18 +215,29 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	}}
 	bretst.Decs.Before = dst.NewLine
 	bretst.Decs.Start.Append("// TODO: ")
+	pars := []*dst.Field{newField("ctx", ctxIdent, false)}
+	if strings.HasSuffix(sh.k, "ing") {
+		pars = append(pars, newField("db", "ormDB", false), newField("obj", objIdent, true))
+	} else if sh.k == beforeList {
+		pars = append(pars, newField("spec", sh.ObjName+"Spec", true), newField("q", "ormQuery", true))
+	} else if sh.k == afterList {
+		dataIdent := dst.NewIdent(sh.m.GetPlural())
+		dataIdent.Path = modipath
+		pars = append(pars, newField("spec", sh.ObjName+"Spec", true), newField("data", dataIdent, false))
+	} else {
+		pars = append(pars, newField("obj", objIdent, true))
+	}
 	f := &dst.FuncDecl{
 		Name: dst.NewIdent(sh.FunName),
 		Type: &dst.FuncType{
-			Params: &dst.FieldList{List: []*dst.Field{
-				{Names: []*dst.Ident{dst.NewIdent("ctx")}, Type: ctxIdent},
-				{Names: []*dst.Ident{dst.NewIdent("db")}, Type: dst.NewIdent("ormDB")},
-				{Names: []*dst.Ident{dst.NewIdent("obj")}, Type: &dst.StarExpr{X: objIdent}},
-			}},
+			Params: &dst.FieldList{List: pars},
 			Results: &dst.FieldList{List: []*dst.Field{
 				{Type: dst.NewIdent("error")},
 			}}},
 		Body: &dst.BlockStmt{List: []dst.Stmt{bretst}},
+	}
+	if !sh.IsDB() {
+		f.Recv = &dst.FieldList{List: []*dst.Field{newField("s", sh.s.Name, true)}}
 	}
 	// f.Decorations().Start.Prepend("\n")
 	// f.Decorations().End.Append("// " + sh.FunName + " gened")

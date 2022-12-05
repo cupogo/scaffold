@@ -195,6 +195,7 @@ func (v *vdst) existFunc(name string) bool {
 func (v *vdst) ensureFunc(name string, fd *dst.FuncDecl) {
 	if fd != nil && !v.existFunc(name) {
 		v.file.Decls = append(v.file.Decls, fd)
+		log.Printf("ensureFunc: %s", name)
 	}
 }
 
@@ -224,6 +225,29 @@ func (w *vdst) overwrite() error {
 	}
 	log.Printf("write file %q ok", w.name)
 	return nil
+}
+
+func newField(vn string, vt any, star bool) *dst.Field {
+	f := &dst.Field{Names: []*dst.Ident{dst.NewIdent(vn)}}
+	if id, ok := vt.(*dst.Ident); ok {
+		if star {
+			f.Type = &dst.StarExpr{X: id}
+			return f
+		}
+		f.Type = id
+		return f
+	}
+
+	if s, ok := vt.(string); ok {
+		if star {
+			f.Type = &dst.StarExpr{X: dst.NewIdent(s)}
+			return f
+		}
+		f.Type = dst.NewIdent(s)
+		return f
+	}
+
+	panic(fmt.Errorf("invalid vt: %+v", vt))
 }
 
 func existInterfaceMethod(it *dst.InterfaceType, name string) bool {

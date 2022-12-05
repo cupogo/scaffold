@@ -58,8 +58,11 @@ models:
       - type: comm.TextSearchField
     oidcat: article
     hooks:
-      beforeSaving: dbBeforeSaveArticle
-      afterDeleting: dbAfterDeleteArticle
+      beforeSaving: yes
+      afterDeleting: yes
+      beforeList: yes
+      afterList: yes
+      afterLoad: yes
     # withColumnGet: true
     # withColumnList: true
 

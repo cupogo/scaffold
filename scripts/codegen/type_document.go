@@ -201,8 +201,15 @@ func (doc *Document) hasStoreHooks() bool {
 }
 
 func (doc *Document) storeHooks() (out []storeHook) {
-	for _, m := range doc.Models {
-		out = append(out, m.StoreHooks()...)
+	for i := 0; i < len(doc.Stores); i++ {
+		for j := 0; j < len(doc.Models); j++ {
+			if doc.Stores[i].hasModel(doc.Models[j].Name) {
+				for _, sh := range doc.Models[j].StoreHooks() {
+					sh.s = &doc.Stores[i]
+					out = append(out, sh)
+				}
+			}
+		}
 	}
 	return
 }
@@ -369,7 +376,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 			return err
 		}
 		for _, sh := range doc.storeHooks() {
-			log.Printf("check storeHook: %s, %+v", sh.FunName, svd.existFunc(sh.FunName))
+			// log.Printf("check storeHook: %s, %+v", sh.FunName, svd.existFunc(sh.FunName))
 			svd.ensureFunc(sh.FunName, sh.dstFuncDecl(doc.modipath))
 		}
 		_ = svd.overwrite()

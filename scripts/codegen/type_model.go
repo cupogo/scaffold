@@ -638,7 +638,9 @@ func (m *Model) StoreHooks() (out []storeHook) {
 		})
 	}
 
-	sort.Slice(out, func(i, j int) bool { return out[i].FunName > out[j].FunName })
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].FunName > out[j].FunName
+	})
 
 	return out
 }
