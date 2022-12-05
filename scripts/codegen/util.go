@@ -41,21 +41,10 @@ func loadPackage(path string) *packages.Package {
 	return pkgs[0]
 }
 
-func fieldecl(name, typ string) *dst.Field {
-	f := &dst.Field{
-		Names: []*dst.Ident{dst.NewIdent(name)},
-		Type:  &dst.StarExpr{X: dst.NewIdent(typ)},
-	}
-	f.Decorations().End.Append("// gened")
-
-	return f
-}
-
-func existVarField(list *dst.FieldList, name string) bool {
+func isFieldInList(list *dst.FieldList, name string) bool {
 	for _, field := range list.List {
 		for _, id := range field.Names {
-			if id.Obj.Kind == dst.Var && id.Name == name {
-				// log.Printf("exist field %s", name)
+			if id.Name == name {
 				return true
 			}
 		}
@@ -121,10 +110,7 @@ func shimNode(n dst.Node) {
 func wrapNewFunc(s *Store, prev dst.Node) *dst.FuncDecl {
 	siname := s.ShortIName()
 	f := &dst.FuncDecl{
-		Recv: &dst.FieldList{List: []*dst.Field{{
-			Names: []*dst.Ident{dst.NewIdent("w")},
-			Type:  &dst.StarExpr{X: dst.NewIdent(storewn)},
-		}}},
+		Recv: &dst.FieldList{List: []*dst.Field{newField("w", storewn, true)}},
 		Name: dst.NewIdent(siname),
 		Type: &dst.FuncType{Results: &dst.FieldList{List: []*dst.Field{
 			{Type: dst.NewIdent(s.GetIName())},
@@ -199,17 +185,8 @@ func (v *vdst) ensureFunc(name string, fd *dst.FuncDecl) {
 	}
 }
 
-func (w *vdst) rewrite(pre, post dstutil.ApplyFunc) (ok bool) {
-	n := dstutil.Apply(w.file, pre, post).(*dst.File)
-	var buf bytes.Buffer
-	res := decorator.NewRestorerWithImports(w.pkgn, guess.New())
-	if err := res.Fprint(&buf, n); err != nil {
-		log.Printf("format fail %s", err)
-		return
-	}
-	w.body = buf.Bytes()
-	ok = true
-	return
+func (v *vdst) Apply(pre, post dstutil.ApplyFunc) dst.Node {
+	return dstutil.Apply(v.file, pre, post)
 }
 
 func (w *vdst) overwrite() error {
@@ -248,35 +225,6 @@ func newField(vn string, vt any, star bool) *dst.Field {
 	}
 
 	panic(fmt.Errorf("invalid vt: %+v", vt))
-}
-
-func existInterfaceMethod(it *dst.InterfaceType, name string) bool {
-	for _, field := range it.Methods.List {
-		for _, id := range field.Names {
-			if id.Name == name {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func newStoInterfaceMethod(name, ret string) *dst.Field {
-	id := dst.NewIdent(name)
-	id.Obj = dst.NewObj(dst.Fun, name)
-	f := &dst.Field{
-		Names: []*dst.Ident{id},
-		Type: &dst.FuncType{
-			Results: &dst.FieldList{
-				List: []*dst.Field{
-					{Type: dst.NewIdent(ret)},
-				},
-			},
-		},
-	}
-	f.Decorations().End.Append("// gened")
-
-	return f
 }
 
 func cutMethod(s string) (act string, tgt string, ok bool) {

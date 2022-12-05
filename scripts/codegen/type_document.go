@@ -382,56 +382,32 @@ func (doc *Document) genStores(dropfirst bool) error {
 		_ = svd.overwrite()
 	}
 
-	sfile := path.Join(doc.dirsto, storewf)
-	ensureGoFile(sfile, "stores/wrap", nil)
-	wvd, err := newDST(sfile, storepkg)
-	if err != nil {
-		return err
-	}
+	_ = doc.ensureWrapPatch()
 
-	if doc.ensureWrapPatch(wvd) {
-		// log.Printf("rewrite: %s", string(wvd.body))
-		err = os.WriteFile(sfile, wvd.body, 0644)
-		if err != nil {
-			log.Printf("write %s fail %s", storewf, err)
-		} else {
-			log.Printf("write %s OK", storewf)
-		}
-	}
-
-	iffile := path.Join(doc.dirsto, "interfaces.go")
-	ensureGoFile(iffile, "stores/interfaces", nil)
-	svd, err := newDST(iffile, storepkg)
-	if err != nil {
-		// TODO: new file
-		return err
-	}
-
-	if doc.encureStoMethod(svd) {
-		err = os.WriteFile(iffile, svd.body, 0644)
-		if err != nil {
-			log.Printf("write i fail %s", err)
-		} else {
-			log.Printf("patch interfaces OK")
-		}
-	}
+	_ = doc.encureStoMethod()
 
 	return err
 }
 
-func (doc *Document) ensureWrapPatch(vd *vdst) bool {
+func (doc *Document) ensureWrapPatch() bool {
+	sfile := path.Join(doc.dirsto, storewf)
+	ensureGoFile(sfile, "stores/wrap", nil)
+	vd, err := newDST(sfile, storepkg)
+	if err != nil {
+		return false
+	}
 	var lastWM string
 	foundWM := make(map[string]bool)
-	_ = vd.rewrite(func(c *dstutil.Cursor) bool {
+	_ = vd.Apply(func(c *dstutil.Cursor) bool {
 		return true
 	}, func(c *dstutil.Cursor) bool {
 		for _, store := range doc.Stores {
 			if pn, ok := c.Parent().(*dst.TypeSpec); ok && pn.Name.Obj.Name == storewn {
 				if cn, ok := c.Node().(*dst.StructType); ok {
-					if existVarField(cn.Fields, store.Name) {
+					if isFieldInList(cn.Fields, store.Name) {
 						continue
 					}
-					fd := fieldecl(store.Name, store.Name)
+					fd := store.dstWrapField()
 					if len(cn.Fields.List) < 3 {
 						fd.Decs.Before = dst.EmptyLine
 					}
@@ -449,13 +425,8 @@ func (doc *Document) ensureWrapPatch(vd *vdst) bool {
 					n := len(cn.List)
 					arr = append(arr, cn.List[0:n-1]...)
 					arr = append(arr, nst, cn.List[n-1])
-					// log.Printf("new list %+s", (arr))
 					shimNode(arr[n-2])
-					// log.Printf("new list %+s", (arr))
 					cn.List = arr
-					// c.Replace(cn)
-					// log.Printf("nst: %s", showNode(nst))
-					// log.Printf("block: %s", showNode(cn))
 				}
 				continue
 			}
@@ -473,26 +444,36 @@ func (doc *Document) ensureWrapPatch(vd *vdst) bool {
 	})
 	// log.Printf("found %+v,last wrap method: %s", foundWM, lastWM)
 	if len(foundWM) == 0 {
-		vd.rewrite(nil, func(c *dstutil.Cursor) bool {
+		vd.Apply(nil, func(c *dstutil.Cursor) bool {
 			if cn, ok := c.Node().(*dst.FuncDecl); ok && cn.Name.Name == lastWM {
 				for _, store := range doc.Stores {
-					c.InsertAfter(wrapNewFunc(&store, cn))
+					c.InsertAfter(store.dstWrapFunc())
 					log.Printf("insert func %s", store.GetIName())
 				}
 			}
 			return true
 		})
 	}
+	_ = vd.overwrite()
 	return true
 }
 
-func (doc *Document) encureStoMethod(vd *vdst) bool {
-	return vd.rewrite(func(c *dstutil.Cursor) bool { return true }, func(c *dstutil.Cursor) bool {
+func (doc *Document) encureStoMethod() bool {
+
+	iffile := path.Join(doc.dirsto, "interfaces.go")
+	ensureGoFile(iffile, "stores/interfaces", nil)
+	vd, err := newDST(iffile, storepkg)
+	if err != nil {
+		// TODO: new file
+		return false
+	}
+
+	_ = vd.Apply(func(c *dstutil.Cursor) bool { return true }, func(c *dstutil.Cursor) bool {
 		for _, sto := range doc.Stores {
 			if pn, ok := c.Parent().(*dst.TypeSpec); ok && pn.Name.Obj.Name == storein {
 				if cn, ok := c.Node().(*dst.InterfaceType); ok {
 					siname := sto.ShortIName()
-					if !existInterfaceMethod(cn, siname) {
+					if !isFieldInList(cn.Methods, siname) {
 						log.Printf("generate interface method: %q", siname)
 						cn.Methods.List = append(cn.Methods.List, newStoInterfaceMethod(siname, sto.GetIName()))
 					}
@@ -501,6 +482,9 @@ func (doc *Document) encureStoMethod(vd *vdst) bool {
 		}
 		return true
 	})
+
+	_ = vd.overwrite()
+	return true
 }
 
 func (doc *Document) getMethod(name string) (m Method, ok bool) {

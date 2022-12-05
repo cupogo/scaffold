@@ -191,6 +191,48 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	return st
 }
 
+func (s *Store) dstWrapField() *dst.Field {
+	fd := newField(s.Name, s.Name, true)
+	fd.Decorations().End.Append("// gened")
+	return fd
+}
+
+func (s *Store) dstWrapFunc() *dst.FuncDecl {
+	siname := s.ShortIName()
+	f := &dst.FuncDecl{
+		Recv: &dst.FieldList{List: []*dst.Field{newField("w", storewn, true)}},
+		Name: dst.NewIdent(siname),
+		Type: &dst.FuncType{Results: &dst.FieldList{List: []*dst.Field{
+			{Type: dst.NewIdent(s.GetIName())},
+		}}},
+		Body: &dst.BlockStmt{List: []dst.Stmt{&dst.ReturnStmt{Results: []dst.Expr{
+			&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(s.Name)},
+		}}}},
+	}
+	// f.Decorations().Start.Prepend("\n")
+	f.Decorations().End.Append("// " + siname + " gened")
+
+	return f
+}
+
+func newStoInterfaceMethod(name, ret string) *dst.Field {
+	id := dst.NewIdent(name)
+	id.Obj = dst.NewObj(dst.Fun, name)
+	f := &dst.Field{
+		Names: []*dst.Ident{id},
+		Type: &dst.FuncType{
+			Results: &dst.FieldList{
+				List: []*dst.Field{
+					{Type: dst.NewIdent(ret)},
+				},
+			},
+		},
+	}
+	f.Decorations().End.Append("// gened")
+
+	return f
+}
+
 type storeHook struct {
 	FunName string
 	ObjName string
