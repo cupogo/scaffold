@@ -1038,6 +1038,7 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 
 func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 	jqual := jen.Qual(mod.getIPath(), mod.Name)
+	jtabl := jen.Qual(mod.getIPath(), mod.Name+"Table")
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Error()},
 		jen.BlockFunc(func(g *jen.Group) {
@@ -1061,7 +1062,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 						g2.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), jen.Id("tx"),
 							jen.Add(swdb).Dot("Schema").Call(),
 							jen.Add(swdb).Dot("SchemaCrap").Call(),
-							jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"))
+							jtabl, jen.Id("obj").Dot("ID"))
 						if okAD {
 							g2.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
 							g2.Return(jen.Id(hkAD).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
@@ -1083,7 +1084,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 						jen.Return().Qual("fmt", "Errorf").Call(jen.Lit("id: '%s' is invalid"), jen.Id("id")),
 					)
 					jfbd.Id("s").Dot("w").Dot("db").Dot("OpDeleteAny").Call(
-						jen.Id("ctx"), jen.Lit(mod.tableName()), jen.Id("obj").Dot("ID"),
+						jen.Id("ctx"), jtabl, jen.Id("obj").Dot("ID"),
 					)
 				} else {
 					jfbd.Add(swdb).Dot("DeleteModel").Call(
