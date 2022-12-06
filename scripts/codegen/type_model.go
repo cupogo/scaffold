@@ -459,18 +459,20 @@ func (m *Model) getSpecCodes() jen.Code {
 	}
 
 	var withRel string
+	var wrTyp string
 	_, okAL := m.hasStoreHook(afterList)
-	relNames := m.Fields.relHasOne()
-	if len(relNames) > 0 || okAL {
-		ftyp := "bool"
-		if okAL {
-			ftyp = "string"
+	belonNames := m.Fields.relHasOne()
+	relations := m.Fields.Relations()
+	if len(belonNames) > 0 || len(relations) > 0 || okAL {
+		wrTyp = "bool"
+		if okAL || len(relations) > 1 {
+			wrTyp = "string"
 		}
 		withRel = "WithRel"
 		jtag := "rel"
 		field := &Field{
 			Name: withRel,
-			Type: ftyp, Tags: Tags{"json": jtag},
+			Type: wrTyp, Tags: Tags{"json": jtag},
 			Comment: "include relation column"}
 		fcs = append(fcs, jen.Empty(), field.queryCode(idx))
 		idx++
@@ -484,7 +486,7 @@ func (m *Model) getSpecCodes() jen.Code {
 	st := jen.Type().Id(tname).Struct(fcs...).Line()
 	if len(fcs) > 2 {
 		isPG10 := m.doc.IsPG10()
-		jfsiftcall := func(name string) jen.Code {
+		jfSiftCall := func(name string) jen.Code {
 			if isPG10 {
 				return jen.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(name).Dot("Sift").Call(jen.Id("q"))
 			}
@@ -497,23 +499,29 @@ func (m *Model) getSpecCodes() jen.Code {
 		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
 			Params(args...)
 		st.BlockFunc(func(g *jen.Group) {
-			if len(relNames) > 0 && !okAL {
-				log.Printf("%s relNames %+v", m.Name, relNames)
+			if len(belonNames) > 0 && !okAL {
+				log.Printf("%s belongsTo Names %+v", m.Name, belonNames)
 				// g.Var().Id("pre").String()
-				g.If(jen.Id("spec").Dot(withRel)).BlockFunc(func(g *jen.Group) {
-					for _, relName := range relNames {
+				var jcond jen.Code
+				if wrTyp == "bool" {
+					jcond = jen.Id("spec").Dot(withRel)
+				} else {
+					jcond = jen.Len(jen.Id("spec").Dot(withRel)).Op(">0")
+				}
+				g.If(jcond).BlockFunc(func(g *jen.Group) {
+					for _, relName := range belonNames {
 						g.Id("q").Dot("Relation").Call(jen.Lit(relName))
 					}
 					// g.Id("pre").Op("=").Lit("?TableAlias.")
 				}).Line()
 			}
-			g.Add(jfsiftcall("ModelSpec"))
+			g.Add(jfSiftCall("ModelSpec"))
 
 			if m.hasAudit() {
-				g.Add(jfsiftcall("AuditSpec"))
+				g.Add(jfSiftCall("AuditSpec"))
 			}
 			for _, sifter := range m.Sifters {
-				g.Add(jfsiftcall(sifter))
+				g.Add(jfSiftCall(sifter))
 			}
 			utilsQual, _ := m.doc.getQual("utils")
 
@@ -528,8 +536,10 @@ func (m *Model) getSpecCodes() jen.Code {
 				if !indb && len(field.siftFn) == 0 {
 					continue
 				}
+				acn := cn
 				if !isPG10 && len(withRel) > 0 {
-					cn = m.tableAlias() + "." + cn
+					// cn = m.tableAlias() + "." + cn
+					acn = "?TableAlias." + cn
 				}
 				jSV := jen.Id("spec").Dot(field.Name)
 				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jSV}
@@ -544,7 +554,7 @@ func (m *Model) getSpecCodes() jen.Code {
 					g.If(jen.Len(jSV).Op(">0")).Block(
 						jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
 						jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jSV).Op(";").Err().Op("==").Nil()).Block(
-							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(cn+" = ?"), jen.Id("v")),
+							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(acn+" = ?"), jen.Id("v")),
 						),
 					)
 				} else if field.siftOp == "any" {
@@ -578,7 +588,7 @@ func (m *Model) getSpecCodes() jen.Code {
 
 			}
 			if okTS {
-				g.Add(jfsiftcall("TextSearchSpec"))
+				g.Add(jfSiftCall("TextSearchSpec"))
 			}
 			g.Line()
 
