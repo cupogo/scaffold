@@ -295,22 +295,22 @@ func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 	return
 }
 
-func (z Fields) relHasOne() (cols []string) {
+func (z Fields) relHasOne() (out []string) {
 	for i := range z {
 		if n, ok := z[i].relMode(); ok && i > 0 {
 			// 上一个字段必须指向关联的主键
-			if n == "has-one" && z[i-1].Name == z[i].Name+"ID" {
-				cols = append(cols, z[i].Name)
+			if (n == relBelongsTo || n == relHasOne) && z[i-1].Name == z[i].Name+"ID" {
+				out = append(out, z[i].Name)
 			}
 		}
 	}
 	return
 }
 
-func (z Fields) Relations() (cols []string) {
+func (z Fields) Relations() (out []string) {
 	for i := range z {
 		if _, ok := z[i].relMode(); ok && i > 0 {
-			cols = append(cols, z[i].Name)
+			out = append(out, z[i].Name)
 		}
 	}
 	return
