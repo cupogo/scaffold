@@ -30,6 +30,7 @@ type Model struct {
 	PostNew        bool `yaml:"postNew,omitempty"`
 	PreSet         bool `yaml:"preSet,omitempty"`
 	PostSet        bool `yaml:"postSet,omitempty"`
+	DisableLog     bool `yaml:"disableLog,omitempty"` // 不记录model的日志
 
 	doc *Document
 	pkg string
@@ -146,6 +147,9 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
+			if !m.DisableLog {
+				g.Id("z").Dot("LogChangeValue").Call(jen.Lit(cn), jen.Id("z").Dot(field.Name), jen.Id("o").Dot(field.Name))
+			}
 			if field.isOid {
 				g.Id("z").Dot(field.Name).Op("=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(field.Name))
 			} else if field.IsChangeWith {
