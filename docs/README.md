@@ -65,6 +65,8 @@
 
 - `hooks`：字典类型，钩子方法集
 
+- `disableLog`: 布尔类型，不记录模型的日志
+
 **注意**：所有必需的定义都需要可导出，也即首字母为大写
 
 - 大多数模型都会以字段的形式嵌入 `comm.DefaultModel` 这个默认模型结构体，由此会自动添加 `id`,`created`,`updated`和 `creator_id` 等字段，如果继续嵌入 `comm.MetaField` 则会添加 `meta` 支持添加更多元信息
