@@ -147,7 +147,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
-			if !m.DisableLog {
+			if isInDb && !m.DisableLog {
 				g.Id("z").Dot("LogChangeValue").Call(jen.Lit(cn), jen.Id("z").Dot(field.Name), jen.Id("o").Dot(field.Name))
 			}
 			if field.isOid {
