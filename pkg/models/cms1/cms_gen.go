@@ -85,30 +85,37 @@ type ArticleSet struct {
 
 func (z *Article) SetWith(o ArticleSet) (cs []string) {
 	if o.Author != nil {
+		z.LogChangeValue("author", z.Author, o.Author)
 		z.Author = *o.Author
 		cs = append(cs, "author")
 	}
 	if o.Title != nil {
+		z.LogChangeValue("title", z.Title, o.Title)
 		z.Title = *o.Title
 		cs = append(cs, "title")
 	}
 	if o.Content != nil {
+		z.LogChangeValue("content", z.Content, o.Content)
 		z.Content = *o.Content
 		cs = append(cs, "content")
 	}
 	if o.NewsPublish != nil {
+		z.LogChangeValue("news_publish", z.NewsPublish, o.NewsPublish)
 		z.NewsPublish = *o.NewsPublish
 		cs = append(cs, "news_publish")
 	}
 	if o.Status != nil {
+		z.LogChangeValue("status", z.Status, o.Status)
 		z.Status = *o.Status
 		cs = append(cs, "status")
 	}
 	if o.AuthorID != nil {
+		z.LogChangeValue("author_id", z.AuthorID, o.AuthorID)
 		z.AuthorID = oid.Cast(*o.AuthorID)
 		cs = append(cs, "author_id")
 	}
 	if o.Src != nil {
+		z.LogChangeValue("src", z.Src, o.Src)
 		z.Src = *o.Src
 		cs = append(cs, "src")
 	}
@@ -176,18 +183,22 @@ type AttachmentSet struct {
 
 func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
 	if o.ArticleID != nil {
+		z.LogChangeValue("article_id", z.ArticleID, o.ArticleID)
 		z.ArticleID = oid.Cast(*o.ArticleID)
 		cs = append(cs, "article_id")
 	}
 	if o.Name != nil {
+		z.LogChangeValue("name", z.Name, o.Name)
 		z.Name = *o.Name
 		cs = append(cs, "name")
 	}
 	if o.Mime != nil {
+		z.LogChangeValue("mime", z.Mime, o.Mime)
 		z.Mime = *o.Mime
 		cs = append(cs, "mime")
 	}
 	if o.Path != nil {
+		z.LogChangeValue("path", z.Path, o.Path)
 		z.Path = *o.Path
 		cs = append(cs, "path")
 	}
@@ -240,6 +251,7 @@ type ClauseSet struct {
 
 func (z *Clause) SetWith(o ClauseSet) (cs []string) {
 	if o.Text != nil {
+		z.LogChangeValue("text", z.Text, o.Text)
 		z.Text = *o.Text
 		cs = append(cs, "text")
 	}

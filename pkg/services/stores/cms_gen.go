@@ -85,19 +85,19 @@ type ArticleSpec struct {
 
 func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
 	q = spec.ModelSpec.Sift(q)
-	q, _ = siftICE(q, "a.author", spec.Author, false)
-	q, _ = siftMatch(q, "a.title", spec.Title, false)
-	q, _ = siftDate(q, "a.news_publish", spec.NewsPublish, true, false)
+	q, _ = siftICE(q, "author", spec.Author, false)
+	q, _ = siftMatch(q, "title", spec.Title, false)
+	q, _ = siftDate(q, "news_publish", spec.NewsPublish, true, false)
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
-		q, _ = sift(q, "a.status", "IN", vals, false)
+		q, _ = sift(q, "status", "IN", vals, false)
 	} else {
-		q, _ = siftEquel(q, "a.status", spec.Status, false)
+		q, _ = siftEquel(q, "status", spec.Status, false)
 	}
-	q, _ = siftOIDs(q, "a.author_id", spec.AuthorID, false)
+	q, _ = siftOIDs(q, "author_id", spec.AuthorID, false)
 	if vals, ok := utils.ParseStrs(spec.Srcs); ok {
-		q, _ = sift(q, "a.src", "IN", vals, false)
+		q, _ = sift(q, "src", "IN", vals, false)
 	} else {
-		q, _ = siftEquel(q, "a.src", spec.Src, false)
+		q, _ = siftEquel(q, "src", spec.Src, false)
 	}
 	q = spec.TextSearchSpec.Sift(q)
 
@@ -224,7 +224,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 		return err
 	}
 	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
-		err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), "cms_article", obj.ID)
+		err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), cms1.ArticleTable, obj.ID)
 		if err != nil {
 			return
 		}
