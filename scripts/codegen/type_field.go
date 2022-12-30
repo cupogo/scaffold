@@ -32,15 +32,15 @@ type Field struct {
 }
 
 func (f *Field) isMeta() bool {
-	return f.Name == metaField || f.Type == metaField
+	return matchs(metaField, f.Name, f.Type)
 }
 
 func (f *Field) isOwner() bool {
-	return f.Name == ownerField || f.Type == ownerField
+	return matchs(ownerField, f.Name, f.Type)
 }
 
 func (f *Field) isAudit() bool {
-	return f.Name == auditField || f.Type == auditField
+	return matchs(auditField, f.Name, f.Type)
 }
 
 func (f *Field) getType() string {

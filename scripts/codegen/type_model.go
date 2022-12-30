@@ -706,7 +706,7 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 			cn, _, _ := field.ColName()
 			cols = append(cols, cn)
 		}
-		if field.Name == textSearchField || field.Type == textSearchField {
+		if matchs(textSearchField, field.Name, field.Type) {
 			hasTs = true
 		}
 	}

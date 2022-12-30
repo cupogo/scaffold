@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
@@ -310,4 +311,14 @@ func renderTmpl(src, dest string, data any) error {
 		os.Remove(dest)
 	}
 	return err
+}
+
+func matchs(patt string, names ...string) bool {
+	for _, name := range names {
+		if ok, _ := path.Match(patt, name); ok {
+			return true
+		}
+	}
+
+	return false
 }

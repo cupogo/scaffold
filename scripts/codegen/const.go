@@ -27,10 +27,10 @@ const (
 const (
 	ginQual = "github.com/gin-gonic/gin"
 
-	metaField       = "comm.MetaField"
-	ownerField      = "comm.OwnerField"
-	auditField      = "evnt.AuditFields"
-	textSearchField = "comm.TextSearchField"
+	metaField       = "*.MetaField"
+	ownerField      = "*.OwnerField"
+	auditField      = "*.AuditFields"
+	textSearchField = "*.TextSearchField"
 )
 
 // consts of created
