@@ -128,6 +128,14 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		code.Id(field.Name)
 		cn, isInDb, _ := field.ColName()
 		qn, tn, isptr := field.cutType()
+
+		jcond := jen.Id("o").Dot(field.Name).Op("!=").Nil()
+		if field.isScalar() {
+			jcond.Op("&&").Id("z").Dot(field.Name).Op("!=").Op("*").Id("o").Dot(field.Name)
+		} else if field.Compare == CompareEqualTo {
+			jcond.Op("&&!").Id("z").Dot(field.Name).Dot("EqualTo").Call(jen.Id("o").Dot(field.Name))
+		}
+
 		if qn == "oid" && tn == "OID" {
 			field.Type = "string"
 			field.isOid = true
@@ -145,13 +153,24 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code.Tag(tags)
 		}
 
+		jcsa := jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn))
+
 		ccs = append(ccs, code)
-		scs = append(scs, jen.If(jen.Id("o").Dot(field.Name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
-			if isInDb && !m.DisableLog {
+		scs = append(scs, jen.If(jcond).BlockFunc(func(g *jen.Group) {
+			if isInDb && !m.DisableLog && !field.isOid {
 				g.Id("z").Dot("LogChangeValue").Call(jen.Lit(cn), jen.Id("z").Dot(field.Name), jen.Id("o").Dot(field.Name))
 			}
 			if field.isOid {
-				g.Id("z").Dot(field.Name).Op("=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(field.Name))
+				g.If(jen.Id("id").Op(":=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(field.Name)).Op(";").
+					Id("z").Dot(field.Name).Op("!=").Id("id")).BlockFunc(func(g1 *jen.Group) {
+					if isInDb && !m.DisableLog {
+						g1.Id("z").Dot("LogChangeValue").Call(jen.Lit(cn), jen.Id("z").Dot(field.Name), jen.Id("id"))
+					}
+					g1.Id("z").Dot(field.Name).Op("=").Id("id")
+					if isInDb {
+						g1.Add(jcsa)
+					}
+				})
 			} else if field.IsChangeWith {
 				g.Id("z").Dot(field.Name).Dot("ChangeWith").Call(jen.Id("o").Dot(field.Name))
 			} else if isptr {
@@ -159,8 +178,8 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			} else {
 				g.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name)
 			}
-			if isInDb {
-				g.Add(jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn)))
+			if isInDb && !field.isOid {
+				g.Add(jcsa)
 			}
 		}))
 	}
@@ -186,9 +205,16 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		idx++
 		name := "OwnerID"
 		ccs = append(ccs, ownerUpCode(idx))
-		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("SetOwnerID").Call(jen.Op("*").Id("o").Dot(name)).Block(
-			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("owner_id")),
-		)))
+		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
+			g.If(jen.Id("id").Op(":=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(name)).Op(";").
+				Id("z").Dot(name).Op("!=").Id("id")).BlockFunc(func(g1 *jen.Group) {
+				if !m.DisableLog {
+					g1.Id("z").Dot("LogChangeValue").Call(jen.Lit("owner_id"), jen.Id("z").Dot(name), jen.Id("id"))
+				}
+				g1.Id("z").Dot("SetOwnerID").Call(jen.Id("id"))
+				g1.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("owner_id"))
+			})
+		}))
 	}
 	scs = append(scs, jen.If(jen.Len(jen.Id("cs")).Op(">").Lit(0)).Block(
 		jen.Id("z").Dot("SetChange").Call(jen.Id("cs").Op("...")),

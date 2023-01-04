@@ -45,6 +45,8 @@
 
   - `changeWith` 布尔类型，此字段有自己的更新方法，签名为 `ChangeWith(other) bool`
 
+  - `compare` 字串类型，此字段有自己的比较方法，可选值为`scalar`和`equalTo`，其中后者的签名为 `EqualTo(other) bool`
+
 - `plural`: 复数形式名称，如不指定，会自动生成
 
 - `oidcat`:  指定使用在oid包中定义的类型名称

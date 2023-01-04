@@ -59,3 +59,10 @@ const (
 	TagSwaggerIgnore = "swaggerignore"
 	TagExtensions    = "extensions"
 )
+
+type CompareType string
+
+const (
+	CompareScalar  CompareType = "scalar"
+	CompareEqualTo CompareType = "equalTo"
+)

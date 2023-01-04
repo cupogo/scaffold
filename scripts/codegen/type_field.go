@@ -18,6 +18,8 @@ type Field struct {
 	Comment  string `yaml:"comment,omitempty"`
 	Query    string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 
+	Compare CompareType `yaml:"compare,omitempty"` // scalar, equalTo
+
 	IsChangeWith bool `yaml:"changeWith,omitempty"` // has ChangeWith method
 
 	isOid    bool
@@ -80,7 +82,7 @@ func (f *Field) isScalar() bool {
 		return true
 	}
 
-	return false
+	return f.Compare == CompareScalar
 }
 
 var replTrimUseZero = strings.NewReplacer(",use_zero", "")
