@@ -153,7 +153,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			code.Tag(tags)
 		}
 
-		jcsa := jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(cn))
+		jcsa := jen.Id("z").Dot("SetChange").Call(jen.Lit(cn))
 
 		ccs = append(ccs, code)
 		scs = append(scs, jen.If(jcond).BlockFunc(func(g *jen.Group) {
@@ -167,7 +167,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 						g1.Id("z").Dot("LogChangeValue").Call(jen.Lit(cn), jen.Id("z").Dot(field.Name), jen.Id("id"))
 					}
 					g1.Id("z").Dot(field.Name).Op("=").Id("id")
-					if isInDb {
+					if isInDb && m.DisableLog {
 						g1.Add(jcsa)
 					}
 				})
@@ -178,7 +178,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			} else {
 				g.Id("z").Dot(field.Name).Op("=").Op("*").Id("o").Dot(field.Name)
 			}
-			if isInDb && !field.isOid {
+			if isInDb && !field.isOid && m.DisableLog {
 				g.Add(jcsa)
 			}
 		}))
@@ -190,7 +190,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		ccs = append(ccs, createdUpCode(idx))
 		scs = append(scs, jen.If(jen.Id("o").Dot(createdName).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
 			g.Id("z").Dot(createdName).Op("=").Op("*").Id("o").Dot(createdName)
-			g.Add(jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit(createdColumn)))
+			g.Id("z").Dot("SetChange").Call(jen.Lit(createdColumn))
 		})))
 	}
 
@@ -198,7 +198,7 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		name := "MetaDiff"
 		ccs = append(ccs, metaUpCode())
 		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("MetaUp").Call(jen.Id("o").Dot(name))).Block(
-			jen.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("meta")),
+			jen.Id("z").Dot("SetChange").Call(jen.Lit("meta")),
 		))
 	}
 	if hasOwner {
@@ -212,13 +212,13 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 					g1.Id("z").Dot("LogChangeValue").Call(jen.Lit("owner_id"), jen.Id("z").Dot(name), jen.Id("id"))
 				}
 				g1.Id("z").Dot("SetOwnerID").Call(jen.Id("id"))
-				g1.Id("cs").Op("=").Append(jen.Id("cs"), jen.Lit("owner_id"))
+				if m.DisableLog {
+					g1.Id("z").Dot("SetChange").Call(jen.Lit("owner_id"))
+				}
 			})
 		}))
 	}
-	scs = append(scs, jen.If(jen.Len(jen.Id("cs")).Op(">").Lit(0)).Block(
-		jen.Id("z").Dot("SetChange").Call(jen.Id("cs").Op("...")),
-	))
+
 	if m.PostSet {
 		scs = append(scs, jen.Id("z").Dot("PostSet").Call(jen.Op("&").Id("o")))
 	}
@@ -263,9 +263,7 @@ func (m *Model) Codes() jen.Code {
 		scs = append(scs, jen.Return())
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
-		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params(
-			jen.Id("cs").Index().String(), // TODO: return bool or nil
-		).Block(
+		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params().Block(
 			scs...,
 		)
 	}
@@ -961,7 +959,7 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
 			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-			g.Id("_").Op("=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+			g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
 
 			if jt, ok := mod.textSearchCodes("exist"); ok {
 				g.Add(jt)
