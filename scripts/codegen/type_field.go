@@ -82,6 +82,10 @@ func (f *Field) isScalar() bool {
 		return true
 	}
 
+	if strings.HasSuffix(f.Type, "DateTime") {
+		return true
+	}
+
 	return f.Compare == CompareScalar
 }
 
