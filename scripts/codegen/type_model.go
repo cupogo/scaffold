@@ -1059,7 +1059,8 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 				cpms := []jen.Code{
 					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("obj"),
 					jen.Func().Params().Index().String().Block(
-						jen.Return(jen.Id("exist").Dot("SetWith").Call(jen.Id("in"))),
+						jen.Id("exist").Dot("SetWith").Call(jen.Id("in")),
+						jen.Return(jen.Id("exist").Dot("GetChanges").Call()),
 					),
 				}
 				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
