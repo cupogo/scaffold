@@ -260,7 +260,7 @@ func (m *Model) Codes() jen.Code {
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
 		st.Type().Id(changeSetName).Struct(ccs...).Add(jen.Comment("@name " + changeSetName)).Line().Line()
-		scs = append(scs, jen.Return())
+		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
 		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params().Block(
