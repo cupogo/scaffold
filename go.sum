@@ -1,7 +1,7 @@
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cupogo/andvari v0.0.0-20230105071855-95b67afad63f h1:i/DSA6YtN5HYT1Uso/I33mxtZN7/jh1omoH3uYLd9AI=
-github.com/cupogo/andvari v0.0.0-20230105071855-95b67afad63f/go.mod h1:fheIlLNxDpRK3pU1z30MpHtnc2z+rT7d0PqP0paV6SY=
+github.com/cupogo/andvari v0.0.0-20230105101748-cfc8b75197d3 h1:A1zFIzPw6XEqrPuHoOdLnteiDjVlWm03ZqAY7cehtmg=
+github.com/cupogo/andvari v0.0.0-20230105101748-cfc8b75197d3/go.mod h1:fheIlLNxDpRK3pU1z30MpHtnc2z+rT7d0PqP0paV6SY=
 github.com/dave/dst v0.27.1 h1:TO1Jlnfvkxj5OrJTqUexWBQKVhim8PfefUDOH0yrLUw=
 github.com/dave/dst v0.27.1/go.mod h1:eF/UOVnw9Ech3NkZFCdtujtISJFRYf11+I93p+RI5S4=
 github.com/dave/jennifer v1.5.1 h1:AI8gaM02nCYRw6/WTH0W+S6UNck9YqPZ05xoIxQtuoE=
