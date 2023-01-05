@@ -253,6 +253,12 @@ func (m *Model) Codes() jen.Code {
 	if jhk := m.hookModelCodes(); jhk != nil {
 		st.Add(jhk)
 	}
+	if m.DisableLog {
+		st.Func().Params(
+			jen.Id("z").Op("*").Id(m.Name),
+		).Id("DisableLog").Params().Bool().Block(jen.Return(jen.Lit(true)))
+		st.Line()
+	}
 	if jc := m.basicCodes(); jc != nil {
 		st.Add(jc)
 	}
