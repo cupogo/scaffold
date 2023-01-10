@@ -44,7 +44,7 @@ type Store struct {
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
-	Hods     Tags     `yaml:"hods"`            // Customized
+	Hods     []Var    `yaml:"hods"`            // Customized
 
 	allMM map[string]bool
 	hodMn map[string]bool
@@ -86,7 +86,9 @@ func (s *Store) prepareMethods() {
 		}
 	}
 
-	for m, v := range s.Hods {
+	for _, hod := range s.Hods {
+		m := hod.Name
+		v := hod.Type
 		s.hodMn[m] = true
 		for _, c := range v {
 			if a, ok := hods[c]; ok {
