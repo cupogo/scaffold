@@ -9,6 +9,13 @@ import (
 	"github.com/dave/jennifer/jen"
 )
 
+var (
+	hods = map[rune]string{
+		'L': "List", 'G': "Get", 'P': "Put",
+		'C': "Create", 'U': "Update", 'D': "Delete",
+	}
+)
+
 type Var struct {
 	Name string `yaml:"name"`
 	Type string `yaml:"type"`
@@ -37,6 +44,7 @@ type Store struct {
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
+	Hods     Tags     `yaml:"hods"`            // Customized
 
 	allMM map[string]bool
 	hodMn map[string]bool
@@ -74,6 +82,19 @@ func (s *Store) prepareMethods() {
 			if _, ok := s.allMM[k]; !ok {
 				s.Methods = append(s.Methods, newMethod(a, m))
 				s.allMM[k] = true
+			}
+		}
+	}
+
+	for m, v := range s.Hods {
+		s.hodMn[m] = true
+		for _, c := range v {
+			if a, ok := hods[c]; ok {
+				k := a + m
+				if _, ok := s.allMM[k]; !ok {
+					s.Methods = append(s.Methods, newMethod(a, m))
+					s.allMM[k] = true
+				}
 			}
 		}
 	}
