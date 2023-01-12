@@ -135,6 +135,11 @@ func (wa *WebAPI) prepareHandles() {
 		log.Printf("doc is nil")
 		return
 	}
+	for i := range wa.Handles {
+		if wa.Handles[i].wa == nil {
+			wa.Handles[i].wa = wa
+		}
+	}
 	for _, u := range wa.URIs {
 		for _, sto := range wa.doc.Stores {
 			iname := sto.ShortIName()
@@ -356,7 +361,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
-			if act == "Get" {
+			if act == "Get" || act == "Load" {
 				if rels := mod.Fields.relHasOne(); len(rels) > 0 {
 					g.Id("ctx").Op(":=").Add(jctx)
 					g.If(
