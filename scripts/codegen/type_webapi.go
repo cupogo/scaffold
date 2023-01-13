@@ -56,6 +56,9 @@ type UriSpot struct {
 	Model  string `yaml:"model"`
 	Prefix string `yaml:"prefix,omitempty"`
 	URI    string `yaml:"uri,omitempty"`
+
+	NeedAuth bool `yaml:"auth,omitempty"`
+	NeedPerm bool `yaml:"perm,omitempty"`
 }
 
 type WebAPI struct {
@@ -117,8 +120,8 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 		wa:      wa,
 	}
 	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
-		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm
-	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth
+		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm || us.NeedPerm
+	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth || us.NeedPerm || us.NeedAuth
 	if len(wa.TagLabel) > 0 {
 		hdl.Tags = wa.TagLabel
 	}
@@ -260,7 +263,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	st.Comment("@Summary " + h.Summary).Line()
 	st.Comment("@Accept " + h.GetAccept()).Line()
 	st.Comment("@Produce " + h.GetProduce()).Line()
-	if h.NeedAuth {
+	if h.NeedAuth || h.NeedPerm {
 		st.Comment("@Param " + paramAuth).Line()
 	}
 	var paramed bool
