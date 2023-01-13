@@ -241,11 +241,15 @@ func (m *Model) Codes() jen.Code {
 	mcs, bcs := m.Fields.Codes(basicName)
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
+	var prefix string
+	if m.doc != nil {
+		prefix = m.doc.ModelPkg
+	}
 
-	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + m.Name)).Line().Line()
+	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + prefix + m.Name)).Line().Line()
 
 	if len(bcs) > 0 {
-		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + basicName)).Line().Line()
+		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + prefix + basicName)).Line().Line()
 	}
 
 	st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
@@ -265,7 +269,7 @@ func (m *Model) Codes() jen.Code {
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
-		st.Type().Id(changeSetName).Struct(ccs...).Add(jen.Comment("@name " + changeSetName)).Line().Line()
+		st.Type().Id(changeSetName).Struct(ccs...).Add(jen.Comment("@name " + prefix + changeSetName)).Line().Line()
 		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
