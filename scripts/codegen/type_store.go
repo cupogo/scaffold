@@ -193,7 +193,7 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	tcs, mcs, nap, bcs := s.Interfaces(modelpkg)
 	var ics []jen.Code
 	if len(s.Embed) > 0 {
-		ics = append(ics, jen.Id(s.Embed))
+		ics = append(ics, jen.Id(s.Embed).Line())
 	}
 	for i := range mcs {
 		ics = append(ics, mcs[i])
