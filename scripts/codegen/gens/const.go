@@ -1,4 +1,4 @@
-package main
+package gens
 
 // consts of files
 const (

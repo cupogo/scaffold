@@ -4,23 +4,20 @@ package main
 import (
 	"flag"
 	"log"
-)
 
-const (
-	tgModel = 1 << iota
-	tgStore
-	tgWeb
+	"github.com/cupogo/scaffold/scripts/codegen/gens"
 )
 
 var (
 	dropfirst bool
-	doc       *Document
+	doc       *gens.Document
 	genSpec   int
 )
 
 func init() {
+	dftSpec := int(gens.TgModel + gens.TgStore + gens.TgWeb)
 	flag.BoolVar(&dropfirst, "drop", false, "drop exists first")
-	flag.IntVar(&genSpec, "spec", tgModel+tgStore+tgWeb, "which spec to generate")
+	flag.IntVar(&genSpec, "spec", dftSpec, "which spec to generate")
 }
 
 func main() {
@@ -35,41 +32,5 @@ func main() {
 	}
 	docfile := args[0]
 
-	var err error
-	doc, err = NewDoc(docfile)
-	if err != nil {
-		log.Printf("load fail: %s", err)
-		return
-	}
-	doc.Init()
-
-	if genSpec&tgModel > 0 {
-		if err = doc.genModels(dropfirst); err != nil {
-			log.Printf("output fail: %s", err)
-			return
-		}
-		// log.Print("generated models ok")
-	}
-	if genSpec&tgStore > 0 {
-		if err = doc.genStores(dropfirst); err != nil {
-			log.Printf("output fail: %s", err)
-			return
-		}
-		// log.Print("generated stores ok")
-	}
-	if genSpec&tgWeb > 0 {
-		if err = doc.genWebAPI(); err != nil {
-			log.Printf("output fail: %s", err)
-			return
-		}
-		// log.Print("generated webapi ok")
-	}
-
-}
-
-func getQual(k string) (string, bool) {
-	if doc != nil {
-		return doc.getQual(k)
-	}
-	return "", false
+	gens.Run(docfile, gens.TagSpec(genSpec), dropfirst)
 }

@@ -204,7 +204,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 	if err := getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
 		return err
 	}
-	_ = exist.SetWith(in)
+	exist.SetWith(in)
 	if tscfg, ok := s.w.db.GetTsCfg(); ok {
 		exist.TsCfgName = tscfg
 		exist.SetTsColumns("title", "content")

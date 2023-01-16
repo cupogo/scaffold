@@ -1,5 +1,5 @@
 // go:build codegen
-package main
+package gens
 
 import (
 	"strings"

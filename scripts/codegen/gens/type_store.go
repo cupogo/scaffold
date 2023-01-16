@@ -1,5 +1,5 @@
 // go:build codegen
-package main
+package gens
 
 import (
 	"log"
@@ -126,7 +126,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 		var args, rets []jen.Code
 		var cs *jen.Statement
 
-		mod, modok := doc.modelWithName(mth.model)
+		mod, modok := s.doc.modelWithName(mth.model)
 		if !modok {
 			panic("invalid model: " + mth.model)
 		}
@@ -186,7 +186,7 @@ func (s *Store) ShortIName() string {
 }
 
 func (s *Store) Codes(modelpkg string) jen.Code {
-	modpkg, ok := doc.getQual(modelpkg)
+	modpkg, ok := s.doc.getQual(modelpkg)
 	if !ok {
 		log.Printf("get modpkg %s fail", modpkg)
 	}

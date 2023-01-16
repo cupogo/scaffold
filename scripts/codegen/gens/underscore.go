@@ -1,4 +1,4 @@
-package main
+package gens
 
 // copy from go-pg/pg/internal
 

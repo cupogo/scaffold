@@ -1,5 +1,5 @@
 // go:build codegen
-package main
+package gens
 
 import (
 	"fmt"
@@ -492,7 +492,7 @@ func (doc *Document) getMethod(name string) (m Method, ok bool) {
 	return
 }
 
-func (doc *Document) genWebAPI() error {
+func (doc *Document) genWebAPI(dropfirst bool) error {
 
 	if len(doc.WebAPI.Handles) == 0 {
 		log.Print("no handle found, skip api")

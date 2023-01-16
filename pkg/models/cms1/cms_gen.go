@@ -25,7 +25,7 @@ type Article struct {
 	comm.MetaField
 
 	comm.TextSearchField
-} // @name Article
+} // @name cms1Article
 
 type ArticleBasic struct {
 	// 作者
@@ -35,7 +35,7 @@ type ArticleBasic struct {
 	// 内容
 	Content string `bun:",notnull" extensions:"x-order=C" form:"content" json:"content" pg:",notnull"`
 	// 新闻时间
-	NewsPublish comm.DateTime `bun:"news_publish,type:date" extensions:"x-order=D" json:"newsPublish,omitempty" pg:"news_publish,type:date"`
+	NewsPublish comm.DateTime `bun:"news_publish,type:date" extensions:"x-order=D" form:"newsPublish" json:"newsPublish,omitempty" pg:"news_publish,type:date"`
 	// 状态
 	Status int16 `bun:",notnull" extensions:"x-order=E" form:"status" json:"status" pg:",notnull,use_zero"`
 	// 作者
@@ -44,7 +44,7 @@ type ArticleBasic struct {
 	Src string `bun:",notnull" extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
-} // @name ArticleBasic
+} // @name cms1ArticleBasic
 
 type Articles []Article
 
@@ -81,53 +81,42 @@ type ArticleSet struct {
 	Src *string `extensions:"x-order=G" json:"src"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
-} // @name ArticleSet
+} // @name cms1ArticleSet
 
-func (z *Article) SetWith(o ArticleSet) (cs []string) {
+func (z *Article) SetWith(o ArticleSet) {
 	if o.Author != nil && z.Author != *o.Author {
 		z.LogChangeValue("author", z.Author, o.Author)
 		z.Author = *o.Author
-		cs = append(cs, "author")
 	}
 	if o.Title != nil && z.Title != *o.Title {
 		z.LogChangeValue("title", z.Title, o.Title)
 		z.Title = *o.Title
-		cs = append(cs, "title")
 	}
 	if o.Content != nil && z.Content != *o.Content {
 		z.LogChangeValue("content", z.Content, o.Content)
 		z.Content = *o.Content
-		cs = append(cs, "content")
 	}
-	if o.NewsPublish != nil {
+	if o.NewsPublish != nil && z.NewsPublish != *o.NewsPublish {
 		z.LogChangeValue("news_publish", z.NewsPublish, o.NewsPublish)
 		z.NewsPublish = *o.NewsPublish
-		cs = append(cs, "news_publish")
 	}
 	if o.Status != nil && z.Status != *o.Status {
 		z.LogChangeValue("status", z.Status, o.Status)
 		z.Status = *o.Status
-		cs = append(cs, "status")
 	}
 	if o.AuthorID != nil {
 		if id := oid.Cast(*o.AuthorID); z.AuthorID != id {
 			z.LogChangeValue("author_id", z.AuthorID, id)
 			z.AuthorID = id
-			cs = append(cs, "author_id")
 		}
 	}
 	if o.Src != nil && z.Src != *o.Src {
 		z.LogChangeValue("src", z.Src, o.Src)
 		z.Src = *o.Src
-		cs = append(cs, "src")
 	}
 	if o.MetaDiff != nil && z.MetaUp(o.MetaDiff) {
-		cs = append(cs, "meta")
+		z.SetChange("meta")
 	}
-	if len(cs) > 0 {
-		z.SetChange(cs...)
-	}
-	return
 }
 
 // consts of Attachment 附件
@@ -144,7 +133,7 @@ type Attachment struct {
 	comm.DefaultModel
 
 	AttachmentBasic
-} // @name Attachment
+} // @name cms1Attachment
 
 type AttachmentBasic struct {
 	// 文章编号
@@ -154,7 +143,7 @@ type AttachmentBasic struct {
 	// 类型
 	Mime string `bun:",notnull" extensions:"x-order=C" form:"mime" json:"mime" pg:",notnull"`
 	Path string `bun:"path,notnull" extensions:"x-order=D" form:"path" json:"path" pg:"path,notnull"`
-} // @name AttachmentBasic
+} // @name cms1AttachmentBasic
 
 type Attachments []Attachment
 
@@ -181,35 +170,27 @@ type AttachmentSet struct {
 	// 类型
 	Mime *string `extensions:"x-order=C" json:"mime"`
 	Path *string `extensions:"x-order=D" json:"path"`
-} // @name AttachmentSet
+} // @name cms1AttachmentSet
 
-func (z *Attachment) SetWith(o AttachmentSet) (cs []string) {
+func (z *Attachment) SetWith(o AttachmentSet) {
 	if o.ArticleID != nil {
 		if id := oid.Cast(*o.ArticleID); z.ArticleID != id {
 			z.LogChangeValue("article_id", z.ArticleID, id)
 			z.ArticleID = id
-			cs = append(cs, "article_id")
 		}
 	}
 	if o.Name != nil && z.Name != *o.Name {
 		z.LogChangeValue("name", z.Name, o.Name)
 		z.Name = *o.Name
-		cs = append(cs, "name")
 	}
 	if o.Mime != nil && z.Mime != *o.Mime {
 		z.LogChangeValue("mime", z.Mime, o.Mime)
 		z.Mime = *o.Mime
-		cs = append(cs, "mime")
 	}
 	if o.Path != nil && z.Path != *o.Path {
 		z.LogChangeValue("path", z.Path, o.Path)
 		z.Path = *o.Path
-		cs = append(cs, "path")
 	}
-	if len(cs) > 0 {
-		z.SetChange(cs...)
-	}
-	return
 }
 
 // consts of Clause 条款
@@ -226,11 +207,11 @@ type Clause struct {
 	comm.DefaultModel
 
 	ClauseBasic
-} // @name Clause
+} // @name cms1Clause
 
 type ClauseBasic struct {
 	Text string `bun:"text,notnull" extensions:"x-order=A" form:"text" json:"text" pg:"text,notnull"`
-} // @name ClauseBasic
+} // @name cms1ClauseBasic
 
 type Clauses []Clause
 
@@ -251,24 +232,19 @@ func NewClauseWithBasic(in ClauseBasic) *Clause {
 
 type ClauseSet struct {
 	Text *string `extensions:"x-order=A" json:"text"`
-} // @name ClauseSet
+} // @name cms1ClauseSet
 
-func (z *Clause) SetWith(o ClauseSet) (cs []string) {
+func (z *Clause) SetWith(o ClauseSet) {
 	if o.Text != nil && z.Text != *o.Text {
 		z.LogChangeValue("text", z.Text, o.Text)
 		z.Text = *o.Text
-		cs = append(cs, "text")
 	}
-	if len(cs) > 0 {
-		z.SetChange(cs...)
-	}
-	return
 }
 
 // File a file instance
 type File struct {
 	Name string `extensions:"x-order=A" form:"name" json:"name"`
 	Path string `extensions:"x-order=B" form:"path" json:"path"`
-} // @name File
+} // @name cms1File
 
 type Files []File
