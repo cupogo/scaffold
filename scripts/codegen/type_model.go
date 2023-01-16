@@ -888,7 +888,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
 			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-				g.If(jen.Id("in").Dot(fn).Op("==").Lit("")).Block(
+				g.If(jen.Id("obj").Dot(fn).Op("==").Lit("")).Block(
 					jen.Err().Op("=").Id("ErrEmptyKey"),
 					jen.Return())
 				targs = append(targs, jen.Lit(cn))
