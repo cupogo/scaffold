@@ -188,8 +188,8 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 		idx++
 		// CreatedAt time.Time `bson:"createdAt" json:"createdAt" form:"createdAt" pg:"created,notnull,default:now()" extensions:"x-order=["` // 创建时间
 		ccs = append(ccs, createdUpCode(idx))
-		scs = append(scs, jen.If(jen.Id("o").Dot(createdName).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
-			g.Id("z").Dot(createdName).Op("=").Op("*").Id("o").Dot(createdName)
+		scs = append(scs, jen.If(jen.Id("o").Dot(createdField).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
+			g.Id("z").Dot(createdField).Op("=").Op("*").Id("o").Dot(createdField)
 			g.Id("z").Dot("SetChange").Call(jen.Lit(createdColumn))
 		})))
 	}
@@ -728,7 +728,7 @@ func createdUpCode(idx int) jen.Code {
 
 	tags := Tags{"json": "created,omitempty"}
 	tags.extOrder(idx)
-	code.Id(createdName).Op("*").Qual("time", "Time")
+	code.Id(createdField).Op("*").Qual("time", "Time")
 	code.Tag(tags)
 	return code
 }

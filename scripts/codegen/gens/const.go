@@ -35,7 +35,7 @@ const (
 
 // consts of created
 const (
-	createdName   = "CreatedAt"
+	createdField  = "CreatedAt"
 	createdColumn = "created"
 )
 
