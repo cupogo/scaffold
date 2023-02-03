@@ -985,6 +985,7 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jdb := jen.Id("tx")
 					g1.Id("ctx")
 					jbf := func(g2 *jen.Group) {
+						g2.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
 						if okBU {
 							g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(),
