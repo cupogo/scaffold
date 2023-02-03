@@ -40,6 +40,7 @@ vet:
 	GO111MODULE=$(GOMOD) $(GO) vet -all ./pkg/...
 
 deps:
+	GO111MODULE=on $(GO) install golang.org/x/tools/cmd/goimports@latest
 	GO111MODULE=on $(GO) install github.com/ddollar/forego@latest
 	GO111MODULE=on $(GO) install github.com/liut/rerun@latest
 	GO111MODULE=on $(GO) install github.com/swaggo/swag/cmd/swag@latest
