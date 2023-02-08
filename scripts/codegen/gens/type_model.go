@@ -384,6 +384,12 @@ func (m *Model) basicCodes() (st *jen.Statement) {
 		g.Return(jen.Id("obj"))
 	})
 	st.Line()
+	st.Func().Id("New" + m.Name + "WithID").Params(jen.Id("id").Any()).Op("*").Id(m.Name).BlockFunc(func(g *jen.Group) {
+		g.Id("obj").Op(":=").New(jen.Id(m.Name))
+		g.Op("_=").Id("obj").Dot("SetID").Call(jen.Id("id"))
+		g.Return(jen.Id("obj"))
+	})
+	st.Line()
 	return st
 }
 
