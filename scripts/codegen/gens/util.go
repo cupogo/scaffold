@@ -108,23 +108,23 @@ func shimNode(n dst.Node) {
 	}
 }
 
-func wrapNewFunc(s *Store, prev dst.Node) *dst.FuncDecl {
-	siname := s.ShortIName()
-	f := &dst.FuncDecl{
-		Recv: &dst.FieldList{List: []*dst.Field{newField("w", storewn, true)}},
-		Name: dst.NewIdent(siname),
-		Type: &dst.FuncType{Results: &dst.FieldList{List: []*dst.Field{
-			{Type: dst.NewIdent(s.GetIName())},
-		}}},
-		Body: &dst.BlockStmt{List: []dst.Stmt{&dst.ReturnStmt{Results: []dst.Expr{
-			&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(s.Name)},
-		}}}},
-	}
-	// f.Decorations().Start.Prepend("\n")
-	f.Decorations().End.Append("// " + siname + " gened")
+// func wrapNewFunc(s *Store, prev dst.Node) *dst.FuncDecl {
+// 	siname := s.ShortIName()
+// 	f := &dst.FuncDecl{
+// 		Recv: &dst.FieldList{List: []*dst.Field{newField("w", storewn, true)}},
+// 		Name: dst.NewIdent(siname),
+// 		Type: &dst.FuncType{Results: &dst.FieldList{List: []*dst.Field{
+// 			{Type: dst.NewIdent(s.GetIName())},
+// 		}}},
+// 		Body: &dst.BlockStmt{List: []dst.Stmt{&dst.ReturnStmt{Results: []dst.Expr{
+// 			&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(s.Name)},
+// 		}}}},
+// 	}
+// 	// f.Decorations().Start.Prepend("\n")
+// 	f.Decorations().End.Append("// " + siname + " gened")
 
-	return f
-}
+// 	return f
+// }
 
 func existBlockAssign(block *dst.BlockStmt, name string) bool {
 	for _, st := range block.List {
@@ -145,8 +145,6 @@ type vdst struct {
 	pkgn string
 	fset *token.FileSet
 	file *dst.File
-
-	body []byte
 }
 
 func newDST(name, pkg string) (*vdst, error) {

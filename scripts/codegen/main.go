@@ -10,7 +10,6 @@ import (
 
 var (
 	dropfirst bool
-	doc       *gens.Document
 	genSpec   int
 )
 
