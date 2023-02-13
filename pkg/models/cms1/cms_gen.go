@@ -63,6 +63,11 @@ func NewArticleWithBasic(in ArticleBasic) *Article {
 	_ = obj.MetaUp(in.MetaDiff)
 	return obj
 }
+func NewArticleWithID(id any) *Article {
+	obj := new(Article)
+	_ = obj.SetID(id)
+	return obj
+}
 
 type ArticleSet struct {
 	// 作者
@@ -161,6 +166,11 @@ func NewAttachmentWithBasic(in AttachmentBasic) *Attachment {
 	}
 	return obj
 }
+func NewAttachmentWithID(id any) *Attachment {
+	obj := new(Attachment)
+	_ = obj.SetID(id)
+	return obj
+}
 
 type AttachmentSet struct {
 	// 文章编号
@@ -227,6 +237,11 @@ func NewClauseWithBasic(in ClauseBasic) *Clause {
 	obj := &Clause{
 		ClauseBasic: in,
 	}
+	return obj
+}
+func NewClauseWithID(id any) *Clause {
+	obj := new(Clause)
+	_ = obj.SetID(id)
 	return obj
 }
 

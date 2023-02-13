@@ -212,6 +212,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		exist.SetChange("ts_cfg")
 	}
 	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
+		exist.SetIsUpdate(true)
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
 		}
