@@ -89,12 +89,12 @@ func (a *api) Strap(r gin.IRouter) {
 
 // authSignedIn 验证登录中间件
 func (a *api) authSignedIn() gin.HandlerFunc {
-	// DODO:
+	// TODO:
 	return func(c *gin.Context) {}
 }
 
 func (a *api) authPerm(permID string) gin.HandlerFunc {
-	// DODO:
+	// TODO:
 	return func(c *gin.Context) {}
 }
 
