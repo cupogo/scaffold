@@ -4,6 +4,10 @@ var (
 	version = "dev"
 )
 
-func IsDevelop() bool {
+func InDevelop() bool {
 	return "dev" == version
+}
+
+func Version() string {
+	return version
 }

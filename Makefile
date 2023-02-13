@@ -47,7 +47,7 @@ deps:
 	GO111MODULE=on $(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 lint:
-	GO111MODULE=$(GOMOD) golangci-lint --disable structcheck run ./pkg/...
+	GO111MODULE=$(GOMOD) golangci-lint --disable structcheck run ./...
 
 clean:
 	echo "Cleaning dist"

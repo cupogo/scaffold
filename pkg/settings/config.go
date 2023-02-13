@@ -24,6 +24,7 @@ type Config struct {
 	GrpcListen   string   `envconfig:"GRPC_LISTEN" default:"127.0.0.1:5012"`
 	RedisURI     string   `envconfig:"redis_uri" default:"redis://localhost:6379/1"`
 	AllowOrigins []string `envconfig:"allow_origins" default:"*"` // CORS: 允许的 Origin 调用来源
+	TrustProxies []string `envconfig:"Trust_Proxies" default:"127.0.0.1,::1"`
 }
 
 var (
