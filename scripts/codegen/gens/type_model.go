@@ -862,13 +862,23 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 			} else {
 				g.Add(jload)
 			}
+			jer := jen.Empty()
+			if mod.doc.hasQualErrors() {
+				jer.If(jen.Err().Op("==").Id("ErrNotFound")).Block(
+					jen.Err().Op("=").Add(mod.doc.qual("errors.NewErrNotFound")).
+						Call(jen.Lit(mod.label()), jen.Id("id")),
+				)
+			}
 
 			if hkAL, okAL := mod.hasStoreHook(afterLoad); okAL {
 				g.If(jen.Err().Op("==").Nil()).Block(
 					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("obj")),
 				)
+				if mod.doc.hasQualErrors() {
+					g.Add(jer)
+				}
 			} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
-				g.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
+				g.If(jen.Err().Op("!=").Nil()).Block(jer, jen.Return())
 				g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
 					for _, rn := range rels {
 						field, _ := mod.Fields.withName(rn)
@@ -883,12 +893,8 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 					}
 
 				})
-			}
-			if mod.doc.hasQualErrors() {
-				g.If(jen.Err().Op("==").Id("ErrNotFound")).BlockFunc(func(g1 *jen.Group) {
-					jer := mod.doc.qual("errors.NewErrNotFound")
-					g1.Err().Op("=").Add(jer).Call(jen.Lit(mod.label()), jen.Id("id"))
-				})
+			} else {
+				g.Add(jer)
 			}
 
 			g.Return()
