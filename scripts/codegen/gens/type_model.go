@@ -271,6 +271,10 @@ func (m *Model) Codes() jen.Code {
 		st.Add(jc)
 	}
 
+	if ic := m.identityCode(); ic != nil {
+		st.Add(ic)
+	}
+
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
 		st.Type().Id(changeSetName).Struct(ccs...).Add(jen.Comment("@name " + prefix + changeSetName)).Line().Line()
@@ -1177,4 +1181,28 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 			}
 
 		})
+}
+
+func (m *Model) identityCode() (st *jen.Statement) {
+	if m.IsTable() {
+		st = new(jen.Statement)
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("IdentityLabel").Params().String().Block(
+			jen.Return(jen.Id(m.Name + "Label")),
+		).Line()
+
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("IdentityTable").Params().String().Block(
+			jen.Return(jen.Id(m.Name + "Table")),
+		).Line()
+
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("IdentityAlias").Params().String().Block(
+			jen.Return(jen.Id(m.Name + "Alias")),
+		).Line()
+	}
+	return st
 }
