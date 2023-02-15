@@ -108,6 +108,13 @@ func (doc *Document) getModQual(k string) string {
 	return ""
 }
 
+func (doc *Document) hasQualErrors() bool {
+	if s, ok := doc.Qualified["errors"]; ok && s != "errors" {
+		return true
+	}
+	return false
+}
+
 func (doc *Document) qual(args ...string) jen.Code {
 	if len(args) == 0 {
 		log.Fatal("empty args for qual")

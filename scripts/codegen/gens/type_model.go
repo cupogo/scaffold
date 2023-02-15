@@ -75,6 +75,10 @@ func (m *Model) tableAlias() string {
 	return tt
 }
 
+func (m *Model) label() string {
+	return LcFirst(m.Name)
+}
+
 func (m *Model) TableField() jen.Code {
 	tt := m.TableTag
 	if tt == "" {
@@ -880,6 +884,13 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 				})
 			}
+			if mod.doc.hasQualErrors() {
+				g.If(jen.Err().Op("==").Id("ErrNotFound")).BlockFunc(func(g1 *jen.Group) {
+					jer := mod.doc.qual("errors.NewErrNotFound")
+					g1.Err().Op("=").Add(jer).Call(jen.Lit(mod.label()), jen.Id("id"))
+				})
+			}
+
 			g.Return()
 		})
 }
