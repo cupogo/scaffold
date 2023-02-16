@@ -18,6 +18,7 @@ type Service interface {
 	Serve(ctx context.Context) error
 	http.Handler
 	Stop(ctx context.Context) error
+	NotFound(h http.Handler)
 }
 
 type server struct {
@@ -27,6 +28,10 @@ type server struct {
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+}
+
+func (s *server) NotFound(h http.Handler) {
+	s.router.NoRoute(gin.WrapH(h))
 }
 
 // New return new web server
@@ -76,7 +81,6 @@ func New(ahs ...string) Service {
 		router.Use(sentry.Recovery(raven.DefaultClient, onlyCrashes))
 	}
 
-	router.GET("/", handle204)
 	router.GET("/ping", handlePing)
 
 	apis.Routers(router, ahs...)
