@@ -273,9 +273,6 @@ func (m *Model) Codes() jen.Code {
 	if ic := m.identityCode(); ic != nil {
 		st.Add(ic)
 	}
-	if jc := m.basicMetaAddCode(); jc != nil {
-		st.Add(jc)
-	}
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
 		changeSetName := m.Name + "Set"
@@ -285,7 +282,10 @@ func (m *Model) Codes() jen.Code {
 			jen.Id("z").Op("*").Id(m.Name),
 		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params().Block(
 			scs...,
-		)
+		).Line()
+	}
+	if jc := m.metaAddCodes(); jc != nil {
+		st.Add(jc)
 	}
 	return st
 }
@@ -1209,15 +1209,19 @@ func (m *Model) identityCode() (st *jen.Statement) {
 	return st
 }
 
-func (m *Model) basicMetaAddCode() (st *jen.Statement) {
+func (m *Model) metaAddCodes() (st *jen.Statement) {
 	if m.hasMeta() {
 		st = new(jen.Statement)
-		st.Func().Params(jen.Id("in").Op("*").Id(m.Name+"Basic")).Id("MetaAddKVs").Params(
-			jen.Id("args").Op("...").Any()).Op("*").Id(m.Name+"Basic").Block(
-			jen.Id("in").Dot("MetaDiff").Op("=").Id("comm.MetaDiffAddKVs").Call(
-				jen.Id("in").Dot("MetaDiff"), jen.Id("args").Op("...")),
-			jen.Return().Id("in"),
-		).Line()
+		func(st *jen.Statement, args ...string) {
+			for _, suf := range args {
+				st.Func().Params(jen.Id("in").Op("*").Id(m.Name+suf)).Id("MetaAddKVs").Params(
+					jen.Id("args").Op("...").Any()).Op("*").Id(m.Name+suf).Block(
+					jen.Id("in").Dot("MetaDiff").Op("=").Id("comm.MetaDiffAddKVs").Call(
+						jen.Id("in").Dot("MetaDiff"), jen.Id("args").Op("...")),
+					jen.Return().Id("in"),
+				).Line()
+			}
+		}(st, "Basic", "Set")
 	}
 	return
 }
