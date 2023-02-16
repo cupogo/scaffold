@@ -270,9 +270,11 @@ func (m *Model) Codes() jen.Code {
 	if jc := m.basicCodes(); jc != nil {
 		st.Add(jc)
 	}
-
 	if ic := m.identityCode(); ic != nil {
 		st.Add(ic)
+	}
+	if jc := m.basicMetaAddCode(); jc != nil {
+		st.Add(jc)
 	}
 
 	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
@@ -1198,11 +1200,24 @@ func (m *Model) identityCode() (st *jen.Statement) {
 			jen.Return(jen.Id(m.Name + "Table")),
 		).Line()
 
-		st.Func().Params(
-			jen.Id("_").Op("*").Id(m.Name),
-		).Id("IdentityAlias").Params().String().Block(
-			jen.Return(jen.Id(m.Name + "Alias")),
-		).Line()
+		// st.Func().Params(
+		// 	jen.Id("_").Op("*").Id(m.Name),
+		// ).Id("IdentityAlias").Params().String().Block(
+		// 	jen.Return(jen.Id(m.Name + "Alias")),
+		// ).Line()
 	}
 	return st
+}
+
+func (m *Model) basicMetaAddCode() (st *jen.Statement) {
+	if m.hasMeta() {
+		st = new(jen.Statement)
+		st.Func().Params(jen.Id("in").Op("*").Id(m.Name+"Basic")).Id("MetaAddKVs").Params(
+			jen.Id("args").Op("...").Any()).Op("*").Id(m.Name+"Basic").Block(
+			jen.Id("in").Dot("MetaDiff").Op("=").Id("comm.MetaDiffAddKVs").Call(
+				jen.Id("in").Dot("MetaDiff"), jen.Id("args").Op("...")),
+			jen.Return().Id("in"),
+		).Line()
+	}
+	return
 }
