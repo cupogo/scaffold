@@ -6,17 +6,22 @@ require (
 	github.com/cupogo/andvari v0.0.0-20230209120941-357a86f42d96
 	github.com/dave/dst v0.27.2
 	github.com/dave/jennifer v1.6.0
+	github.com/getsentry/raven-go v0.2.0
+	github.com/gin-contrib/cors v1.4.0
+	github.com/gin-contrib/sentry v0.0.0-20191119142041-ff0e9556d1b7
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/jinzhu/inflection v1.0.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/uptrace/bun/dialect/pgdialect v1.1.11
+	go.uber.org/zap v1.24.0
 	golang.org/x/text v0.6.0
 	golang.org/x/tools v0.1.12
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
+	github.com/certifi/gocertifi v0.0.0-20180905225744-ee1a9a0726d2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -38,6 +43,8 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yalue/merged_fs v1.2.3 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.5.0 // indirect

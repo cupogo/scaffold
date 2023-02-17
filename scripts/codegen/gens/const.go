@@ -53,6 +53,8 @@ const (
 	afterLoad      = "afterLoad"
 	afterList      = "afterList"
 	beforeList     = "beforeList"
+	upsertES       = "upsertES"
+	deleteES       = "deleteES"
 )
 
 const (
@@ -65,4 +67,8 @@ type CompareType string
 const (
 	CompareScalar  CompareType = "scalar"
 	CompareEqualTo CompareType = "equalTo"
+)
+
+const (
+	MigrateES = "MigrateES"
 )

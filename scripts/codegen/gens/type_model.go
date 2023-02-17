@@ -984,6 +984,12 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				)
 			}
 
+			if fc, ok := mod.hasStoreHook(upsertES); ok {
+				g.If(jen.Err().Op("==").Nil()).Block(
+					jen.Err().Op("=").Id("s").Dot(fc).Call(jen.Id("ctx"), jen.Id("obj")),
+				)
+			}
+
 			g.Return()
 		})
 }
@@ -1058,15 +1064,33 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				)
 			}
 
-			if hk, ok := mod.hasStoreHook(afterUpdated); ok {
+			hkau, okau := mod.hasStoreHook(afterUpdated)
+			hkue, okue := mod.hasStoreHook(upsertES)
+			if okau && okue {
 				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
 					jen.Return(jen.Err()),
 				)
-				g.Return(jen.Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("exist")))
+				callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
+				g.If(jen.Err().Op(":=").Add(callau).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+				callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
+				g.Return(callke)
+			} else if okau {
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+				callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
+				g.Return(callau)
+			} else if okue {
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+				callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
+				g.Return(callke)
 			} else {
 				g.Return(jfbd)
 			}
-
 		})
 }
 
@@ -1173,15 +1197,37 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			}
 
-			if hk, ok := mod.hasStoreHook(afterDeleted); ok {
+			hkad, okad := mod.hasStoreHook(afterDeleted)
+			hkde, okde := mod.hasStoreHook(deleteES)
+
+			if okad && okde {
 				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
 					jen.Return(jen.Err()),
 				)
-				g.Return(jen.Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("obj")))
+
+				callad := jen.Id("s").Dot(hkad).Call(jen.Id("ctx"), jen.Id("obj"))
+				g.If(jen.Err().Op(":=").Add(callad).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+
+				callde := jen.Id("s").Dot(hkde).Call(jen.Id("ctx"), jen.Id("obj"))
+				g.Return(callde)
+
+			} else if okad {
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+				callad := jen.Id("s").Dot(hkad).Call(jen.Id("ctx"), jen.Id("obj"))
+				g.Return(callad)
+			} else if okde {
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+				callde := jen.Id("s").Dot(hkde).Call(jen.Id("ctx"), jen.Id("obj"))
+				g.Return(callde)
 			} else {
 				g.Return(jfbd)
 			}
-
 		})
 }
 

@@ -4,6 +4,7 @@ package stores
 
 import (
 	"context"
+
 	utils "github.com/cupogo/andvari/utils"
 	"github.com/cupogo/scaffold/pkg/models/cms1"
 )
@@ -146,6 +147,7 @@ func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data c
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
 	err = s.w.db.GetModel(ctx, obj, id)
+
 	return
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
@@ -197,6 +199,9 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		err = dbInsert(ctx, tx, obj)
 		return err
 	})
+	if err == nil {
+		err = s.upsertESArticle(ctx, obj)
+	}
 	return
 }
 func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) error {
@@ -210,27 +215,33 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		exist.SetTsColumns("title", "content")
 		exist.SetChange("ts_cfg")
 	}
-	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
+	if err := s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		exist.SetIsUpdate(true)
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
 		}
 		dbOpModelMeta(ctx, tx, exist)
 		return dbUpdate(ctx, tx, exist)
-	})
+	}); err != nil {
+		return err
+	}
+	return s.upsertESArticle(ctx, exist)
 }
 func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 	obj := new(cms1.Article)
 	if err := getModelWithPKID(ctx, s.w.db, obj, id); err != nil {
 		return err
 	}
-	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
+	if err := s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), cms1.ArticleTable, obj.ID)
 		if err != nil {
 			return
 		}
 		return dbAfterDeleteArticle(ctx, tx, obj)
-	})
+	}); err != nil {
+		return err
+	}
+	return s.deleteESArticle(ctx, obj)
 }
 
 func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error) {
@@ -240,5 +251,6 @@ func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec)
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
 	obj = new(cms1.Attachment)
 	err = s.w.db.GetModel(ctx, obj, id)
+
 	return
 }
