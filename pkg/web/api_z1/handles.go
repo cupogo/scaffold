@@ -2,14 +2,22 @@ package apiz1
 
 import (
 	"os"
+	"path"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	Root = "./"
+)
+
 func init() {
 	regHI(false, "GET", "/docs/yamls", "", func(a *api) gin.HandlerFunc {
 		return a.getDocsYamls
+	})
+	regHI(false, "GET", "/docs/yamls/:name", "", func(a *api) gin.HandlerFunc {
+		return a.getDocsYaml
 	})
 
 }
@@ -22,7 +30,7 @@ type DocEntry struct {
 }
 
 func (a *api) getDocsYamls(c *gin.Context) {
-	files, err := os.ReadDir("./docs")
+	files, err := os.ReadDir(path.Join(Root, "docs"))
 	if err != nil {
 		fail(c, 400, err)
 		return
@@ -50,4 +58,17 @@ func (a *api) getDocsYamls(c *gin.Context) {
 	}
 
 	success(c, data)
+}
+
+func (a *api) getDocsYaml(c *gin.Context) {
+	name := c.Param("name")
+	if !strings.HasSuffix(name, ".yaml") {
+		name = name + ".yaml"
+	}
+	data, err := os.ReadFile(path.Join(Root, "docs", name))
+	if err != nil {
+		fail(c, 400, err)
+		return
+	}
+	c.Data(200, "text/yaml", data)
 }

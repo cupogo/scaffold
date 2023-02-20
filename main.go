@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"embed"
+	"io/fs"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +14,12 @@ import (
 	"github.com/cupogo/andvari/utils/zlog"
 	"github.com/cupogo/scaffold/pkg/settings"
 	"github.com/cupogo/scaffold/pkg/web"
+
+	_ "github.com/cupogo/scaffold/pkg/web/api_z1"
 )
+
+//go:embed htdocs all:htdocs/app
+var static embed.FS
 
 func main() {
 
@@ -25,6 +33,11 @@ func main() {
 	zlog.Set(sugar)
 
 	srv := web.New()
+	fsys := fs.FS(static)
+	html, _ := fs.Sub(fsys, "htdocs")
+	// srv.StaticFS("/", http.FS(html))
+	srv.NotFound(http.FileServer(http.FS(html)))
+
 	idleClosed := make(chan struct{})
 	ctx := context.Background()
 	go func() {
@@ -33,13 +46,13 @@ func main() {
 		<-quit
 		sugar.Info("shuting down server...")
 		if err := srv.Stop(ctx); err != nil {
-			sugar.Warnw("server shutdown:", "err", err)
+			sugar.Infow("server shutdown:", "err", err)
 		}
 		close(idleClosed)
 	}()
 
 	if err := srv.Serve(ctx); err != nil {
-		sugar.Warnw("serve fali", "err", err)
+		sugar.Infow("serve fali", "err", err)
 	}
 
 	<-idleClosed

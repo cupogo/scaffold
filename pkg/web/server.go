@@ -108,7 +108,7 @@ func (s *server) Serve(ctx context.Context) error {
 		select {
 		case runErr := <-runErrChan:
 			if runErr != nil {
-				logger().Errorw("run http server failed",
+				logger().Infow("run http server failed",
 					"err", runErr,
 				)
 				return runErr
