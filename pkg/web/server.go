@@ -133,6 +133,7 @@ func handlePing(c *gin.Context) {
 	c.String(200, "Pong")
 }
 
+// nolint
 func handle204(c *gin.Context) {
 	c.Status(204)
 }
