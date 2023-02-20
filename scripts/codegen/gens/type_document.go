@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"sort"
 	"strings"
@@ -263,6 +264,9 @@ func (doc *Document) genModels(dropfirst bool) error {
 		log.Fatalf("generate models fail: %s", err)
 		return err
 	}
+
+	_ = goImports(outname)
+
 	log.Printf("generated '%s/%s' ok", doc.dirmod, doc.gened)
 	return nil
 }
@@ -368,12 +372,15 @@ func (doc *Document) genStores(dropfirst bool) error {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
 	}
+
 	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.gened)
 
 	if !hasAnyStore {
 		log.Print("no store found, skip wrap")
 		return nil
 	}
+
+	_ = goImports(outname)
 
 	if doc.hasStoreHooks() {
 		gfile := path.Join(doc.dirsto, doc.extern)
@@ -585,6 +592,9 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
 	}
+
+	_ = goImports(outname)
+
 	log.Printf("generated '%s/%s' ok", doc.dirweb, "handle_"+doc.gened)
 	return nil
 }
@@ -595,4 +605,13 @@ func getVarFromTypesVar(v *types.Var) Var {
 		typs = typs[pos+1:]
 	}
 	return Var{Name: v.Name(), Type: typs}
+}
+
+func goImports(path string) (err error) {
+	cmd := exec.Command("goimports", "-w", path)
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("cmd.Run() failed with %s\n", err)
+	}
+	return err
 }
