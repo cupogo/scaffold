@@ -68,6 +68,12 @@ func NewArticleWithID(id any) *Article {
 	_ = obj.SetID(id)
 	return obj
 }
+func (_ *Article) IdentityLabel() string {
+	return ArticleLabel
+}
+func (_ *Article) IdentityTable() string {
+	return ArticleTable
+}
 
 type ArticleSet struct {
 	// 作者
@@ -123,6 +129,14 @@ func (z *Article) SetWith(o ArticleSet) {
 		z.SetChange("meta")
 	}
 }
+func (in *ArticleBasic) MetaAddKVs(args ...any) *ArticleBasic {
+	in.MetaDiff = comm.MetaDiffAddKVs(in.MetaDiff, args...)
+	return in
+}
+func (in *ArticleSet) MetaAddKVs(args ...any) *ArticleSet {
+	in.MetaDiff = comm.MetaDiffAddKVs(in.MetaDiff, args...)
+	return in
+}
 
 // consts of Attachment 附件
 const (
@@ -170,6 +184,12 @@ func NewAttachmentWithID(id any) *Attachment {
 	obj := new(Attachment)
 	_ = obj.SetID(id)
 	return obj
+}
+func (_ *Attachment) IdentityLabel() string {
+	return AttachmentLabel
+}
+func (_ *Attachment) IdentityTable() string {
+	return AttachmentTable
 }
 
 type AttachmentSet struct {
@@ -243,6 +263,12 @@ func NewClauseWithID(id any) *Clause {
 	obj := new(Clause)
 	_ = obj.SetID(id)
 	return obj
+}
+func (_ *Clause) IdentityLabel() string {
+	return ClauseLabel
+}
+func (_ *Clause) IdentityTable() string {
+	return ClauseTable
 }
 
 type ClauseSet struct {

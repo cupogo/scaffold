@@ -65,6 +65,8 @@ models:
       afterLoad: yes
     # withColumnGet: true
     # withColumnList: true
+      upsertES: yes
+      deleteES: yes
 
   - name: Attachment
     comment: '附件'

@@ -392,6 +392,21 @@ func (doc *Document) genStores(dropfirst bool) error {
 		for _, sh := range doc.storeHooks() {
 			// log.Printf("check storeHook: %s, %+v", sh.FunName, svd.existFunc(sh.FunName))
 			svd.ensureFunc(sh.FunName, sh.dstFuncDecl(doc.modipath))
+			if sh.k == upsertES || sh.k == deleteES {
+				mesh := storeHook{
+					FunName: MigrateES + sh.m.Name,
+					ObjName: sh.ObjName,
+					k:       MigrateES,
+					m:       sh.m,
+					s:       sh.s,
+				}
+				svd.ensureFunc(mesh.FunName, mesh.dstMEFuncDecl(doc.modipath))
+				index, decl := mesh.dstMEGenDecl(svd)
+				if decl != nil {
+					svd.file.Decls[index] = decl
+				}
+
+			}
 		}
 		_ = svd.overwrite()
 	}
