@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/cupogo/andvari/utils/zlog"
 	"github.com/cupogo/scaffold/pkg/web/resp"
 	"github.com/cupogo/scaffold/pkg/web/routes"
 )
@@ -122,4 +123,8 @@ func dtResult(data any, total int) *resp.ResultData {
 // nolint
 func idResult(id any) *resp.ResultID {
 	return &resp.ResultID{ID: id}
+}
+
+func logger() zlog.Logger {
+	return zlog.Get()
 }

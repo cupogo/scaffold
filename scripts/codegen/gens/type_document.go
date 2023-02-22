@@ -2,6 +2,7 @@
 package gens
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -84,6 +85,28 @@ type Document struct {
 	Qualified Tags    `yaml:"depends"` // imports name
 	Stores    []Store `yaml:"stores"`
 	WebAPI    WebAPI  `yaml:"webapi"`
+}
+
+func (doc *Document) Check() error {
+	if 0 == len(doc.ModelPkg) {
+		return errors.New("empty modelpkg")
+	}
+
+	if 0 == len(doc.Models) {
+		return errors.New("empty models")
+	}
+
+	for i := 0; i < len(doc.Models); i++ {
+		if 0 == len(doc.Models[i].Fields) {
+			return errors.New("empty fields")
+		}
+	}
+
+	return nil
+}
+
+func (doc *Document) Valid() bool {
+	return len(doc.ModelPkg) > 0 && len(doc.Models) > 0 && len(doc.Models[0].Fields) > 0
 }
 
 func (doc *Document) getQual(k string) (qu string, ok bool) {
