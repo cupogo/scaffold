@@ -13,6 +13,7 @@ import (
 
 var (
 	Root = "./"
+	dirs = []string{"../andvari", Root}
 )
 
 func init() {
@@ -24,6 +25,9 @@ func init() {
 	})
 	regHI(false, "POST", "/docs/yamls/:name", "", func(a *api) gin.HandlerFunc {
 		return a.postDocsYaml
+	})
+	regHI(false, "GET", "/dependencies", "", func(a *api) gin.HandlerFunc {
+		return a.getDependencies
 	})
 
 }
@@ -112,4 +116,25 @@ func (a *api) postDocsYaml(c *gin.Context) {
 		return
 	}
 	success(c, "ok")
+}
+
+type Module struct {
+	Path string   `json:"path"`
+	Pkgs []string `json:"pkgs"`
+}
+
+func (a *api) getDependencies(c *gin.Context) {
+	var modules []Module
+	for _, dir := range dirs {
+		mod, pkgs, err := listModels(dir)
+		if err != nil {
+			fail(c, 500, err)
+			return
+		}
+		modules = append(modules, Module{
+			Path: mod, Pkgs: pkgs,
+		})
+	}
+
+	success(c, modules)
 }
