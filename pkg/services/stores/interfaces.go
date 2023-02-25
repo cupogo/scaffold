@@ -18,3 +18,7 @@ type Storage interface {
 
 var UpsertESDoc func(ctx context.Context, index string, mi ModelIdentity) error
 var DeleteESDoc func(ctx context.Context, index, id string) error
+
+func RegisterESMigrate(string, func(context.Context) error) {
+
+}

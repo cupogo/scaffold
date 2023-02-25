@@ -48,6 +48,8 @@ type Store struct {
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
 	Hods     []Var    `yaml:"hods"`            // Customized
 
+	OnInits []string `yaml:"onInits,omitempty"`
+
 	allMM map[string]bool
 	hodMn map[string]bool
 
@@ -204,16 +206,38 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 		}
 	}
 
-	st := jen.Type().Id(s.GetIName()).Interface(ics...).Line().Line()
+	in := s.GetIName()
+
+	st := jen.Type().Id(in).Interface(ics...).Line().Line()
 	st.Add(tcs...).Line()
 
-	st.Type().Id(s.Name).Struct(jen.Id("w").Op("*").Id("Wrap")).Line()
+	jw := jen.Id("w").Op("*").Id("Wrap")
+
+	if s.IsCustomNew() {
+		st.Func().Id("new" + in).Params(jw).Op("*").Id(s.Name).BlockFunc(func(g *jen.Group) {
+			g.Id("s").Op(":=&").Id(s.Name).Values(jen.Id("w:w"))
+			for _, expr := range s.OnInits {
+				id, err := pickExpr(expr)
+				if err != nil {
+					log.Fatalf("invalid expr: %s, %s", expr, err)
+				}
+				g.Id(id)
+			}
+			g.Return(jen.Id("s"))
+		}).Line()
+	}
+
+	st.Type().Id(s.Name).Struct(jw).Line()
 
 	for i := range mcs {
 		st.Func().Params(jen.Id("s").Op("*").Id(s.Name)).Add(mcs[i], bcs[i]).Line()
 	}
 
 	return st
+}
+
+func (s *Store) IsCustomNew() bool {
+	return len(s.OnInits) > 0
 }
 
 func (s *Store) dstWrapField() *dst.Field {
@@ -224,14 +248,21 @@ func (s *Store) dstWrapField() *dst.Field {
 
 func (s *Store) dstWrapVarAsstmt() *dst.AssignStmt {
 	name := s.Name
-	// TODO: custom onInit
+	var ue dst.Expr
+	if s.IsCustomNew() {
+		ue = &dst.CallExpr{Fun: dst.NewIdent("new" + s.GetIName()),
+			Args: []dst.Expr{dst.NewIdent("w")},
+		}
+	} else {
+		ue = &dst.UnaryExpr{Op: token.AND, X: &dst.CompositeLit{
+			Type: dst.NewIdent(name),
+			Elts: []dst.Expr{&dst.KeyValueExpr{Key: dst.NewIdent("w"), Value: dst.NewIdent("w")}},
+		}}
+	}
 	st := &dst.AssignStmt{
 		Lhs: []dst.Expr{&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(name)}},
 		Tok: token.ASSIGN,
-		Rhs: []dst.Expr{&dst.UnaryExpr{Op: token.AND, X: &dst.CompositeLit{
-			Type: dst.NewIdent(name),
-			Elts: []dst.Expr{&dst.KeyValueExpr{Key: dst.NewIdent("w"), Value: dst.NewIdent("w")}},
-		}}},
+		Rhs: []dst.Expr{ue},
 	}
 	st.Decs.Before = dst.None
 	st.Decs.After = dst.None
@@ -260,16 +291,14 @@ func (s *Store) dstWrapFunc() *dst.FuncDecl {
 func newStoInterfaceMethod(name, ret string) *dst.Field {
 	id := dst.NewIdent(name)
 	id.Obj = dst.NewObj(dst.Fun, name)
-	f := &dst.Field{
-		Names: []*dst.Ident{id},
-		Type: &dst.FuncType{
-			Results: &dst.FieldList{
-				List: []*dst.Field{
-					{Type: dst.NewIdent(ret)},
-				},
+	f := newField(id, &dst.FuncType{
+		Results: &dst.FieldList{
+			List: []*dst.Field{
+				{Type: dst.NewIdent(ret)},
 			},
 		},
-	}
+	}, false)
+
 	f.Decorations().End.Append("// gened")
 
 	return f
@@ -411,7 +440,7 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	}}
 	bretst.Decs.Before = dst.NewLine
 	if sh.k != deleteES && sh.k != upsertES {
-		bretst.Decs.Start.Append("// TODO:")
+		bretst.Decs.Start.Append("// TODO: need implement")
 	}
 	bodyst.List = append(bodyst.List, bretst)
 
@@ -457,22 +486,13 @@ loop:
 									Type: &dst.FuncType{
 										Params: &dst.FieldList{
 											List: []*dst.Field{
-												&dst.Field{
-													Names: []*dst.Ident{dst.NewIdent("ctx")},
-													Type: &dst.Ident{
-														Name: "Context",
-														Path: "context",
-													},
-												}},
+												newField("ctx", &dst.Ident{Name: "Context", Path: "context"}, false),
+											},
 										},
 										Results: &dst.FieldList{
 											List: []*dst.Field{
-												&dst.Field{
-													Names: []*dst.Ident{dst.NewIdent("err")},
-													Type: &dst.Ident{
-														Name: "error",
-													},
-												}},
+												newField("err", "error", false),
+											},
 										},
 									},
 								})
@@ -687,9 +707,9 @@ func (sh *storeHook) dstMEFuncDecl(modipath string) *dst.FuncDecl {
 		Name: dst.NewIdent(sh.FunName),
 		Type: &dst.FuncType{
 			Params: &dst.FieldList{List: []*dst.Field{
-				{Names: []*dst.Ident{dst.NewIdent("ctx")}, Type: ctxIdent}}},
+				newField("ctx", ctxIdent, false)}},
 			Results: &dst.FieldList{List: []*dst.Field{
-				{Names: []*dst.Ident{dst.NewIdent("err")}, Type: dst.NewIdent("error")},
+				newField("err", "error", false),
 			}}},
 		Body: &dst.BlockStmt{List: []dst.Stmt{varStmt, forStmt, &dst.ReturnStmt{}}},
 	}

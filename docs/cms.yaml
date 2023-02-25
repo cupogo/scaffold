@@ -134,6 +134,10 @@ stores:
       - name: PutClause
         simple: true
       - name: DeleteClause
+    onInits:
+      - 'RegisterESMigrate(cms1.ArticleTable, s.MigrateESArticle)'  # for ES migrate
+    ensureMethods: # TODO
+      - 'func MigrateESArticle(ctx context.Context) error'
 
 webapi:
   pkg: api_v1

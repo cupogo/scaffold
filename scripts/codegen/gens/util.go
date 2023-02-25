@@ -4,6 +4,7 @@ package gens
 import (
 	"bytes"
 	"fmt"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"log"
@@ -111,18 +112,18 @@ func shimNode(n dst.Node) {
 // 	return f
 // }
 
-func existBlockAssign(block *dst.BlockStmt, name string) bool {
-	for _, st := range block.List {
+func existBlockAssign(block *dst.BlockStmt, name string) (int, bool) {
+	for i, st := range block.List {
 		if as, ok := st.(*dst.AssignStmt); ok {
 			if len(as.Lhs) > 0 && len(as.Rhs) > 0 {
 				if se, ok := as.Lhs[0].(*dst.SelectorExpr); ok && se.Sel.Name == name {
 					// log.Printf("exist assign %s", name)
-					return true
+					return i, true
 				}
 			}
 		}
 	}
-	return false
+	return -1, false
 }
 
 type vdst struct {
@@ -169,6 +170,39 @@ func (v *vdst) ensureFunc(name string, fd *dst.FuncDecl) {
 	}
 }
 
+// nolint
+func (v *vdst) existMethod(name, recv string) (int, bool) {
+	for idx, decl := range v.file.Decls {
+		if fd, ok := decl.(*dst.FuncDecl); ok && fd.Name.Name == name {
+			if fd.Recv != nil && len(fd.Recv.List) == 1 {
+				if ex, ok := fd.Recv.List[0].Type.(*dst.Ident); ok && ex.Name == recv {
+					return idx, true
+				}
+				if se, ok := fd.Recv.List[0].Type.(*dst.StarExpr); ok {
+					if ex, ok := se.X.(*dst.Ident); ok && ex.Name == recv {
+						return idx, true
+					}
+				}
+			}
+		}
+	}
+	return -1, false
+}
+
+// nolint
+func (v *vdst) ensureMethod(name, recv string, fd *dst.FuncDecl) {
+	if fd == nil {
+		return
+	}
+	if idx, ok := v.existMethod(name, recv); ok {
+		v.file.Decls[idx] = fd
+	} else {
+		v.file.Decls = append(v.file.Decls, fd)
+	}
+
+	log.Printf("ensureFunc: %s", name)
+}
+
 func (v *vdst) Apply(pre, post dstutil.ApplyFunc) dst.Node {
 	return dstutil.Apply(v.file, pre, post)
 }
@@ -188,14 +222,29 @@ func (w *vdst) overwrite() error {
 	return nil
 }
 
-func newField(vn string, vt any, star bool) *dst.Field {
-	f := &dst.Field{Names: []*dst.Ident{dst.NewIdent(vn)}}
+// newField return dst.Field with name, type, is pointer
+func newField(vn any, vt any, star bool) *dst.Field {
+	var id *dst.Ident
+	if name, ok := vn.(string); ok {
+		id = dst.NewIdent(name)
+	} else if n, ok := vn.(*dst.Ident); ok {
+		id = n
+	} else {
+		panic(fmt.Errorf("invalid vn: %+v", vn))
+	}
+	f := &dst.Field{Names: []*dst.Ident{id}}
+
 	if id, ok := vt.(*dst.Ident); ok {
 		if star {
 			f.Type = &dst.StarExpr{X: id}
 			return f
 		}
 		f.Type = id
+		return f
+	}
+
+	if ex, ok := vt.(dst.Expr); ok {
+		f.Type = ex
 		return f
 	}
 
@@ -304,4 +353,33 @@ func matchs(patt string, names ...string) bool {
 	}
 
 	return false
+}
+
+// nolint
+func dstExpr(expr string) (dst.Node, error) {
+	node, err := parser.ParseExpr(expr)
+	if err != nil {
+		return nil, err
+	}
+	dec := decorator.NewDecorator(nil)
+	return dec.DecorateNode(node)
+}
+
+func pickExpr(expr string) (out string, err error) {
+	node, err := parser.ParseExpr(expr)
+	if err != nil {
+		return
+	}
+
+	fset := token.NewFileSet()
+
+	var buf bytes.Buffer
+	err = format.Node(&buf, fset, node)
+	if err != nil {
+		return
+	}
+
+	out = buf.String()
+
+	return
 }
