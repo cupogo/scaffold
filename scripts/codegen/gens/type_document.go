@@ -472,7 +472,7 @@ func (doc *Document) ensureWrapPatch() bool {
 					if existBlockAssign(cn, store.Name) {
 						continue
 					}
-					nst := wrapVarAsstmt(store.Name)
+					nst := store.dstWrapVarAsstmt()
 					var arr []dst.Stmt
 					n := len(cn.List)
 					arr = append(arr, cn.List[0:n-1]...)

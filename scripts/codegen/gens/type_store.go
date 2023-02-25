@@ -222,6 +222,23 @@ func (s *Store) dstWrapField() *dst.Field {
 	return fd
 }
 
+func (s *Store) dstWrapVarAsstmt() *dst.AssignStmt {
+	name := s.Name
+	// TODO: custom onInit
+	st := &dst.AssignStmt{
+		Lhs: []dst.Expr{&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(name)}},
+		Tok: token.ASSIGN,
+		Rhs: []dst.Expr{&dst.UnaryExpr{Op: token.AND, X: &dst.CompositeLit{
+			Type: dst.NewIdent(name),
+			Elts: []dst.Expr{&dst.KeyValueExpr{Key: dst.NewIdent("w"), Value: dst.NewIdent("w")}},
+		}}},
+	}
+	st.Decs.Before = dst.None
+	st.Decs.After = dst.None
+	st.Decorations().End.Append("// gened")
+	return st
+}
+
 func (s *Store) dstWrapFunc() *dst.FuncDecl {
 	siname := s.ShortIName()
 	f := &dst.FuncDecl{

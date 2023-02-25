@@ -84,21 +84,6 @@ func showNode(node dst.Node) string {
 	return info
 }
 
-func wrapVarAsstmt(name string) *dst.AssignStmt {
-	st := &dst.AssignStmt{
-		Lhs: []dst.Expr{&dst.SelectorExpr{X: dst.NewIdent("w"), Sel: dst.NewIdent(name)}},
-		Tok: token.ASSIGN,
-		Rhs: []dst.Expr{&dst.UnaryExpr{Op: token.AND, X: &dst.CompositeLit{
-			Type: dst.NewIdent(name),
-			Elts: []dst.Expr{&dst.KeyValueExpr{Key: dst.NewIdent("w"), Value: dst.NewIdent("w")}},
-		}}},
-	}
-	st.Decs.Before = dst.None
-	st.Decs.After = dst.None
-	st.Decorations().End.Append("// gened")
-	return st
-}
-
 func shimNode(n dst.Node) {
 	if n.Decorations().After == dst.EmptyLine && len(n.Decorations().End) > 0 {
 		n.Decorations().After = dst.NewLine
