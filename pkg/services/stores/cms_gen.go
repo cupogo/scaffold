@@ -136,6 +136,12 @@ func (spec *AttachmentSpec) Sift(q *ormQuery) *ormQuery {
 	return q
 }
 
+func newContentStore(w *Wrap) *contentStore {
+	s := &contentStore{w: w}
+	RegisterESMigrate(cms1.ArticleTable, s.MigrateESArticle)
+	return s
+}
+
 type contentStore struct {
 	w *Wrap
 }

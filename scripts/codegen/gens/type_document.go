@@ -469,10 +469,11 @@ func (doc *Document) ensureWrapPatch() bool {
 			}
 			if pn, ok := c.Parent().(*dst.FuncDecl); ok && pn.Name.Name == "NewWithDB" {
 				if cn, ok := c.Node().(*dst.BlockStmt); ok {
-					if existBlockAssign(cn, store.Name) {
+					nst := store.dstWrapVarAsstmt()
+					if idx, ok := existBlockAssign(cn, store.Name); ok {
+						cn.List[idx] = nst
 						continue
 					}
-					nst := store.dstWrapVarAsstmt()
 					var arr []dst.Stmt
 					n := len(cn.List)
 					arr = append(arr, cn.List[0:n-1]...)

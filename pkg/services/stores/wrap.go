@@ -84,7 +84,7 @@ type Wrap struct {
 func NewWithDB(db *pgx.DB, rc redis.UniversalClient) *Wrap {
 	w := &Wrap{db: db, rc: rc}
 
-	w.contentStore = &contentStore{w: w} // gened
+	w.contentStore = newContentStore(w) // gened
 
 	// more member stores
 	return w
