@@ -74,6 +74,9 @@ func (_ *Article) IdentityLabel() string {
 func (_ *Article) IdentityTable() string {
 	return ArticleTable
 }
+func (_ *Article) IdentityAlias() string {
+	return ArticleAlias
+}
 
 type ArticleSet struct {
 	// 作者
@@ -191,6 +194,9 @@ func (_ *Attachment) IdentityLabel() string {
 func (_ *Attachment) IdentityTable() string {
 	return AttachmentTable
 }
+func (_ *Attachment) IdentityAlias() string {
+	return AttachmentAlias
+}
 
 type AttachmentSet struct {
 	// 文章编号
@@ -269,6 +275,9 @@ func (_ *Clause) IdentityLabel() string {
 }
 func (_ *Clause) IdentityTable() string {
 	return ClauseTable
+}
+func (_ *Clause) IdentityAlias() string {
+	return ClauseAlias
 }
 
 type ClauseSet struct {
