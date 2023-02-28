@@ -98,7 +98,7 @@ models:
           pg: 'path,notnull'
         isset: true
         query: 'match'
-    oidcat: article
+    oidcat: file
 
   - name: Clause
     comment: '条款'
@@ -134,10 +134,6 @@ stores:
       - name: PutClause
         simple: true
       - name: DeleteClause
-    onInits:
-      - 'RegisterESMigrate((*cms1.Article)(nil), s.MigrateESArticle)'  # for ES migrate
-    ensureMethods: # TODO
-      - 'func MigrateESArticle(ctx context.Context) error'
 
 webapi:
   pkg: api_v1

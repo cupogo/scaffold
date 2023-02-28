@@ -108,6 +108,8 @@
  - `beforeDeleting` = "事务，在删除前"
  - `afterDeleting`  = "事务，在删除后"
  - `afterCreated`   = "非事务，创建后"，参数和上面几位一致
+ - `upsertES` = 非事务 更新后调用外部接口
+ - `deleteES` = 非事务 删除后调用外部接口
 
 非事务中的，是存储对象方法：
  - `afterLoad`      = "主键查询后"，参数：`ctx Context`，`obj Model`
@@ -134,6 +136,11 @@
   - `name`: 方法名称 必需
   
   - `simple`: 是否使用简单实现
+
+- `postNew`: 布尔类型，若为true，且不存在`new{Name}Store`函数会自动创建，若存在strap方法会在返回前调用
+
+- 注意: 当检测到ES相关的Hook时，若不存在`new{Name}Store`函数会自动创建并在返回前逐行运行指定模型
+
 
 ### 存储方法名称规则 （仅非hod集）
 

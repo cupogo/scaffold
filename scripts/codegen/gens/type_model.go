@@ -680,6 +680,15 @@ func (m *Model) hasStoreHook(k string) (v string, ok bool) {
 	return
 }
 
+func (m *Model) hasAnyStoreHook(a ...string) bool {
+	for _, k := range a {
+		if _, ok := m.hasStoreHook(k); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *Model) storeHookName(k, v string) (string, bool) {
 	return HookMethod(m.Name, k, v)
 }
@@ -800,6 +809,10 @@ func (m *Model) getIPath() string {
 		return m.doc.modipath
 	}
 	return m.pkg
+}
+
+func (m *Model) codeNilInstance() jen.Code {
+	return jen.Call(jen.Op("*").Qual(m.getIPath(), m.Name)).Call(jen.Nil())
 }
 
 func (m *Model) dbTxFn() string {

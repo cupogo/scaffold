@@ -48,7 +48,10 @@ type Store struct {
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
 	Hods     []Var    `yaml:"hods"`            // Customized
 
-	OnInits []string `yaml:"onInits,omitempty"`
+	PostNew bool `yaml:"postNew,omitempty"`
+
+	extInit  bool
+	extStrap bool
 
 	allMM map[string]bool
 	hodMn map[string]bool
@@ -213,16 +216,20 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 
 	jw := jen.Id("w").Op("*").Id("Wrap")
 
-	if s.IsCustomNew() {
+	esModels := s.doc.loadEsModels()
+	if !s.extInit && (s.PostNew || len(esModels) > 0) {
 		st.Func().Id("new" + in).Params(jw).Op("*").Id(s.Name).BlockFunc(func(g *jen.Group) {
 			g.Id("s").Op(":=&").Id(s.Name).Values(jen.Id("w:w"))
-			for _, expr := range s.OnInits {
-				id, err := pickExpr(expr)
-				if err != nil {
-					log.Fatalf("invalid expr: %s, %s", expr, err)
-				}
-				g.Id(id)
+			for _, mod := range esModels {
+				g.Id("RegisterESMigrate").Call(
+					mod.codeNilInstance(),
+					jen.Id("s").Dot(MigrateES+mod.Name),
+				)
 			}
+			if s.extStrap {
+				g.Id("s").Dot("strap").Call()
+			}
+
 			g.Return(jen.Id("s"))
 		}).Line()
 	}
@@ -236,8 +243,8 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	return st
 }
 
-func (s *Store) IsCustomNew() bool {
-	return len(s.OnInits) > 0
+func (s *Store) HasPostNew() bool {
+	return s.PostNew || len(s.doc.loadEsModels()) > 0
 }
 
 func (s *Store) dstWrapField() *dst.Field {
@@ -249,7 +256,7 @@ func (s *Store) dstWrapField() *dst.Field {
 func (s *Store) dstWrapVarAsstmt() *dst.AssignStmt {
 	name := s.Name
 	var ue dst.Expr
-	if s.IsCustomNew() {
+	if s.HasPostNew() {
 		ue = &dst.CallExpr{Fun: dst.NewIdent("new" + s.GetIName()),
 			Args: []dst.Expr{dst.NewIdent("w")},
 		}

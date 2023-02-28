@@ -245,6 +245,19 @@ func (doc *Document) storeHooks() (out []storeHook) {
 	return
 }
 
+func (doc *Document) loadEsModels() (out []Model) {
+	for i := 0; i < len(doc.Stores); i++ {
+		for j := 0; j < len(doc.Models); j++ {
+			if doc.Stores[i].hasModel(doc.Models[j].Name) {
+				if doc.Models[j].hasAnyStoreHook(upsertES, deleteES) {
+					out = append(out, doc.Models[j])
+				}
+			}
+		}
+	}
+	return
+}
+
 func (doc *Document) ModelIPath() string {
 	return doc.modipath
 }
@@ -344,7 +357,7 @@ func (doc *Document) loadModPkg() (ipath string, aliases []string) {
 	return
 }
 
-func (doc *Document) genStores(dropfirst bool) error {
+func (doc *Document) genStores(dropfirst bool) (err error) {
 	ipath, aliases := doc.loadModPkg()
 
 	sgf := jen.NewFile(storepkg)
@@ -362,7 +375,7 @@ func (doc *Document) genStores(dropfirst bool) error {
 	for _, model := range doc.Models {
 		if model.IsTable() {
 			// name, _ := doc.getModQual(model.Name)
-			tables = append(tables, jen.Op("(*").Qual(ipath, model.Name).Op(")(nil)"))
+			tables = append(tables, model.codeNilInstance())
 		}
 	}
 	if len(tables) > 0 {
@@ -386,11 +399,33 @@ func (doc *Document) genStores(dropfirst bool) error {
 	}
 
 	hasAnyStore := len(doc.Stores) > 0
+	if !hasAnyStore {
+		log.Print("no store found, skip wrap")
+		return nil
+	}
+	gfile := path.Join(doc.dirsto, doc.extern)
+	var svd *vdst
+	if CheckFile(gfile) {
+		svd, err = newDST(gfile, storepkg)
+		if err != nil {
+			return
+		}
+	}
+
 	for _, store := range doc.Stores {
+		if svd != nil {
+			if svd.existFunc("new" + store.GetIName()) {
+				store.extInit = true
+			}
+			if _, ok := svd.existMethod("strap", store.Name); ok {
+				store.extStrap = true
+			}
+		}
+
 		sgf.Add(store.Codes(doc.ModelPkg)).Line()
 	}
 
-	err := sgf.Save(outname)
+	err = sgf.Save(outname)
 	if err != nil {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
@@ -398,20 +433,17 @@ func (doc *Document) genStores(dropfirst bool) error {
 
 	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.gened)
 
-	if !hasAnyStore {
-		log.Print("no store found, skip wrap")
-		return nil
-	}
-
 	_ = goImports(outname)
 
 	if doc.hasStoreHooks() {
-		gfile := path.Join(doc.dirsto, doc.extern)
 		ensureGoFile(gfile, "stores/doc_x", doc)
-		svd, err := newDST(gfile, storepkg)
-		if err != nil {
-			return err
+		if svd == nil {
+			svd, err = newDST(gfile, storepkg)
+			if err != nil {
+				return err
+			}
 		}
+
 		for _, sh := range doc.storeHooks() {
 			// log.Printf("check storeHook: %s, %+v", sh.FunName, svd.existFunc(sh.FunName))
 			svd.ensureFunc(sh.FunName, sh.dstFuncDecl(doc.modipath))

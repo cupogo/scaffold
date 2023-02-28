@@ -172,7 +172,7 @@ type Attachments []Attachment
 // Creating function call to it's inner fields defined hooks
 func (z *Attachment) Creating() error {
 	if z.IsZeroID() {
-		z.SetID(oid.NewID(oid.OtArticle))
+		z.SetID(oid.NewID(oid.OtFile))
 	}
 
 	return z.DefaultModel.Creating()
