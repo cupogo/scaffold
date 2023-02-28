@@ -1246,11 +1246,11 @@ func (m *Model) identityCode() (st *jen.Statement) {
 			jen.Return(jen.Id(m.Name + "Table")),
 		).Line()
 
-		// st.Func().Params(
-		// 	jen.Id("_").Op("*").Id(m.Name),
-		// ).Id("IdentityAlias").Params().String().Block(
-		// 	jen.Return(jen.Id(m.Name + "Alias")),
-		// ).Line()
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("IdentityAlias").Params().String().Block(
+			jen.Return(jen.Id(m.Name + "Alias")),
+		).Line()
 	}
 	return st
 }

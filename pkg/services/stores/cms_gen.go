@@ -138,7 +138,7 @@ func (spec *AttachmentSpec) Sift(q *ormQuery) *ormQuery {
 
 func newContentStore(w *Wrap) *contentStore {
 	s := &contentStore{w: w}
-	RegisterESMigrate(cms1.ArticleTable, s.MigrateESArticle)
+	RegisterESMigrate((*cms1.Article)(nil), s.MigrateESArticle)
 	return s
 }
 

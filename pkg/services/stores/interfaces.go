@@ -7,7 +7,7 @@ import (
 type ModelIdentity interface {
 	IdentityLabel() string
 	IdentityTable() string
-	//IdentityAlias() string
+	IdentityAlias() string
 	StringID() string
 	MetaSet(key string, value any)
 }
@@ -19,6 +19,6 @@ type Storage interface {
 var UpsertESDoc func(ctx context.Context, index string, mi ModelIdentity) error
 var DeleteESDoc func(ctx context.Context, index, id string) error
 
-func RegisterESMigrate(string, func(context.Context) error) {
+func RegisterESMigrate(ModelIdentity, func(context.Context) error) {
 
 }
