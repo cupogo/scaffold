@@ -495,8 +495,8 @@ func (m *Model) getSpecCodes() jen.Code {
 	for _, sifter := range m.Sifters {
 		fcs = append(fcs, jen.Id(sifter))
 	}
-	_, okTS := m.HasTextSearch()
-	if okTS {
+	colTS, okTS := m.HasTextSearch()
+	if okTS || len(colTS) > 0 {
 		fcs = append(fcs, jen.Id("TextSearchSpec"))
 	}
 
@@ -641,7 +641,7 @@ func (m *Model) getSpecCodes() jen.Code {
 				}
 
 			}
-			if okTS {
+			if okTS || len(colTS) > 0 {
 				g.Add(jfSiftCall("TextSearchSpec"))
 			}
 			g.Line()
@@ -827,8 +827,10 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
 			jen.Id("total").Int(), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
-			if cols, ok := m.HasTextSearch(); ok {
-				g.Id("spec").Dot("SetTsConfig").Call(jen.Add(swdb).Dot("GetTsCfg").Call())
+			if cols, ok := m.HasTextSearch(); ok || len(cols) > 0 {
+				if ok {
+					g.Id("spec").Dot("SetTsConfig").Call(jen.Add(swdb).Dot("GetTsCfg").Call())
+				}
 				if len(cols) > 0 {
 					g.Id("spec").Dot("SetTsFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
 						for _, s := range cols {
