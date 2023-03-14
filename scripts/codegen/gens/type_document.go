@@ -262,10 +262,30 @@ func (doc *Document) ModelIPath() string {
 	return doc.modipath
 }
 
+type oidKey struct {
+	name string
+	code string
+}
+
 func (doc *Document) genModels(dropfirst bool) error {
 	mgf := jen.NewFile(doc.ModelPkg)
 	mgf.HeaderComment(headerComment)
 	// mgf.ImportNames(doc.Qualified.Copy())
+
+	var oidKeys []oidKey
+	for _, mod := range doc.Models {
+		if len(mod.OIDKey) >= 2 {
+			oidKeys = append(oidKeys, oidKey{mod.Name + "Label", mod.OIDKey[0:2]})
+		}
+	}
+	if len(oidKeys) > 0 {
+		oidQual, _ := doc.getQual("oid")
+		mgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
+			for _, ok := range oidKeys {
+				g.Qual(oidQual, "RegistCate").Call(jen.Id(ok.name), jen.Lit(ok.code))
+			}
+		})
+	}
 
 	for _, enum := range doc.Enums {
 		mgf.Add(enum.Code())

@@ -12,10 +12,12 @@ import (
 type Model struct {
 	Comment    string   `yaml:"comment,omitempty"`
 	Name       string   `yaml:"name"`
+	Label      string   `yaml:"label"`
 	TableTag   string   `yaml:"tableTag,omitempty"`
 	Fields     Fields   `yaml:"fields"`
 	Plural     string   `yaml:"plural,omitempty"`
 	OIDCat     string   `yaml:"oidcat,omitempty"`
+	OIDKey     string   `yaml:"oidKey,omitempty"`
 	StoHooks   Tags     `yaml:"hooks,omitempty"`
 	SpecExtras Fields   `yaml:"specExtras,omitempty"`
 	Sifters    []string `yaml:"sifters,omitempty"`
@@ -75,7 +77,10 @@ func (m *Model) tableAlias() string {
 	return tt
 }
 
-func (m *Model) label() string {
+func (m *Model) getLabel() string {
+	if len(m.Label) > 0 {
+		return LcFirst(m.Label)
+	}
 	return LcFirst(m.Name)
 }
 
@@ -361,11 +366,25 @@ func (m *Model) hookModelCodes() (st *jen.Statement) {
 		).Id("Creating").Params().Error().Block(
 			jen.If(jen.Id("z").Dot("IsZeroID").Call()).BlockFunc(func(g *jen.Group) {
 				oidcat := CamelCased(m.OIDCat)
-				if len(oidcat) > 0 && (idF == modelDefault || idF == "IDField") {
+				if (len(m.OIDKey) >= 2 || len(oidcat) > 0) && (idF == modelDefault || idF == "IDField") {
+					if len(oidcat) == 0 {
+						oidcat = "Default"
+					}
 					oidQual, _ := m.doc.getQual("oid")
-					g.Id("z").Dot("SetID").Call(
-						jen.Qual(oidQual, "NewID").Call(jen.Qual(oidQual, "Ot"+oidcat)),
-					)
+					if len(m.OIDKey) >= 2 {
+						g.Id("id,ok").Op(":=").Qual(oidQual, "NewWithCode").Call(
+							jen.Id(m.Name + "Label"))
+						g.If(jen.Op("!").Id("ok")).Block(
+							jen.Id("id").Op("=").Qual(oidQual, "NewID").Call(
+								jen.Qual(oidQual, "Ot"+oidcat),
+							))
+						g.Id("z").Dot("SetID").Call(jen.Id("id"))
+					} else {
+						g.Id("z").Dot("SetID").Call(
+							jen.Qual(oidQual, "NewID").Call(
+								jen.Qual(oidQual, "Ot"+oidcat)),
+						)
+					}
 				} else {
 					g.Return(jen.Id("comm").Dot("ErrEmptyID"))
 				}
@@ -887,7 +906,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 			if mod.doc.hasQualErrors() {
 				jer.If(jen.Err().Op("==").Id("ErrNotFound")).Block(
 					jen.Err().Op("=").Add(mod.doc.qual("errors.NewErrNotFound")).
-						Call(jen.Lit(mod.label()), jen.Id("id")),
+						Call(jen.Lit(mod.getLabel()), jen.Id("id")),
 				)
 			}
 
