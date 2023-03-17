@@ -28,9 +28,10 @@ type TextSearchSpec = pgx.TextSearchSpec
 type StringsDiff = pgx.StringsDiff
 
 // vars
+// nolint
 var (
-	pgIn    = pgx.In          //nolint
-	pgArray = pgdialect.Array //nolint
+	pgIn    = pgx.In
+	pgArray = pgdialect.Array
 
 	ErrNoRows = pgx.ErrNoRows
 	ErrNotFound = pgx.ErrNotFound
@@ -41,25 +42,25 @@ var (
 	dbLast             = pgx.Last
 	queryOne           = pgx.QueryOne
 	queryList          = pgx.QueryList
-	queryPager         = pgx.QueryPager      //nolint
-	getModelWherePK    = pgx.ModelWithPK     //nolint
-	getModelWithPKID   = pgx.ModelWithPKID   //nolint
-	getModelWithPKOID  = pgx.ModelWithPKID   //nolint
-	getModelWithUnique = pgx.ModelWithUnique //nolint
+	queryPager         = pgx.QueryPager
+	getModelWherePK    = pgx.ModelWithPK
+	getModelWithPKID   = pgx.ModelWithPKID
+	getModelWithPKOID  = pgx.ModelWithPKID
+	getModelWithUnique = pgx.ModelWithUnique
 	dbInsert           = pgx.DoInsert
 	dbUpdate           = pgx.DoUpdate
-	dbDeleteT          = pgx.DoDeleteT     //nolint
-	dbStoreSimple      = pgx.StoreSimple   //nolint
-	dbStoreWithCall    = pgx.StoreWithCall //nolint
+	dbDeleteT          = pgx.DoDeleteT
+	dbStoreSimple      = pgx.StoreSimple
+	dbStoreWithCall    = pgx.StoreWithCall
 
-	sift      = pgx.Sift      //nolint
-	siftEquel = pgx.SiftEquel //nolint
-	siftICE   = pgx.SiftICE   //nolint
-	siftMatch = pgx.SiftMatch //nolint
-	siftOID   = pgx.SiftOID   //nolint
-	siftOIDs  = pgx.SiftOIDs  //nolint
-	siftDate  = pgx.SiftDate  //nolint
-	isZero    = utils.IsZero  //nolint
+	sift      = pgx.Sift
+	siftEquel = pgx.SiftEquel
+	siftICE   = pgx.SiftICE
+	siftMatch = pgx.SiftMatch
+	siftOID   = pgx.SiftOID
+	siftOIDs  = pgx.SiftOIDs
+	siftDate  = pgx.SiftDate
+	isZero    = utils.IsZero
 
 	ContextWithColumns  = pgx.ContextWithColumns
 	ColumnsFromContext  = pgx.ColumnsFromContext

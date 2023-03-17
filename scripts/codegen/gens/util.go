@@ -365,6 +365,7 @@ func dstExpr(expr string) (dst.Node, error) {
 	return dec.DecorateNode(node)
 }
 
+// nolint
 func pickExpr(expr string) (out string, err error) {
 	node, err := parser.ParseExpr(expr)
 	if err != nil {
