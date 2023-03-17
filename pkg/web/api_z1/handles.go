@@ -6,9 +6,11 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cupogo/scaffold/scripts/codegen/gens"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
+
+	"github.com/cupogo/scaffold/pkg/services/utils"
+	"github.com/cupogo/scaffold/scripts/codegen/gens"
 )
 
 var (
@@ -126,7 +128,7 @@ type Module struct {
 func (a *api) getDependencies(c *gin.Context) {
 	var modules []Module
 	for _, dir := range dirs {
-		mod, pkgs, err := listModels(dir)
+		mod, pkgs, err := utils.ListModels(dir)
 		if err != nil {
 			fail(c, 500, err)
 			return

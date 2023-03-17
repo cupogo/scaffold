@@ -1,4 +1,4 @@
-package apiz1
+package utils
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func getModule(dir string) (module string, err error) {
+func GetModule(dir string) (module string, err error) {
 	f, err := os.Open(path.Join(dir, "go.mod"))
 	if err != nil {
 		return
@@ -23,8 +23,8 @@ func getModule(dir string) (module string, err error) {
 	return
 }
 
-func listModels(dir string) (module string, pkgs []string, err error) {
-	module, err = getModule(dir)
+func ListModels(dir string) (module string, pkgs []string, err error) {
+	module, err = GetModule(dir)
 	if err != nil {
 		return
 	}
