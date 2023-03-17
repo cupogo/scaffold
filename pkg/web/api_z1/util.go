@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func listModels(dir string) (module string, pkgs []string, err error) {
+func getModule(dir string) (module string, err error) {
 	f, err := os.Open(path.Join(dir, "go.mod"))
 	if err != nil {
 		return
@@ -19,7 +19,13 @@ func listModels(dir string) (module string, pkgs []string, err error) {
 	if a, b, ok := strings.Cut(scanner.Text(), " "); ok && a == "module" {
 		module = b
 	}
-	if err = scanner.Err(); err != nil {
+	err = scanner.Err()
+	return
+}
+
+func listModels(dir string) (module string, pkgs []string, err error) {
+	module, err = getModule(dir)
+	if err != nil {
 		return
 	}
 	pkgs = listSubDirs(dir, "models", "pkg/models")
