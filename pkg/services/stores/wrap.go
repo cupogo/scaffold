@@ -2,8 +2,8 @@ package stores
 
 import (
 	"context"
+	"sync"
 
-	redis "github.com/go-redis/redis/v8"
 	"github.com/uptrace/bun/dialect/pgdialect"
 
 	"github.com/cupogo/andvari/database/embeds"
@@ -36,6 +36,11 @@ var (
 	ErrNotFound = pgx.ErrNotFound
 	ErrEmptyKey = pgx.ErrEmptyKey
 
+	dbGet              = pgx.Get
+	dbFirst            = pgx.First
+	dbLast             = pgx.Last
+	queryOne           = pgx.QueryOne
+	queryList          = pgx.QueryList
 	queryPager         = pgx.QueryPager      //nolint
 	getModelWherePK    = pgx.ModelWithPK     //nolint
 	getModelWithPKID   = pgx.ModelWithPKID   //nolint
@@ -72,17 +77,27 @@ func init() {
 	pgx.RegisterDbFs(embeds.DBFS())
 }
 
+// vars ...
+var (
+	_ Storage = (*Wrap)(nil)
+
+	dbOnce sync.Once
+	dbX    *pgx.DB
+
+	stoOnce sync.Once
+	stoW    *Wrap
+)
+
 // Wrap implements Storages
 type Wrap struct {
 	db *pgx.DB
-	rc redis.UniversalClient
 
 	contentStore *contentStore // gened
 }
 
-// NewWithDB ...
-func NewWithDB(db *pgx.DB, rc redis.UniversalClient) *Wrap {
-	w := &Wrap{db: db, rc: rc}
+// NewWithDB return new instance of Wrap
+func NewWithDB(db *pgx.DB) *Wrap {
+	w := &Wrap{db: db}
 
 	w.contentStore = newContentStore(w) // gened
 
@@ -90,35 +105,37 @@ func NewWithDB(db *pgx.DB, rc redis.UniversalClient) *Wrap {
 	return w
 }
 
-// New with dsn, db, redis, only once
-func New(args ...string) (*Wrap, error) {
-	db, rc, err := OpenBases(args...)
-	if err != nil {
-		return nil, err
-	}
-	return NewWithDB(db, rc), nil
+// SgtDB start and return a singleton instance of DB
+// **Attention**: args only used with fist call
+func SgtDB(args ...string) *pgx.DB {
+	dbOnce.Do(func() {
+		dsn := settings.Current.PgStoreDSN
+		tscfg := settings.Current.PgTSConfig
+		if len(args) > 0 && len(args[0]) > 0 {
+			dsn = args[0]
+			if len(args) > 1 {
+				tscfg = args[1]
+			}
+		}
+		var err error
+		dbX, err = pgx.Open(dsn, tscfg, settings.Current.PgQueryDebug)
+		if err != nil {
+			logger().Panicw("connect to database fail", "err", err)
+		}
+	})
+	return dbX
 }
 
-// OpenBases open multiable databases
-func OpenBases(args ...string) (db *pgx.DB, rc redis.UniversalClient, err error) {
-	dsn := settings.Current.PgStoreDSN
-	if len(args) > 0 && len(args[0]) > 0 {
-		dsn = args[0]
-	}
-	db, err = pgx.Open(dsn, settings.Current.PgTSConfig, settings.Current.PgQueryDebug)
-	if err != nil {
-		return
-	}
+// Sgt start and return a singleton instance of Storage
+func Sgt() *Wrap {
+	stoOnce.Do(func() {
+		stoW = NewWithDB(SgtDB())
+	})
+	return stoW
+}
 
-	redisURI := settings.Current.RedisURI
-	opt, err := redis.ParseURL(redisURI)
-	if err != nil {
-		logger().Warnw("prase redisURI fail", "uri", redisURI, "err", err)
-		return
-	}
-	rc = redis.NewClient(opt)
-
-	return
+func (w *Wrap) Close() {
+	_ = w.db.Close()
 }
 
 // dbOpModelMeta prepare meta from Context

@@ -55,11 +55,7 @@ func init() {
 }
 
 func strap(router gin.IRouter) {
-	sto, err := stores.New()
-	if err != nil {
-		panic(err)
-	}
-	a := newapi(sto)
+	a := newapi(stores.Sgt())
 	a.Strap(router)
 }
 
