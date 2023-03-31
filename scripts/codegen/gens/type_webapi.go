@@ -180,12 +180,12 @@ func (h *Handle) GetAccept() string {
 	if len(h.Accept) > 0 {
 		return h.Accept
 	}
-	if _, b, ok := strings.Cut(h.Route, " "); ok {
-		b = strings.Trim(b, "[]")
-		if b == "post" || b == "put" {
-			return "mpfd,json"
-		}
-	}
+	// if _, b, ok := strings.Cut(h.Route, " "); ok {
+	// 	b = strings.Trim(b, "[]")
+	// 	if b == "post" || b == "put" {
+	// 		return "mpfd,json"
+	// 	}
+	// }
 	return "json"
 }
 
@@ -287,8 +287,11 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 					st.Comment("@Param   " + arg.Name + "  path  " + arg.Type + "  true  \"\"").Line()
 				} else if strings.Contains(arg.Type, ".") {
 					ppos := "formData"
-					if act == "List" {
+					switch act {
+					case "List":
 						ppos = "query"
+					case "Create", "Update", "Put":
+						ppos = "body"
 					}
 					st.Comment("@Param   query  " + ppos + "   " + arg.Type + "  true   \"Object\"").Line()
 				} else {
