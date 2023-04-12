@@ -59,6 +59,7 @@ const (
 
 const (
 	TagSwaggerIgnore = "swaggerignore"
+	TagSwaggerType   = "swaggertype"
 	TagExtensions    = "extensions"
 )
 
