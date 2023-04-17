@@ -55,6 +55,7 @@ const (
 	beforeList     = "beforeList"
 	upsertES       = "upsertES"
 	deleteES       = "deleteES"
+	errorLoad      = "errorLoad"
 )
 
 const (

@@ -438,6 +438,8 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	} else if sh.k == upsertES || sh.k == deleteES {
 		pars = append(pars, newField("obj", objIdent, true))
 		bodyst.List = append(bodyst.List, sh.esMainStmt(sh.k)...)
+	} else if sh.k == errorLoad {
+		pars = append(pars, newField("id", "string", false), newField("err", "error", false), newField("obj", objIdent, true))
 	} else {
 		pars = append(pars, newField("obj", objIdent, true))
 	}
