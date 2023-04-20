@@ -5,6 +5,7 @@ package stores
 import (
 	"context"
 
+	pgx "github.com/cupogo/andvari/stores/pgx"
 	utils "github.com/cupogo/andvari/utils"
 	"github.com/cupogo/scaffold/pkg/models/cms1"
 )
@@ -153,14 +154,11 @@ func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data c
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
 	err = s.w.db.GetModel(ctx, obj, id)
-
 	return
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
-	obj := new(cms1.Clause)
-	_ = obj.SetID(id)
-	obj.SetWith(in)
-	err = dbStoreSimple(ctx, s.w.db, obj)
+	var obj *cms1.Clause
+	obj, err = pgx.StoreWithSet[*cms1.Clause](ctx, s.w.db, in, id)
 	nid = obj.StringID()
 	return
 }
@@ -257,6 +255,5 @@ func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec)
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
 	obj = new(cms1.Attachment)
 	err = s.w.db.GetModel(ctx, obj, id)
-
 	return
 }

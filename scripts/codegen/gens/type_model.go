@@ -924,8 +924,12 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 					g.Add(jer)
 				}
 			} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
-				jer.Return()
-				g.If(jen.Err().Op("!=").Nil()).Block(jer)
+				g.If(jen.Err().Op("!=").Nil()).BlockFunc(func(g1 *jen.Group) {
+					if mod.doc.hasQualErrors() {
+						g1.Add(jer)
+					}
+					g1.Return()
+				})
 				g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
 					for _, rn := range rels {
 						field, _ := mod.Fields.withName(rn)
@@ -1136,45 +1140,69 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 }
 
 func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statement) {
-	tname := mod.Name + "Set"
-	jqual := jen.Qual(mod.getIPath(), mod.Name)
+	jqset := jen.Qual(mod.getIPath(), mod.Name+"Set")
+	jqobp := jen.Op("*").Qual(mod.getIPath(), mod.Name)
 	var jret *jen.Statement
 	if isSimp {
 		jret = jen.Id("nid").String()
 	} else {
-		jret = jen.Id("isnew").Bool()
+		jret = jen.Id("obj").Add(jqobp)
 	}
 	// log.Printf("jret: %s, %+v", mod.Name, jret)
-	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
+	return []jen.Code{jen.Id("id").String(), jen.Id("in").Add(jqset)},
 		[]jen.Code{jret, jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
-			g.Id("obj").Op(":=").New(jqual)
-			g.Id("_").Op("=").Id("obj").Dot("SetID").Call(jen.Id("id"))
 
 			if isSimp {
-				g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
-				g.Err().Op("=").Id("dbStoreSimple").Call(
-					jen.Id("ctx"), swdb, jen.Id("obj"),
-				)
-				g.Id("nid").Op("=").Id("obj").Dot("StringID").Call()
-			} else {
-				g.Id("obj").Dot("SetWith").Call(jen.Id("in"))
-				g.Id("exist").Op(":=").New(jqual)
+				g.Var().Id("obj").Add(jqobp)
+			}
+			cpms := []jen.Code{
+				jen.Id("ctx"), swdb, jen.Id("in"),
+			}
 
-				cpms := []jen.Code{
-					jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("obj"),
-					jen.Func().Params().Index().String().Block(
-						jen.Id("exist").Dot("SetWith").Call(jen.Id("in")),
-						jen.Return(jen.Id("exist").Dot("GetChanges").Call()),
-					),
-				}
-				if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-					g.If(jen.Id("isZero").Call(jen.Id("obj").Dot(fn))).Block(
-						jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
-						jen.Return())
-					cpms = append(cpms, jen.Lit(cn), jen.Id("obj").Dot(fn))
-				}
-				g.Id("isnew").Op(",").Err().Op("=").Id("dbStoreWithCall").Call(cpms...)
+			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
+				g.If(jen.Id("isZero").Call(jen.Id("obj").Dot(fn))).Block(
+					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
+					jen.Return())
+				cpms = append(cpms, jen.Id("obj").Dot(fn), jen.Lit(cn))
+			} else {
+				cpms = append(cpms, jen.Id("id"))
+			}
+			pgxQual, _ := mod.doc.getQual("pgx")
+
+			hkBS, okBS := mod.hasStoreHook(beforeSaving)
+			hkAS, okAS := mod.hasStoreHook(afterSaving)
+			if okBS || okAS {
+				g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+					jdb := jen.Id("tx")
+					cpms[1] = jdb
+					g1.Id("ctx")
+					jbf := func(g2 *jen.Group) {
+						if okBS {
+							g2.Id("obj").Id("SetWith").Call(jen.Id("in")).Comment("// Atention: always no pk")
+							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+								jen.Return(jen.Err()),
+							)
+						}
+
+						g2.Id("obj").Op(",").Err().Op("=").Qual(pgxQual, "StoreWithSet").Index(jen.Add(jqobp)).Call(cpms...)
+						if okAS {
+							g2.If(jen.Err().Op("==")).Nil().Block(
+								jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+							)
+						}
+
+						g2.Return(jen.Err())
+					}
+					g1.Nil()
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+				})
+			} else {
+				g.Id("obj").Op(",").Err().Op("=").Qual(pgxQual, "StoreWithSet").Index(jen.Add(jqobp)).Call(cpms...)
+			}
+
+			if isSimp {
+				g.Id("nid").Op("=").Id("obj").Dot("StringID").Call()
 			}
 			g.Return()
 		})

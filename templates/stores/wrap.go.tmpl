@@ -51,7 +51,7 @@ var (
 	dbUpdate           = pgx.DoUpdate
 	dbDeleteT          = pgx.DoDeleteT
 	dbStoreSimple      = pgx.StoreSimple
-	dbStoreWithCall    = pgx.StoreWithCall
+	dbMetaUp           = pgx.DoMetaUp
 
 	sift      = pgx.Sift
 	siftEquel = pgx.SiftEquel

@@ -73,11 +73,11 @@ func (a *api) getCmsClause(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-clauses-id-put
 // @Summary 录入内容条款
-// @Accept mpfd,json
+// @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Param   query  formData   cms1.ClauseSet  true   "Object"
+// @Param   query  body   cms1.ClauseSet  true   "Object"
 // @Success 200 {object} Done{result=string}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
@@ -207,10 +207,10 @@ func (a *api) getContentArticle(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-post
 // @Summary 录入文章
-// @Accept mpfd,json
+// @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
-// @Param   query  formData   cms1.ArticleBasic  true   "Object"
+// @Param   query  body   cms1.ArticleBasic  true   "Object"
 // @Success 200 {object} Done{result=ResultID}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
@@ -236,11 +236,11 @@ func (a *api) postContentArticle(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-id-put
 // @Summary 更新文章
-// @Accept mpfd,json
+// @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Param   query  formData   cms1.ArticleSet  true   "Object"
+// @Param   query  body   cms1.ArticleSet  true   "Object"
 // @Success 200 {object} Done{result=string}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"

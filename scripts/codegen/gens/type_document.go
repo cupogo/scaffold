@@ -20,7 +20,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Unmarshaler = yaml.Unmarshaler
+var (
+	qualifications = map[string]string{
+		"oid":   "github.com/cupogo/andvari/models/oid",
+		"pgx":   "github.com/cupogo/andvari/stores/pgx",
+		"utils": "github.com/cupogo/andvari/utils",
+	}
+)
+
+func exQual(k string) (string, bool) {
+	v, ok := qualifications[k]
+	return v, ok
+}
 
 type Tags map[string]string
 
@@ -114,11 +125,9 @@ func (doc *Document) getQual(k string) (qu string, ok bool) {
 		k = k[1:]
 	}
 	qu, ok = doc.Qualified[k]
-	if !ok && k == "utils" {
-		if qoid, _ok := doc.Qualified["oid"]; _ok {
-			if pos := strings.LastIndex(qoid, "models/oid"); pos > 0 {
-				return qoid[0:pos] + "utils", true
-			}
+	if !ok {
+		if qoid, _ok := exQual(k); _ok {
+			return qoid, true
 		}
 	}
 	// log.Printf("get qual: k %s, v %s, ok %v", k, qu, ok)

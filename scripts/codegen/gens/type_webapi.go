@@ -59,6 +59,7 @@ type UriSpot struct {
 
 	NeedAuth bool `yaml:"auth,omitempty"`
 	NeedPerm bool `yaml:"perm,omitempty"`
+	NoPost   bool `yaml:"noPost,omitempty"`
 }
 
 type WebAPI struct {
@@ -122,6 +123,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
 		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm || us.NeedPerm
 	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth || us.NeedPerm || us.NeedAuth
+	hdl.NoPost = us.NoPost
 	if len(wa.TagLabel) > 0 {
 		hdl.Tags = wa.TagLabel
 	}
@@ -169,6 +171,7 @@ type Handle struct {
 	Route    string   `yaml:"route,omitempty"`
 	NeedAuth bool     `yaml:"needAuth,omitempty"`
 	NeedPerm bool     `yaml:"needPerm,omitempty"`
+	NoPost   bool     `yaml:"noPost,omitempty"`
 	Params   []string `yaml:"params,omitempty"`
 	Success  string   `yaml:"success,omitempty" `
 	Failures []int    `yaml:"failures,flow,omitempty"`
@@ -394,8 +397,14 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			} else if (act == "Put" || act == "Update") && len(mth.Args) > 2 {
 				g.Var().Id("in").Add(doc.qual(mth.Args[2].Type))
 				g.Add(jbind("in"))
+				var retName string
 				if act == "Put" {
-					g.Id("nid").Op(",").Err().Add(jmcc).Call(
+					if mth.Simple {
+						retName = "nid"
+					} else {
+						retName = "obj"
+					}
+					g.Id(retName).Op(",").Err().Add(jmcc).Call(
 						jctx, jen.Id("id"), jen.Id("in"),
 					)
 				} else {
@@ -408,7 +417,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				).Line()
 
 				if act == "Put" {
-					g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("nid")))
+					g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id(retName)))
 				} else {
 					g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
 				}
@@ -470,7 +479,7 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 				),
 			)
 
-			if strings.HasPrefix(h.Method, "Put") && strings.HasSuffix(uri, "/:id") {
+			if !h.NoPost && strings.HasPrefix(h.Method, "Put") && strings.HasSuffix(uri, "/:id") {
 				g.Id("regHI").Call(
 					jen.Lit(h.NeedAuth), jen.Lit("POST"), jen.Lit(uri[0:len(uri)-4]), jen.Lit(h.GetPermID()),
 					jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("gin.HandlerFunc").Block(
