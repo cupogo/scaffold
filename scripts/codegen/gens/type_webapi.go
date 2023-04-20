@@ -417,7 +417,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				).Line()
 
 				if act == "Put" {
-					g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id(retName)))
+					g.Id("success").Call(jen.Id("c"), jen.Id(retName))
 				} else {
 					g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
 				}

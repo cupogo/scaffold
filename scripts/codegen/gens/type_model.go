@@ -1161,10 +1161,10 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 			}
 
 			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-				g.If(jen.Id("isZero").Call(jen.Id("obj").Dot(fn))).Block(
+				g.If(jen.Id("in").Dot(fn).Op("==").Nil().Op("||*").Id("in").Dot(fn).Op("==").Lit("")).Block(
 					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
 					jen.Return())
-				cpms = append(cpms, jen.Id("obj").Dot(fn), jen.Lit(cn))
+				cpms = append(cpms, jen.Op("*").Id("in").Dot(fn), jen.Lit(cn))
 			} else {
 				cpms = append(cpms, jen.Id("id"))
 			}

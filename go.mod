@@ -3,7 +3,7 @@ module github.com/cupogo/scaffold
 go 1.18
 
 require (
-	github.com/cupogo/andvari v0.0.0-20230420112328-044ebc604d2d
+	github.com/cupogo/andvari v0.0.0-20230420160728-84b0377f44cd
 	github.com/dave/dst v0.27.2
 	github.com/dave/jennifer v1.6.0
 	github.com/getsentry/raven-go v0.2.0

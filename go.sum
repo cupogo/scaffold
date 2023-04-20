@@ -2,8 +2,8 @@ github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLj
 github.com/certifi/gocertifi v0.0.0-20180905225744-ee1a9a0726d2 h1:MmeatFT1pTPSVb4nkPmBFN/LRZ97vPjsFKsZrU3KKTs=
 github.com/certifi/gocertifi v0.0.0-20180905225744-ee1a9a0726d2/go.mod h1:GJKEexRPVJrBSOjoqN5VNOIKJ5Q3RViH6eu3puDRwx4=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cupogo/andvari v0.0.0-20230420112328-044ebc604d2d h1:JRpOCwzE4hfdn2tysAQ334/XFjAj3AH+eevqmVK1kDc=
-github.com/cupogo/andvari v0.0.0-20230420112328-044ebc604d2d/go.mod h1:lsLH3BIJ4CcIUesTNJwY/FlzhJneLS6spFlHS25Ar0k=
+github.com/cupogo/andvari v0.0.0-20230420160728-84b0377f44cd h1:eBafBndKmhgWavUH/shwE/wu5OpxGqT50BQZcc1Lhaw=
+github.com/cupogo/andvari v0.0.0-20230420160728-84b0377f44cd/go.mod h1:lsLH3BIJ4CcIUesTNJwY/FlzhJneLS6spFlHS25Ar0k=
 github.com/dave/dst v0.27.2 h1:4Y5VFTkhGLC1oddtNwuxxe36pnyLxMFXT51FOzH8Ekc=
 github.com/dave/dst v0.27.2/go.mod h1:jHh6EOibnHgcUW3WjKHisiooEkYwqpHLBSX1iOBhEyc=
 github.com/dave/jennifer v1.6.0 h1:MQ/6emI2xM7wt0tJzJzyUik2Q3Tcn2eE0vtYgh4GPVI=
