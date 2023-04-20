@@ -994,7 +994,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 							)
 						}
 						if mod.hasMeta() {
-							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj"))
+							g2.Id("dbMetaUp").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj"))
 						}
 
 						g2.Err().Op("=").Id("dbInsert").Call(targs...)
@@ -1017,7 +1017,7 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			} else {
 				if mod.hasMeta() {
-					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
+					g.Id("dbMetaUp").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
 				}
 
 				g.Err().Op("=").Id("dbInsert").Call(targs...)
@@ -1076,7 +1076,7 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 							)
 						}
 						if mod.hasMeta() {
-							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
+							g2.Id("dbMetaUp").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
 						}
 
 						jup := jen.Id("dbUpdate").Call(
@@ -1102,7 +1102,7 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			} else {
 				if mod.hasMeta() {
-					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
+					g.Id("dbMetaUp").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
 				}
 				jfbd.Id("dbUpdate").Call(
 					jen.Id("ctx"), swdb, jen.Id("exist"),

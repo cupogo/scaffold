@@ -76,6 +76,7 @@ func logger() zlog.Logger {
 
 func init() {
 	pgx.RegisterDbFs(embeds.DBFS())
+	pgx.RegisterMetaUp(dbModelMetaUp)
 }
 
 // vars ...
@@ -135,9 +136,8 @@ func (w *Wrap) Close() {
 	_ = w.db.Close()
 }
 
-// dbOpModelMeta prepare meta from Context
-func dbOpModelMeta(ctx context.Context, db ormDB, obj comm.ModelMeta, ups ...*comm.MetaDiff) {
-	if len(ups) > 0 {
-		_ = obj.MetaUp(ups[0])
-	}
+// dbModelMetaUp prepare meta from Context
+func dbModelMetaUp(ctx context.Context, db ormDB, obj pgx.Model) error {
+	// TODO:
+	return nil
 }

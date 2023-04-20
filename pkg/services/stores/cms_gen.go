@@ -199,7 +199,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
 		}
-		dbOpModelMeta(ctx, tx, obj)
+		dbMetaUp(ctx, tx, obj)
 		err = dbInsert(ctx, tx, obj)
 		return err
 	})
@@ -224,7 +224,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
 		}
-		dbOpModelMeta(ctx, tx, exist)
+		dbMetaUp(ctx, tx, exist)
 		return dbUpdate(ctx, tx, exist)
 	}); err != nil {
 		return err

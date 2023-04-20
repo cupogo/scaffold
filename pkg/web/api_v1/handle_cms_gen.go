@@ -92,13 +92,13 @@ func (a *api) putCmsClause(c *gin.Context) {
 		return
 	}
 
-	nid, err := a.sto.Content().PutClause(c.Request.Context(), id, in)
+	obj, err := a.sto.Content().PutClause(c.Request.Context(), id, in)
 	if err != nil {
 		fail(c, 503, err)
 		return
 	}
 
-	success(c, idResult(nid))
+	success(c, obj)
 }
 
 // @Tags 默认 文档生成
