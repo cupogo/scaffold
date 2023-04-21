@@ -52,6 +52,7 @@ var (
 	dbDeleteT          = pgx.DoDeleteT
 	dbStoreSimple      = pgx.StoreSimple
 	dbMetaUp           = pgx.DoMetaUp
+	dbOpModelMeta      = pgx.DoMetaUp
 
 	sift      = pgx.Sift
 	siftEquel = pgx.SiftEquel
@@ -76,7 +77,7 @@ func logger() zlog.Logger {
 
 func init() {
 	pgx.RegisterDbFs(embeds.DBFS())
-	pgx.RegisterMetaUp(dbModelMetaUp)
+	pgx.RegisterMetaUp(dbModelMetaUps)
 }
 
 // vars ...
@@ -140,9 +141,8 @@ func (w *Wrap) Close() {
 	_ = w.db.Close()
 }
 
-// dbModelMetaUp prepare meta from Context
-func dbModelMetaUp(ctx context.Context, db ormDB, obj pgx.Model) error {
+// dbModelMetaUps prepare meta from Context
+func dbModelMetaUps(ctx context.Context, db ormDB, obj pgx.Model) {
 	// TODO:
-	return nil
 }
 func (w *Wrap) Content() ContentStore { return w.contentStore } // Content gened
