@@ -154,6 +154,7 @@ func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data c
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
 	err = s.w.db.GetModel(ctx, obj, id)
+
 	return
 }
 func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
@@ -199,7 +200,7 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
 			return err
 		}
-		dbMetaUp(ctx, tx, obj)
+		dbOpModelMeta(ctx, tx, obj)
 		err = dbInsert(ctx, tx, obj)
 		return err
 	})
@@ -224,7 +225,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
 			return
 		}
-		dbMetaUp(ctx, tx, exist)
+		dbOpModelMeta(ctx, tx, exist)
 		return dbUpdate(ctx, tx, exist)
 	}); err != nil {
 		return err
@@ -255,5 +256,6 @@ func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec)
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
 	obj = new(cms1.Attachment)
 	err = s.w.db.GetModel(ctx, obj, id)
+
 	return
 }
