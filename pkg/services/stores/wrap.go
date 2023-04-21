@@ -141,8 +141,8 @@ func (w *Wrap) Close() {
 	_ = w.db.Close()
 }
 
-// dbModelMetaUps prepare meta from Context
+// dbModelMetaUps all local metaUps
 func dbModelMetaUps(ctx context.Context, db ormDB, obj pgx.Model) {
-	// TODO:
+	// more
 }
 func (w *Wrap) Content() ContentStore { return w.contentStore } // Content gened
