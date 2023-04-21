@@ -1160,7 +1160,8 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 				jen.Id("ctx"), swdb, jen.Id("in"),
 			}
 
-			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
+			fn, cn, isuniq := mod.UniqueOne()
+			if isuniq {
 				g.If(jen.Id("in").Dot(fn).Op("==").Nil().Op("||*").Id("in").Dot(fn).Op("==").Lit("")).Block(
 					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
 					jen.Return())
@@ -1169,6 +1170,15 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 				cpms = append(cpms, jen.Id("id"))
 			}
 			pgxQual, _ := mod.doc.getQual("pgx")
+			jpre := jen.Id("obj").Op(",").Err().Op("=").Qual(pgxQual, "StoreWithSet").Index(jen.Add(jqobp))
+			jCallStore := func() jen.Code {
+				arg := make([]jen.Code, 4)
+				copy(arg, cpms[0:3])
+				arg[3] = jen.Id("id")
+				return jen.If(jen.Len(jen.Id("id")).Op(">0")).Block(
+					jpre.Clone().Call(arg...)).Else().Block(
+					jpre.Clone().Call(cpms...))
+			}
 
 			hkBS, okBS := mod.hasStoreHook(beforeSaving)
 			hkAS, okAS := mod.hasStoreHook(afterSaving)
@@ -1179,13 +1189,20 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 					g1.Id("ctx")
 					jbf := func(g2 *jen.Group) {
 						if okBS {
-							g2.Id("obj").Id("SetWith").Call(jen.Id("in")).Comment("// Atention: always no pk")
+							g2.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
+							g2.Id("obj").Id("SetID").Call(jen.Id("id"))
+							g2.Id("obj").Id("SetWith").Call(jen.Id("in"))
 							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(jen.Err()),
 							)
 						}
 
-						g2.Id("obj").Op(",").Err().Op("=").Qual(pgxQual, "StoreWithSet").Index(jen.Add(jqobp)).Call(cpms...)
+						if isuniq {
+							g2.Add(jCallStore())
+						} else {
+							g2.Add(jpre.Clone().Call(cpms...))
+						}
+
 						if okAS {
 							g2.If(jen.Err().Op("==")).Nil().Block(
 								jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
@@ -1198,7 +1215,11 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 				})
 			} else {
-				g.Id("obj").Op(",").Err().Op("=").Qual(pgxQual, "StoreWithSet").Index(jen.Add(jqobp)).Call(cpms...)
+				if isuniq {
+					g.Add(jCallStore())
+				} else {
+					g.Add(jpre.Clone().Call(cpms...))
+				}
 			}
 
 			if isSimp {
