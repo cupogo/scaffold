@@ -45,6 +45,8 @@
 
   - `changeWith` 布尔类型，此字段有自己的更新方法，签名为 `ChangeWith(other) bool`
 
+  - `icse` 布尔类型，此字段在查询匹配时忽略大小写 Ignore case sensitivity equality
+
   - `compare` 字串类型，此字段有自己的比较方法，可选值为`scalar`和`equalTo`，其中后者的签名为 `EqualTo(other) bool`
 
 - `plural`: 复数形式名称，如不指定，会自动生成

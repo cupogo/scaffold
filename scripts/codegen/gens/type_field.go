@@ -21,6 +21,7 @@ type Field struct {
 	Compare CompareType `yaml:"compare,omitempty"` // scalar, equalTo
 
 	IsChangeWith bool `yaml:"changeWith,omitempty"` // has ChangeWith method
+	IgnoreCase   bool `yaml:"icse,omitempty"`       // Ignore case sensitivity equality
 
 	isOid    bool
 	isDate   bool

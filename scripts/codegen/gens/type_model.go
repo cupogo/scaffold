@@ -2,6 +2,7 @@
 package gens
 
 import (
+	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -98,13 +99,27 @@ func (m *Model) TableField() jen.Code {
 	return jen.Id("comm.BaseModel").Tag(Tags{"json": "-", "bun": "table:" + tt}).Line()
 }
 
-func (m *Model) UniqueOne() (name, col string, onlyOne bool) {
+type UniField struct {
+	Name       string
+	Column     string
+	IgnoreCase bool
+}
+
+func (uf *UniField) Op() string {
+	if uf.IgnoreCase {
+		return "ILIKE"
+	}
+	return "="
+}
+
+func (m *Model) UniqueOne() (u UniField, onlyOne bool) {
 	var count int
 	for _, field := range m.Fields {
 		if cn, _, ok := field.ColName(); ok {
 			count++
-			name = field.Name
-			col = cn
+			u.Name = field.Name
+			u.Column = cn
+			u.IgnoreCase = field.IgnoreCase
 		}
 	}
 	onlyOne = count == 1
@@ -895,9 +910,9 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
 			jload := jen.Id("err").Op("=").Add(swdb).Dot("GetModel").Call(
 				jen.Id("ctx"), jen.Id("obj"), jen.Id("id"))
-			if _, cn, isuniq := mod.UniqueOne(); isuniq {
-				g.If(jen.Err().Op("=").Id("getModelWithUnique").Call(
-					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(cn), jen.Id("id"),
+			if uf, isuniq := mod.UniqueOne(); isuniq {
+				g.If(jen.Err().Op("=").Id("dbGet").Call(
+					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(fmt.Sprintf("%s %s ?", uf.Column, uf.Op())), jen.Id("id"),
 				).Op(";").Err().Op("!=").Nil()).Block(jload)
 			} else {
 				g.Add(jload)
@@ -961,11 +976,11 @@ func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
 			g.Id("obj").Op("=").Qual(mod.getIPath(), nname).Call(jen.Id("in"))
 
 			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
-			if fn, cn, isuniq := mod.UniqueOne(); isuniq {
-				g.If(jen.Id("obj").Dot(fn).Op("==").Lit("")).Block(
+			if uf, isuniq := mod.UniqueOne(); isuniq {
+				g.If(jen.Id("obj").Dot(uf.Name).Op("==").Lit("")).Block(
 					jen.Err().Op("=").Id("ErrEmptyKey"),
 					jen.Return())
-				targs = append(targs, jen.Lit(cn))
+				targs = append(targs, jen.Lit(uf.Column))
 			} else if mod.ForceCreate {
 				targs = append(targs, jen.Lit(true))
 			}
@@ -1160,12 +1175,12 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 				jen.Id("ctx"), swdb, jen.Id("in"),
 			}
 
-			fn, cn, isuniq := mod.UniqueOne()
+			uf, isuniq := mod.UniqueOne()
 			if isuniq {
-				g.If(jen.Id("in").Dot(fn).Op("==").Nil().Op("||*").Id("in").Dot(fn).Op("==").Lit("")).Block(
-					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+cn)),
+				g.If(jen.Id("in").Dot(uf.Name).Op("==").Nil().Op("||*").Id("in").Dot(uf.Name).Op("==").Lit("")).Block(
+					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+uf.Name)),
 					jen.Return())
-				cpms = append(cpms, jen.Op("*").Id("in").Dot(fn), jen.Lit(cn))
+				cpms = append(cpms, jen.Op("*").Id("in").Dot(uf.Name), jen.Lit(uf.Column))
 			} else {
 				cpms = append(cpms, jen.Id("id"))
 			}
