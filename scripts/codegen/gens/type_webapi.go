@@ -57,9 +57,12 @@ type UriSpot struct {
 	Prefix string `yaml:"prefix,omitempty"`
 	URI    string `yaml:"uri,omitempty"`
 
-	NeedAuth bool `yaml:"auth,omitempty"`
-	NeedPerm bool `yaml:"perm,omitempty"`
+	HandReg  bool `yaml:"handReg,omitempty"`
+	NeedAuth bool `yaml:"needAuth,omitempty"`
+	NeedPerm bool `yaml:"needPerm,omitempty"`
 	NoPost   bool `yaml:"noPost,omitempty"`
+	Auth     bool `yaml:"auth,omitempty"` // old
+	Perm     bool `yaml:"perm,omitempty"` // old
 }
 
 type WebAPI struct {
@@ -113,6 +116,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	// log.Printf("uri: %s [%s]", uri, method)
 
 	hdl = Handle{
+		UriSpot: us,
 		Name:    name,
 		Method:  mth.Name,
 		Store:   stoName,
@@ -121,8 +125,8 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 		wa:      wa,
 	}
 	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
-		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm || us.NeedPerm
-	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth || us.NeedPerm || us.NeedAuth
+		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm || us.NeedPerm || us.Perm
+	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth || us.NeedPerm || us.NeedAuth || us.Perm || us.Auth
 	hdl.NoPost = us.NoPost
 	if len(wa.TagLabel) > 0 {
 		hdl.Tags = wa.TagLabel
@@ -159,6 +163,8 @@ func (wa *WebAPI) prepareHandles() {
 }
 
 type Handle struct {
+	UriSpot `yaml:",inline"`
+
 	ID       string   `yaml:"id,omitempty"`
 	Tags     string   `yaml:"tags,omitempty"`
 	Store    string   `yaml:"store,omitempty"`
@@ -169,9 +175,6 @@ type Handle struct {
 	Produce  string   `yaml:"produce,omitempty"`
 	Name     string   `yaml:"name,omitempty"`
 	Route    string   `yaml:"route,omitempty"`
-	NeedAuth bool     `yaml:"needAuth,omitempty"`
-	NeedPerm bool     `yaml:"needPerm,omitempty"`
-	NoPost   bool     `yaml:"noPost,omitempty"`
 	Params   []string `yaml:"params,omitempty"`
 	Success  string   `yaml:"success,omitempty" `
 	Failures []int    `yaml:"failures,flow,omitempty"`
@@ -471,6 +474,9 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 	}
 	st.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
 		for _, h := range wa.Handles {
+			if h.HandReg {
+				continue
+			}
 			uri, method := h.GenPathMethod()
 			g.Id("regHI").Call(
 				jen.Lit(h.NeedAuth), jen.Lit(method), jen.Lit(uri), jen.Lit(h.GetPermID()),
