@@ -3,6 +3,7 @@ package gens
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 )
@@ -29,10 +30,16 @@ type Enum struct {
 type EnumVal struct {
 	Label  string `yaml:"label,omitempty"`
 	Suffix string `yaml:"suffix"`
+	Lower  bool   `yaml:"lower,omitempty"`
 }
 
-func (ev EnumVal) getLabel(shorted bool) string {
-	s := LcFirst(ev.Suffix)
+func (ev EnumVal) getLabel(shorted bool) (s string) {
+	if ev.Lower || isUpperString(ev.Suffix) {
+		s = strings.ToLower(ev.Suffix)
+	} else {
+		s = LcFirst(ev.Suffix)
+	}
+
 	if shorted && len(s) > shortLen {
 		return s[:shortLen]
 	}
@@ -102,6 +109,9 @@ func (e *Enum) Code() jen.Code {
 					cases := []jen.Code{jen.Lit(id), jen.Lit(label)}
 					if ss := ev.getLabel(false); ss != label && e.Shorted {
 						cases = append(cases, jen.Lit(ss))
+					}
+					if label != ev.Suffix {
+						cases = append(cases, jen.Lit(ev.Suffix))
 					}
 					g.Case(cases...)
 					g.Op("*").Id("z").Op("=").Id(name)
