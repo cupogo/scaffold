@@ -946,13 +946,19 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 					g1.Return()
 				})
 				g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
-					for _, rn := range rels {
-						field, _ := mod.Fields.withName(rn)
-						g2.If(jen.Id("rn").Op("==").Lit(rn).Op("&&!").Qual(utilsQual, "IsZero").Call(jen.Id("obj."+rn+"ID"))).Block(
-							jen.Id("ro").Op(":=").New(field.typeCode(mod.getIPath())),
+					for _, rf := range rels {
+						lastName := rf.Name + "ID"
+						var jck jen.Code
+						if fieldI, ok := mod.Fields.withName(lastName); ok && fieldI.isOID() {
+							jck = jen.Id("obj." + lastName).Dot("Valid").Call()
+						} else {
+							jck = jen.Op("!").Qual(utilsQual, "IsZero").Call(jen.Id("obj." + lastName))
+						}
+						g2.If(jen.Id("rn").Op("==").Lit(rf.Name).Op("&&").Add(jck)).Block(
+							jen.Id("ro").Op(":=").New(rf.typeCode(mod.getIPath())),
 							jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
-								jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(rn+"ID")).Op(";").Err().Op("==").Nil()).Block(
-								jen.Id("obj").Dot(rn).Op("=").Id("ro"),
+								jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(lastName)).Op(";").Err().Op("==").Nil()).Block(
+								jen.Id("obj").Dot(rf.Name).Op("=").Id("ro"),
 								jen.Continue(),
 							),
 						)

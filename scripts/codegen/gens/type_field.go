@@ -66,6 +66,11 @@ func (f *Field) cutType() (qn string, typ string, isptr bool) {
 	return
 }
 
+func (f *Field) isOID() bool {
+	qn, typ, _ := f.cutType()
+	return qn == "oid" && typ == "OID"
+}
+
 func (f *Field) isScalar() bool {
 	if f.Type == "string" || f.Type == "bool" {
 		return true
@@ -304,12 +309,12 @@ func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
 	return
 }
 
-func (z Fields) relHasOne() (out []string) {
+func (z Fields) relHasOne() (out Fields) {
 	for i := range z {
 		if n, ok := z[i].relMode(); ok && i > 0 {
 			// 上一个字段必须指向关联的主键
 			if (n == relBelongsTo || n == relHasOne) && z[i-1].Name == z[i].Name+"ID" {
-				out = append(out, z[i].Name)
+				out = append(out, z[i])
 			}
 		}
 	}
