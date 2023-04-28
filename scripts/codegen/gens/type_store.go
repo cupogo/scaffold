@@ -23,18 +23,25 @@ type Var struct {
 	Type string `yaml:"type"`
 }
 
+type Hod struct {
+	Name   string `yaml:"name"`
+	Value  string `yaml:"type"` // GLCUD,GLPD
+	Export string `yaml:"export,omitempty"`
+}
+
 type Method struct {
 	Name   string `yaml:"name"`
 	Simple bool   `yaml:"simple,omitempty"`
 	Args   []Var  `yaml:"args,omitempty"`
 	Rets   []Var  `yaml:"rets,omitempty"`
+	Export bool   `yaml:"export,omitempty"` // export for db ops
 
 	action string
 	model  string
 }
 
-func newMethod(act, mod string) Method {
-	return Method{Name: act + mod, action: act, model: mod}
+func newMethod(act, mod string, ex bool) Method {
+	return Method{Name: act + mod, action: act, model: mod, Export: ex}
 }
 
 type Store struct {
@@ -46,7 +53,7 @@ type Store struct {
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
-	Hods     []Var    `yaml:"hods"`            // Customized
+	Hods     []Hod    `yaml:"hods"`            // Customized
 
 	PostNew bool `yaml:"postNew,omitempty"`
 
@@ -67,7 +74,7 @@ func (s *Store) prepareMethods() {
 		for _, a := range []string{"List", "Get", "Create", "Update", "Delete"} {
 			k := a + m
 			if _, ok := s.allMM[k]; !ok {
-				s.Methods = append(s.Methods, newMethod(a, m))
+				s.Methods = append(s.Methods, newMethod(a, m, false))
 				s.allMM[k] = true
 			}
 		}
@@ -77,7 +84,7 @@ func (s *Store) prepareMethods() {
 		for _, a := range []string{"List", "Get", "Put", "Delete"} {
 			k := a + m
 			if _, ok := s.allMM[k]; !ok {
-				s.Methods = append(s.Methods, newMethod(a, m))
+				s.Methods = append(s.Methods, newMethod(a, m, false))
 				s.allMM[k] = true
 			}
 		}
@@ -87,7 +94,7 @@ func (s *Store) prepareMethods() {
 		for _, a := range []string{"List", "Get"} {
 			k := a + m
 			if _, ok := s.allMM[k]; !ok {
-				s.Methods = append(s.Methods, newMethod(a, m))
+				s.Methods = append(s.Methods, newMethod(a, m, false))
 				s.allMM[k] = true
 			}
 		}
@@ -95,13 +102,13 @@ func (s *Store) prepareMethods() {
 
 	for _, hod := range s.Hods {
 		m := hod.Name
-		v := hod.Type
 		s.hodMn[m] = true
-		for _, c := range v {
+		for _, c := range hod.Value {
 			if a, ok := hods[c]; ok {
 				k := a + m
 				if _, ok := s.allMM[k]; !ok {
-					s.Methods = append(s.Methods, newMethod(a, m))
+					export := strings.ContainsRune(hod.Export, c)
+					s.Methods = append(s.Methods, newMethod(a, m, export))
 					s.allMM[k] = true
 				}
 			}
@@ -123,7 +130,7 @@ func (s *Store) hasModel(name string) bool {
 	return false
 }
 
-func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bcs []*jen.Statement) {
+func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, acs []jen.Code, bcs []*jen.Statement) {
 	// if _, ok := doc.getQual("comm"); !ok {
 	// 	log.Print("get qual comm fail")
 	// }
@@ -131,6 +138,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 	for _, mth := range s.Methods {
 
 		var args, rets []jen.Code
+		var ac jen.Code
 		var cs *jen.Statement
 
 		mod, modok := s.doc.modelWithName(mth.model)
@@ -139,17 +147,18 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, bc
 		}
 
 		switch mth.action {
+		case "Get":
+			args, rets, cs = mod.codestoreGet()
+			bcs = append(bcs, cs)
+			nap = append(nap, false)
 		case "List":
 			tcs = append(tcs, mod.getSpecCodes())
 			args, rets, cs = mod.codestoreList()
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
-		case "Get":
-			args, rets, cs = mod.codestoreGet()
-			bcs = append(bcs, cs)
-			nap = append(nap, false)
 		case "Create":
-			args, rets, cs = mod.codestoreCreate()
+			args, rets, ac, cs = mod.codestoreCreate(mth)
+			acs = append(acs, ac)
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 		case "Update":
@@ -197,7 +206,7 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	if !ok {
 		log.Printf("get modpkg %s fail", modpkg)
 	}
-	tcs, mcs, nap, bcs := s.Interfaces(modelpkg)
+	tcs, mcs, nap, acs, bcs := s.Interfaces(modelpkg)
 	var ics []jen.Code
 	if len(s.Embed) > 0 {
 		ics = append(ics, jen.Id(s.Embed).Line())
@@ -239,6 +248,7 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	for i := range mcs {
 		st.Func().Params(jen.Id("s").Op("*").Id(s.Name)).Add(mcs[i], bcs[i]).Line()
 	}
+	st.Add(acs...)
 
 	return st
 }

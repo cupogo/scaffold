@@ -141,6 +141,10 @@ func (w *Wrap) Close() {
 	_ = w.db.Close()
 }
 
+func DbTsCheck() (cfg string, enable bool) {
+	return Sgt().db.GetTsCfg()
+}
+
 // dbModelMetaUps all local metaUps
 func dbModelMetaUps(ctx context.Context, db ormDB, obj pgx.Model) {
 	// more

@@ -32,7 +32,7 @@ func init() {
 type ContentStore interface {
 	ListClause(ctx context.Context, spec *ClauseSpec) (data cms1.Clauses, total int, err error)
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
-	PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error)
+	PutClause(ctx context.Context, id string, in cms1.ClauseSet) (obj *cms1.Clause, err error)
 	DeleteClause(ctx context.Context, id string) error
 
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error)
@@ -43,6 +43,8 @@ type ContentStore interface {
 
 	ListAttachment(ctx context.Context, spec *AttachmentSpec) (data cms1.Attachments, total int, err error)
 	GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error)
+	CreateAttachment(ctx context.Context, in cms1.AttachmentBasic) (obj *cms1.Attachment, err error)
+	DeleteAttachment(ctx context.Context, id string) error
 }
 
 type ClauseSpec struct {
@@ -157,10 +159,8 @@ func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clau
 
 	return
 }
-func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (nid string, err error) {
-	var obj *cms1.Clause
+func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseSet) (obj *cms1.Clause, err error) {
 	obj, err = pgx.StoreWithSet[*cms1.Clause](ctx, s.w.db, in, id)
-	nid = obj.StringID()
 	return
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
@@ -169,7 +169,7 @@ func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
-	spec.SetTsConfig(s.w.db.GetTsCfg())
+	spec.SetTsConfig(DbTsCheck())
 	spec.SetTsFallback("title", "content")
 	q := s.w.db.NewSelect().Model(&data)
 	if err = s.beforeListArticle(ctx, spec, q); err != nil {
@@ -190,18 +190,8 @@ func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Art
 	return
 }
 func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) (obj *cms1.Article, err error) {
-	obj = cms1.NewArticleWithBasic(in)
-	if tscfg, ok := s.w.db.GetTsCfg(); ok {
-		obj.TsCfgName = tscfg
-		obj.SetTsColumns("title", "content")
-		obj.SetChange("ts_cfg")
-	}
 	err = s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
-		if err = dbBeforeSaveArticle(ctx, tx, obj); err != nil {
-			return err
-		}
-		dbOpModelMeta(ctx, tx, obj)
-		err = dbInsert(ctx, tx, obj)
+		obj, err = CreateArticle(ctx, tx, in)
 		return err
 	})
 	if err == nil {
@@ -215,7 +205,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 		return err
 	}
 	exist.SetWith(in)
-	if tscfg, ok := s.w.db.GetTsCfg(); ok {
+	if tscfg, ok := DbTsCheck(); ok {
 		exist.TsCfgName = tscfg
 		exist.SetTsColumns("title", "content")
 		exist.SetChange("ts_cfg")
@@ -257,5 +247,33 @@ func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.
 	obj = new(cms1.Attachment)
 	err = s.w.db.GetModel(ctx, obj, id)
 
+	return
+}
+func (s *contentStore) CreateAttachment(ctx context.Context, in cms1.AttachmentBasic) (obj *cms1.Attachment, err error) {
+	obj, err = CreateAttachment(ctx, s.w.db, in)
+	return
+}
+func (s *contentStore) DeleteAttachment(ctx context.Context, id string) error {
+	obj := new(cms1.Attachment)
+	return s.w.db.DeleteModel(ctx, obj, id)
+}
+
+func CreateArticle(ctx context.Context, db ormDB, in cms1.ArticleBasic) (obj *cms1.Article, err error) {
+	obj = cms1.NewArticleWithBasic(in)
+	if tscfg, ok := DbTsCheck(); ok {
+		obj.TsCfgName = tscfg
+		obj.SetTsColumns("title", "content")
+		obj.SetChange("ts_cfg")
+	}
+	if err = dbBeforeSaveArticle(ctx, db, obj); err != nil {
+		return
+	}
+	dbOpModelMeta(ctx, db, obj)
+	err = dbInsert(ctx, db, obj)
+	return
+}
+func CreateAttachment(ctx context.Context, db ormDB, in cms1.AttachmentBasic) (obj *cms1.Attachment, err error) {
+	obj = cms1.NewAttachmentWithBasic(in)
+	err = dbInsert(ctx, db, obj)
 	return
 }

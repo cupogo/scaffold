@@ -811,7 +811,7 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
 	st := jen.Empty()
 	if cols, ok := mod.HasTextSearch(); ok {
-		st.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Add(swdb).Dot("GetTsCfg").Call().Op(";").Id("ok")).BlockFunc(func(g *jen.Group) {
+		st.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Id("DbTsCheck").Call().Op(";").Id("ok")).BlockFunc(func(g *jen.Group) {
 			g.Id(id).Dot("TsCfgName").Op("=").Id("tscfg")
 			if !mod.DbTriggerSave && len(cols) > 0 {
 				g.Id(id).Dot("SetTsColumns").Call(jen.ListFunc(func(g1 *jen.Group) {
@@ -836,6 +836,7 @@ func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
 var (
 	swdb  jen.Code = jen.Id("s").Dot("w").Dot("db")
 	jactx jen.Code = jen.Id("ctx").Id("context.Context")
+	jadb  jen.Code = jen.Id("db").Id("ormDB")
 )
 
 func (m *Model) getIPath() string {
@@ -863,7 +864,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 		jen.BlockFunc(func(g *jen.Group) {
 			if cols, ok := m.HasTextSearch(); ok || len(cols) > 0 {
 				if ok {
-					g.Id("spec").Dot("SetTsConfig").Call(jen.Add(swdb).Dot("GetTsCfg").Call())
+					g.Id("spec").Dot("SetTsConfig").Call(jen.Id("DbTsCheck").Call())
 				}
 				if len(cols) > 0 {
 					g.Id("spec").Dot("SetTsFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
@@ -973,91 +974,115 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 		})
 }
 
-func (mod *Model) codestoreCreate() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, acode jen.Code, bcode *jen.Statement) {
 	tname := mod.Name + "Basic"
-	return []jen.Code{jen.Id("in").Qual(mod.getIPath(), tname)},
-		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
-		jen.BlockFunc(func(g *jen.Group) {
-			nname := "New" + mod.Name + "WithBasic"
-			g.Id("obj").Op("=").Qual(mod.getIPath(), nname).Call(jen.Id("in"))
 
-			targs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("obj")}
-			if uf, isuniq := mod.UniqueOne(); isuniq {
-				g.If(jen.Id("obj").Dot(uf.Name).Op("==").Lit("")).Block(
-					jen.Err().Op("=").Id("ErrEmptyKey"),
-					jen.Return())
-				targs = append(targs, jen.Lit(uf.Column))
-			} else if mod.ForceCreate {
-				targs = append(targs, jen.Lit(true))
+	hkBC, okBC := mod.hasStoreHook(beforeCreating)
+	hkBS, okBS := mod.hasStoreHook(beforeSaving)
+	hkAS, okAS := mod.hasStoreHook(afterSaving)
+	isPG10 := mod.doc.IsPG10()
+	unfd, isuniq := mod.UniqueOne()
+
+	arg = []jen.Code{jen.Id("in").Qual(mod.getIPath(), tname)}
+	ret = []jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
+	jaf := func(g *jen.Group, jdb jen.Code) {
+		nname := "New" + mod.Name + "WithBasic"
+		g.Id("obj").Op("=").Qual(mod.getIPath(), nname).Call(jen.Id("in"))
+
+		targs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
+		if isuniq {
+			g.If(jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")).Block(
+				jen.Err().Op("=").Id("ErrEmptyKey"),
+				jen.Return())
+			targs = append(targs, jen.Lit(unfd.Column))
+		} else if mod.ForceCreate {
+			targs = append(targs, jen.Lit(true))
+		}
+		if jt, ok := mod.textSearchCodes("obj"); ok {
+			g.Add(jt)
+		}
+		if okBC || okBS || okAS {
+			if okBC {
+				g.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+					jen.Return(),
+				)
+			} else if okBS {
+				g.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+					jen.Return(),
+				)
+			}
+			if mod.hasMeta() {
+				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id("obj"))
 			}
 
-			if jt, ok := mod.textSearchCodes("obj"); ok {
-				g.Add(jt)
+			g.Err().Op("=").Id("dbInsert").Call(targs...)
+			if okAS {
+				g.If(jen.Err().Op("==")).Nil().Block(
+					jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+				)
 			}
-			isPG10 := mod.doc.IsPG10()
 
-			hkBC, okBC := mod.hasStoreHook(beforeCreating)
-			hkBS, okBS := mod.hasStoreHook(beforeSaving)
-			hkAS, okAS := mod.hasStoreHook(afterSaving)
-			if okBC || okBS || okAS {
-				g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
-					jdb := jen.Id("tx")
-					targs[1] = jdb
-					g1.Id("ctx")
-					jbf := func(g2 *jen.Group) {
-						if okBC {
-							g2.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
-								jen.Return(jen.Err()),
-							)
-						} else if okBS {
-							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
-								jen.Return(jen.Err()),
-							)
-						}
-						if mod.hasMeta() {
-							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj"))
-						}
+		} else {
+			if mod.hasMeta() {
+				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
+			}
 
-						g2.Err().Op("=").Id("dbInsert").Call(targs...)
-						if okAS {
-							g2.If(jen.Err().Op("==")).Nil().Block(
-								jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
-							)
-						}
+			g.Err().Op("=").Id("dbInsert").Call(targs...)
+		}
+	}
+	if mth.Export {
+		args := []jen.Code{jactx, jadb}
+		args = append(args, arg...)
+		acode = jen.Func().Id(mth.Name).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
+			jaf(g, jen.Id("db"))
+			g.Return()
+		}).Line()
+	}
 
-						g2.Return(jen.Err())
-					}
-					if isPG10 {
-						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
-					} else {
-						g1.Nil()
-						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
-					}
-
-				})
-
+	bcode = jen.BlockFunc(func(g *jen.Group) {
+		jbf := func(g2 *jen.Group, jdb jen.Code) {
+			if mth.Export {
+				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("in")}
+				g2.Id("obj").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
 			} else {
-				if mod.hasMeta() {
-					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
+				jaf(g2, jdb)
+			}
+		}
+		if okBC || okBS || okAS {
+			g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+				g1.Id("ctx")
+				jxf := func(g3 *jen.Group) {
+					jbf(g3, jen.Id("tx"))
+					g3.Return(jen.Err())
+				}
+				if isPG10 {
+					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
+				} else {
+					g1.Nil()
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
 				}
 
-				g.Err().Op("=").Id("dbInsert").Call(targs...)
-			}
+			})
 
-			if hk, ok := mod.hasStoreHook(afterCreated); ok {
-				g.If(jen.Err().Op("==").Nil()).Block(
-					jen.Err().Op("=").Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("obj")),
-				)
-			}
+		} else {
+			jbf(g, swdb)
+		}
 
-			if fc, ok := mod.hasStoreHook(upsertES); ok {
-				g.If(jen.Err().Op("==").Nil()).Block(
-					jen.Err().Op("=").Id("s").Dot(fc).Call(jen.Id("ctx"), jen.Id("obj")),
-				)
-			}
+		if hk, ok := mod.hasStoreHook(afterCreated); ok {
+			g.If(jen.Err().Op("==").Nil()).Block(
+				jen.Err().Op("=").Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("obj")),
+			)
+		}
 
-			g.Return()
-		})
+		if fc, ok := mod.hasStoreHook(upsertES); ok {
+			g.If(jen.Err().Op("==").Nil()).Block(
+				jen.Err().Op("=").Id("s").Dot(fc).Call(jen.Id("ctx"), jen.Id("obj")),
+			)
+		}
+
+		g.Return()
+	})
+	return
 }
 
 func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {

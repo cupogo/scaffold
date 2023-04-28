@@ -126,14 +126,10 @@ models:
 
 stores:
   - name: contentStore
-    hodBread: [ Article ]
-    hodGL: [ Attachment ]
-    methods:
-      - name: ListClause
-      - name: GetClause
-      - name: PutClause
-        simple: true
-      - name: DeleteClause
+    hods:
+      - { name: Clause, type: LGPD }
+      - { name: Article, type: LGCUD, export: C }
+      - { name: Attachment, type: LGCD, export: C }
 
 webapi:
   pkg: api_v1

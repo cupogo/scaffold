@@ -45,6 +45,12 @@ func init() {
 	regHI(false, "GET", "/cms/attachments/:id", "", func(a *api) gin.HandlerFunc {
 		return a.getContentAttachment
 	})
+	regHI(true, "POST", "/cms/attachments", "v1-cms-attachments-post", func(a *api) gin.HandlerFunc {
+		return a.postContentAttachment
+	})
+	regHI(true, "DELETE", "/cms/attachments/:id", "v1-cms-attachments-id-delete", func(a *api) gin.HandlerFunc {
+		return a.deleteContentAttachment
+	})
 }
 
 // @Tags 默认 文档生成
@@ -78,7 +84,7 @@ func (a *api) getCmsClause(c *gin.Context) {
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
 // @Param   query  body   cms1.ClauseSet  true   "Object"
-// @Success 200 {object} Done{result=string}
+// @Success 200 {object} Done{result=cms1.Clause}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
 // @Failure 403 {object} Failure "无权限"
@@ -336,4 +342,57 @@ func (a *api) getContentAttachment(c *gin.Context) {
 	}
 
 	success(c, obj)
+}
+
+// @Tags 默认 文档生成
+// @ID v1-cms-attachments-post
+// @Summary 录入附件
+// @Accept json,mpfd
+// @Produce json
+// @Param token    header   string  true "登录票据凭证"
+// @Param   query  body   cms1.AttachmentBasic  true   "Object"
+// @Success 200 {object} Done{result=ResultID}
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
+// @Router /api/v1/cms/attachments [post]
+func (a *api) postContentAttachment(c *gin.Context) {
+	var in cms1.AttachmentBasic
+	if err := c.Bind(&in); err != nil {
+		fail(c, 400, err)
+		return
+	}
+
+	obj, err := a.sto.Content().CreateAttachment(c.Request.Context(), in)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, idResult(obj.ID))
+}
+
+// @Tags 默认 文档生成
+// @ID v1-cms-attachments-id-delete
+// @Summary 删除附件
+// @Accept json
+// @Produce json
+// @Param token    header   string  true "登录票据凭证"
+// @Param   id    path   string  true   "编号"
+// @Success 200 {object} Done
+// @Failure 400 {object} Failure "请求或参数错误"
+// @Failure 401 {object} Failure "未登录"
+// @Failure 403 {object} Failure "无权限"
+// @Failure 503 {object} Failure "服务端错误"
+// @Router /api/v1/cms/attachments/{id} [delete]
+func (a *api) deleteContentAttachment(c *gin.Context) {
+	id := c.Param("id")
+	err := a.sto.Content().DeleteAttachment(c.Request.Context(), id)
+	if err != nil {
+		fail(c, 503, err)
+		return
+	}
+
+	success(c, "ok")
 }
