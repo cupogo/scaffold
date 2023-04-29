@@ -42,7 +42,7 @@ models:
         tags: {json: 'status', pg: ',notnull,use_zero'}
         isset: true
         query: 'equal,ints'
-      - comment: 作者
+      - comment: 作者编号
         name: AuthorID
         type: 'oid.OID'
         tags: {json: 'authorID', pg: ',notnull,use_zero'}
