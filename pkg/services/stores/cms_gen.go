@@ -76,7 +76,7 @@ type ArticleSpec struct {
 	Statuses string `extensions:"x-order=D" form:"statuses" json:"statuses,omitempty"`
 	// 状态
 	Status int16 `extensions:"x-order=E" form:"status" json:"status"`
-	// 作者
+	// 作者编号
 	AuthorID string `extensions:"x-order=F" form:"authorID" json:"authorID"`
 	// 来源 (多值逗号分隔)
 	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs,omitempty"`

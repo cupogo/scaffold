@@ -38,7 +38,7 @@ type ArticleBasic struct {
 	NewsPublish comm.DateTime `bun:"news_publish,type:date" extensions:"x-order=D" form:"newsPublish" json:"newsPublish,omitempty" pg:"news_publish,type:date"`
 	// 状态
 	Status int16 `bun:",notnull" extensions:"x-order=E" form:"status" json:"status" pg:",notnull,use_zero"`
-	// 作者
+	// 作者编号
 	AuthorID oid.OID `bun:",notnull" extensions:"x-order=F" json:"authorID" pg:",notnull,use_zero"`
 	// 来源
 	Src string `bun:",notnull" extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
@@ -89,7 +89,7 @@ type ArticleSet struct {
 	NewsPublish *comm.DateTime `extensions:"x-order=D" json:"newsPublish,omitempty"`
 	// 状态
 	Status *int16 `extensions:"x-order=E" json:"status"`
-	// 作者
+	// 作者编号
 	AuthorID *string `extensions:"x-order=F" json:"authorID"`
 	// 来源
 	Src *string `extensions:"x-order=G" json:"src"`

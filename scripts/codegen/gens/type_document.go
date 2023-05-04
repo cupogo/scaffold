@@ -22,6 +22,7 @@ import (
 
 var (
 	qualifications = map[string]string{
+		"comm":  "github.com/cupogo/andvari/models/comm",
 		"oid":   "github.com/cupogo/andvari/models/oid",
 		"pgx":   "github.com/cupogo/andvari/stores/pgx",
 		"utils": "github.com/cupogo/andvari/utils",
