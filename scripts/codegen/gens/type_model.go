@@ -597,8 +597,8 @@ func (m *Model) getSpecCodes() jen.Code {
 					jcond = jen.Len(jen.Id("spec").Dot(withRel)).Op(">0")
 				}
 				g.If(jcond).BlockFunc(func(g *jen.Group) {
-					for _, relName := range belonNames {
-						g.Id("q").Dot("Relation").Call(jen.Lit(relName))
+					for _, relField := range belonNames {
+						g.Id("q").Dot("Relation").Call(jen.Lit(relField.Name))
 					}
 					// g.Id("pre").Op("=").Lit("?TableAlias.")
 				}).Line()
@@ -1209,7 +1209,7 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 			uf, isuniq := mod.UniqueOne()
 			if isuniq {
 				g.If(jen.Id("in").Dot(uf.Name).Op("==").Nil().Op("||*").Id("in").Dot(uf.Name).Op("==").Lit("")).Block(
-					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+uf.Name)),
+					jen.Err().Op("=").Qual("fmt", "Errorf").Call(jen.Lit("need "+LcFirst(uf.Name))),
 					jen.Return())
 				cpms = append(cpms, jen.Op("*").Id("in").Dot(uf.Name), jen.Lit(uf.Column))
 			} else {
