@@ -590,8 +590,8 @@ func (m *Model) getSpecCodes() jen.Code {
 		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
 			Params(args...)
 		st.BlockFunc(func(g *jen.Group) {
-			if len(belonNames) > 0 && !okAL {
-				log.Printf("%s belongsTo Names %+v", m.Name, belonNames)
+			if len(relFields) > 0 && !okAL {
+				log.Printf("%s belongsTo Names %+v", m.Name, relFields)
 				// g.Var().Id("pre").String()
 				var jcond jen.Code
 				if wrTyp == "bool" {
