@@ -549,9 +549,9 @@ func (m *Model) getSpecCodes() jen.Code {
 	var withRel string
 	var wrTyp string
 	_, okAL := m.hasStoreHook(afterList)
-	belonNames := m.Fields.relHasOne()
+	relFields := m.Fields.relHasOne()
 	relations := m.Fields.Relations()
-	if len(belonNames) > 0 || len(relations) > 0 || okAL {
+	if len(relFields) > 0 || len(relations) > 0 || okAL {
 		wrTyp = "bool"
 		if okAL || len(relations) > 1 {
 			wrTyp = "string"
@@ -597,7 +597,7 @@ func (m *Model) getSpecCodes() jen.Code {
 					jcond = jen.Len(jen.Id("spec").Dot(withRel)).Op(">0")
 				}
 				g.If(jcond).BlockFunc(func(g *jen.Group) {
-					for _, relField := range belonNames {
+					for _, relField := range relFields {
 						g.Id("q").Dot("Relation").Call(jen.Lit(relField.Name))
 					}
 					// g.Id("pre").Op("=").Lit("?TableAlias.")
@@ -978,6 +978,7 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	tname := mod.Name + "Basic"
 
 	hkBC, okBC := mod.hasStoreHook(beforeCreating)
+	hkAC, okAC := mod.hasStoreHook(afterCreating)
 	hkBS, okBS := mod.hasStoreHook(beforeSaving)
 	hkAS, okAS := mod.hasStoreHook(afterSaving)
 	isPG10 := mod.doc.IsPG10()
@@ -1001,7 +1002,7 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		if jt, ok := mod.textSearchCodes("obj"); ok {
 			g.Add(jt)
 		}
-		if okBC || okBS || okAS {
+		if okBC || okAC || okBS || okAS {
 			if okBC {
 				g.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 					jen.Return(),
@@ -1016,7 +1017,11 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			}
 
 			g.Err().Op("=").Id("dbInsert").Call(targs...)
-			if okAS {
+			if okAC {
+				g.If(jen.Err().Op("==")).Nil().Block(
+					jen.Err().Op("=").Id(hkAC).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+				)
+			} else if okAS {
 				g.If(jen.Err().Op("==")).Nil().Block(
 					jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
 				)
@@ -1104,9 +1109,10 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			jfbd := jen.Empty()
 			hkBU, okBU := mod.hasStoreHook(beforeUpdating)
+			hkAU, okAU := mod.hasStoreHook(afterUpdating)
 			hkBS, okBS := mod.hasStoreHook(beforeSaving)
 			hkAS, okAS := mod.hasStoreHook(afterSaving)
-			if okBU || okBS || okAS {
+			if okBU || okAU || okBS || okAS {
 				jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 					jdb := jen.Id("tx")
 					g1.Id("ctx")
@@ -1129,7 +1135,12 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 							jen.Id("ctx"), jdb, jen.Id("exist"),
 						)
 
-						if okAS {
+						if okAU {
+							g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
+								jen.Return().Id(hkAU).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
+							)
+							g2.Return()
+						} else if okAS {
 							g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
 								jen.Return().Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
 							)

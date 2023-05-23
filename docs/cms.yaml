@@ -59,6 +59,7 @@ models:
     oidcat: article
     hooks:
       beforeSaving: yes
+      afterCreating: yes
       afterDeleting: yes
       beforeList: yes
       afterList: yes
