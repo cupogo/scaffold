@@ -487,6 +487,9 @@ func (m *Model) specFields() (out Fields) {
 				f.Type = "string"
 				f.isDate = true
 				f.siftFn = "siftDate"
+			} else if f.Type == "bool" {
+				f.Type = "string"
+				f.siftFn = sfn
 			} else {
 				f.siftFn = sfn
 			}
