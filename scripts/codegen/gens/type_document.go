@@ -89,9 +89,10 @@ type Document struct {
 
 	modipath string
 	modtypes map[string]empty
-	dbcode   string
 
-	Module    string  `yaml:"-"`
+	Module string `yaml:"-"`
+
+	DbCode    DbCode  `yaml:"dbcode"` //  default:"bun"
 	Enums     []Enum  `yaml:"enums"`
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
@@ -191,9 +192,13 @@ func NewDoc(docfile string) (*Document, error) {
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
 	doc.methods = make(map[string]Method)
 	doc.modtypes = make(map[string]empty)
-	doc.dbcode = os.Getenv("SCAFFOLD_DB_CODE")
+	if len(doc.DbCode) == 0 {
+		if s, ok := os.LookupEnv("SCAFFOLD_DB_CODE"); ok && len(s) > 0 {
+			doc.DbCode = DbCode(s)
+		}
+	}
 
-	log.Printf("loaded %d models, dbcode %s", len(doc.Models), doc.dbcode)
+	log.Printf("loaded %d models, dbcode %s", len(doc.Models), doc.DbCode)
 	// log.Printf("loaded webapi uris %+v", doc.WebAPI.URIs)
 
 	return doc, nil
@@ -232,10 +237,11 @@ func getOutName(docfile string) (gened string, extern string) {
 }
 
 func (doc *Document) IsPG10() bool {
-	if doc != nil && doc.dbcode == "pg10" {
-		return true
-	}
-	return false
+	return doc != nil && doc.DbCode == DbPgx
+}
+
+func (doc *Document) IsMongo() bool {
+	return doc != nil && doc.DbCode == DbMgm
 }
 
 func (doc *Document) hasStoreHooks() bool {

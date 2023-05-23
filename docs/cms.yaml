@@ -64,8 +64,6 @@ models:
       beforeList: yes
       afterList: yes
       afterLoad: yes
-    # withColumnGet: true
-    # withColumnList: true
       upsertES: yes
       deleteES: yes
 

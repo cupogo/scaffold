@@ -291,6 +291,11 @@ func (z *Clause) SetWith(o ClauseSet) {
 	}
 }
 
+// consts of File a
+const (
+	FileLabel = "file"
+)
+
 // File a file instance
 type File struct {
 	Name string `extensions:"x-order=A" form:"name" json:"name"`
