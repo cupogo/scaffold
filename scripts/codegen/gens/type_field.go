@@ -346,7 +346,7 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 	case "oids":
 		fn, ok = "siftOIDs", f.Type == "oid.OID"
 	case "equal":
-		fn, ok = "siftEquel", true
+		fn, ok = "siftEqual", true
 	case "ice", "ilike":
 		fn, ok = "siftICE", true
 	case "match":
