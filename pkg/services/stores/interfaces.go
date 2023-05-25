@@ -14,6 +14,7 @@ type ModelIdentity interface {
 
 type Storage interface {
 	Content() ContentStore // gened
+	Account() AccountStore // gened
 }
 
 var UpsertESDoc func(ctx context.Context, index string, mi ModelIdentity) error

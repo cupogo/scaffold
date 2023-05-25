@@ -1,0 +1,130 @@
+
+depends:
+  comm: 'github.com/cupogo/andvari/models/comm'
+  oid: 'github.com/cupogo/andvari/models/oid'
+
+
+enums:
+  - comment: 角色类型
+    name: RoleType
+    type: int8
+    values:
+      - label: none
+        suffix: None
+      - label: 普通用户
+        suffix: Normal
+      - label: 管理员
+        suffix: Admin
+    stringer: true
+    decodable: true
+    multiple: true
+    shorted: true
+
+  - comment: 账号状态
+    name: AccountStatus
+    type: int8
+    values:
+      - label: none
+        suffix: None
+      - label: active
+        suffix: Active
+      - label: forbid
+        suffix: Forbid
+    stringer: true
+    decodable: true
+    multiple: true
+
+
+modelpkg: accs
+models:
+  - name: Account
+    comment: '账号'
+    tableTag: 'auth_account,alias:aa'
+    fields:
+      - name: comm.DefaultModel
+      - comment: '登录名 唯一'
+        name: Username
+        type: string
+        tags: {json: 'username', pg: 'username,notnull,type:varchar(31),unique'}
+        isset: true
+        icse: true # 查询时忽略大小写
+        query: 'match'
+      - comment: '昵称'
+        name: Nickname
+        type: string
+        tags: {json: 'nickname', pg: "nickname,notnull,use_zero,type:varchar(45)"}
+        isset: true
+        query: 'match'
+      - comment: '头像路径'
+        name: AvatarPath
+        type: string
+        tags: {json: 'avatar,omitempty', pg: 'avatar,notnull,use_zero,type:varchar(97)'}
+        isset: true
+      - comment: '角色类型: 1=普通账号，2=管理员'
+        name: RoleType
+        type: RoleType
+        tags: {json: 'rt', pg: 'role_type,notnull,type:smallint,use_zero', swaggertype: "integer"}
+        isset: true
+      - comment: '状态: 1=激活，2=禁用'
+        name: Status
+        type: AccountStatus
+        tags: {json: 'status', pg: "status,notnull,type:smallint,use_zero", swaggertype: "integer"}
+        isset: true
+        query: 'equal'
+      - comment: '邮箱'
+        name: Email
+        type: string
+        tags: {json: 'email,omitempty', pg: "email,notnull,use_zero,type:varchar(43)"}
+        isset: true
+        query: 'match'
+      - comment: '描述'
+        name: Description
+        type: string
+        tags: {json: 'description,omitempty', pg: ",notnull,use_zero"}
+        isset: true
+      - comment: '密码 (仅用于参数传递 Only used for parameter passing.)'
+        name: Password
+        type: string
+        tags: {json: 'password,omitempty', pg: "-"}
+        isset: true
+      - type: comm.MetaField
+      # - type: comm.TextSearchField
+    oidcat: account
+    specExtras:
+      - comment: 全部字段
+        name: WithAll
+        type: bool
+        tags: {json: 'all', form: "all"}
+    hooks:
+      beforeCreating: yes
+      beforeUpdating: yes
+      afterSaving: yes
+      afterLoad: yes
+
+  - name: AccountPasswd
+    comment: '账号密码'
+    tableTag: 'auth_account_passwd,alias:aap'
+    fields:
+      - name: comm.DefaultModel
+      - comment: '密码'
+        name: Password
+        type: string
+        tags: {json: 'password', pg: ',notnull,type:varchar(99)'}
+        isset: true
+      - type: comm.MetaField
+
+
+stores:
+  - name: accountStore
+    embed: AccountStoreX
+    hodBread: [ Account ]
+
+webapi:
+  pkg: api_v1
+  needAuth: true
+  needPerm: true
+  tagLabel: 'Cupola-accounts'
+  uris:
+    - model: Account
+      uri: '/api/v1/accounts'
+      # handReg: true

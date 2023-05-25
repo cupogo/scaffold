@@ -96,13 +96,16 @@ type Wrap struct {
 	db *pgx.DB
 
 	contentStore *contentStore // gened
+
+	accountStore *accountStore // gened
 }
 
 // NewWithDB return new instance of Wrap
 func NewWithDB(db *pgx.DB) *Wrap {
 	w := &Wrap{db: db}
 
-	w.contentStore = newContentStore(w) // gened
+	w.contentStore = newContentStore(w)  // gened
+	w.accountStore = &accountStore{w: w} // gened
 
 	// more member stores
 	return w
@@ -150,3 +153,4 @@ func dbModelMetaUps(ctx context.Context, db ormDB, obj pgx.Model) {
 	// more
 }
 func (w *Wrap) Content() ContentStore { return w.contentStore } // Content gened
+func (w *Wrap) Account() AccountStore { return w.accountStore } // Account gened
