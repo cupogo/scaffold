@@ -135,7 +135,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	return
 }
 
-func (wa *WebAPI) getPkgName() string {
+func (wa *WebAPI) GetPkgName() string {
 	return replPkg.Replace(wa.Pkg)
 }
 

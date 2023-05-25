@@ -629,7 +629,7 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 
 	ensureGoFile(path.Join(doc.dirweb, "api.go"), "web/api", map[string]string{
 		"Module": doc.Module,
-		"WebPkg": doc.WebAPI.getPkgName(),
+		"WebPkg": doc.WebAPI.GetPkgName(),
 	})
 
 	outname := path.Join(doc.dirweb, "handle_"+doc.gened)
@@ -643,7 +643,7 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 	mpkg := loadPackage(doc.dirmod)
 	spkg := loadPackage(doc.dirsto)
 
-	wgf := jen.NewFile(doc.WebAPI.getPkgName())
+	wgf := jen.NewFile(doc.WebAPI.GetPkgName())
 	wgf.HeaderComment(headerComment)
 
 	wgf.ImportName(mpkg.ID, doc.ModelPkg)
