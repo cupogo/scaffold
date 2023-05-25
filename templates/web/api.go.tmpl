@@ -1,13 +1,13 @@
-package {{ .webpkg }}
+package {{ .WebPkg }}
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/cupogo/scaffold/pkg/services/stores"
-	"github.com/cupogo/scaffold/pkg/web/resp"
-	"github.com/cupogo/scaffold/pkg/web/routes"
+	"{{ .Module }}/pkg/services/stores"
+	"{{ .Module }}/pkg/web/resp"
+	"{{ .Module }}/pkg/web/routes"
 )
 
 type Done = resp.Done

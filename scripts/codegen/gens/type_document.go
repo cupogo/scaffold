@@ -91,6 +91,7 @@ type Document struct {
 	modtypes map[string]empty
 	dbcode   string
 
+	Module    string  `yaml:"-"`
 	Enums     []Enum  `yaml:"enums"`
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
@@ -100,6 +101,11 @@ type Document struct {
 }
 
 func (doc *Document) Check() error {
+	module, err := GetModule("./")
+	if err != nil {
+		return err
+	}
+	doc.Module = module
 	if 0 == len(doc.ModelPkg) {
 		return errors.New("empty modelpkg")
 	}
@@ -505,7 +511,7 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 
 func (doc *Document) ensureWrapPatch() bool {
 	sfile := path.Join(doc.dirsto, storewf)
-	ensureGoFile(sfile, "stores/wrap", nil)
+	ensureGoFile(sfile, "stores/wrap", doc)
 	vd, err := newDST(sfile, storepkg)
 	if err != nil {
 		return false
@@ -621,13 +627,10 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 		}
 	}
 
-	afile := path.Join(doc.dirweb, "api.go")
-	if !CheckFile(afile) {
-		data := map[string]string{"webpkg": doc.WebAPI.getPkgName()}
-		if err := renderTmpl("web/api", afile, data); err != nil {
-			return err
-		}
-	}
+	ensureGoFile(path.Join(doc.dirweb, "api.go"), "web/api", map[string]string{
+		"Module": doc.Module,
+		"WebPkg": doc.WebAPI.getPkgName(),
+	})
 
 	outname := path.Join(doc.dirweb, "handle_"+doc.gened)
 	if dropfirst && CheckFile(outname) {

@@ -21,10 +21,15 @@ import (
 	"github.com/jinzhu/inflection"
 	"golang.org/x/tools/go/packages"
 
+	"github.com/cupogo/scaffold/pkg/services/utils"
 	"github.com/cupogo/scaffold/templates"
 )
 
 type empty struct{}
+
+func GetModule(dir string) (string, error) {
+	return utils.GetModule(dir)
+}
 
 func loadPackage(path string) *packages.Package {
 	if !strings.HasPrefix(path, "./") {

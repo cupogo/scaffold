@@ -30,6 +30,12 @@ func Run(docfile string, genSpec TagSpec, dropfirst bool) {
 		log.Printf("load fail: %s", err)
 		return
 	}
+
+	err = curgen.doc.Check()
+	if err != nil {
+		log.Printf("check fail: %s", err)
+		return
+	}
 	curgen.doc.Init()
 
 	if genSpec&TgModel > 0 {

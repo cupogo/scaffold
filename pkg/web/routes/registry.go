@@ -30,7 +30,6 @@ func Register(name string, sf Strapper) {
 
 // Routers ...
 func Routers(r gin.IRouter, names ...string) {
-	logger().Infow("Routers", "names", names)
 	ronce.Do(func() {
 		if len(names) == 0 {
 			for name := range straps {
@@ -38,6 +37,7 @@ func Routers(r gin.IRouter, names ...string) {
 			}
 			sort.Strings(names)
 		}
+		logger().Infow("Routers", "names", names)
 		for _, name := range names {
 			if sf, ok := straps[name]; ok {
 				logger().Infow("start router for ", "name", name)
