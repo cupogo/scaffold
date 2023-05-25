@@ -32,6 +32,7 @@ type Field struct {
 	multable bool
 	qtype    string
 	colname  string
+	bson     bool
 }
 
 func (f *Field) isMeta() bool {
@@ -186,6 +187,9 @@ func (f *Field) Code(idx int) jen.Code {
 	}
 
 	if f.isEmbed() {
+		if f.bson {
+			st.Tag(Tags{"bson": ",inline"})
+		}
 		st.Line()
 	}
 
@@ -205,6 +209,18 @@ func (f *Field) ColName() (cn string, hascol bool, unique bool) {
 		}
 	} else if len(f.colname) > 0 {
 		cn = f.colname
+	}
+	return
+}
+
+func (f *Field) BsonName() (name string, has bool) {
+	if s, ok := f.Tags.GetAny("bson", "json"); ok && len(s) > 0 && s != "-" {
+		if a, _, ok := strings.Cut(s, ","); ok {
+			name = a
+		} else {
+			name = s
+		}
+		has = len(name) > 0
 	}
 	return
 }
@@ -282,18 +298,23 @@ func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 type Fields []Field
 
 // Codes return fields code of main and basic
-func (z Fields) Codes(basicName string) (mcs, bcs []jen.Code) {
+func (z Fields) Codes(basicName string, bsonable bool) (mcs, bcs []jen.Code) {
 	var hasMeta bool
 	var setBasic bool
 	var idx int
 	for _, field := range z {
+		field.bson = bsonable
 		if !field.isEmbed() {
 			idx++
 		}
 		if field.IsSet || field.IsBasic {
 			bcs = append(bcs, field.Code(idx))
 			if !setBasic {
-				mcs = append(mcs, jen.Id(basicName).Line())
+				stb := jen.Id(basicName)
+				if bsonable {
+					stb.Tag(Tags{"bson": ",inline"})
+				}
+				mcs = append(mcs, stb.Line())
 				setBasic = true
 			}
 		} else {
@@ -359,4 +380,30 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 		fn, ok = "siftLess", true
 	}
 	return
+}
+
+func (f Field) siftCode(ismg bool) jen.Code {
+	if len(f.siftFn) == 0 {
+		return nil
+	}
+	jsv := jen.Id("spec").Dot(f.Name)
+	if ismg {
+		cn, ok := f.BsonName()
+		if !ok {
+			return nil
+		}
+		return jen.Id("q").Op("=").Id("mg"+ToExported(f.siftFn)).Call(
+			jen.Id("q"), jen.Lit(cn), jsv)
+	}
+	cn, indb, _ := f.ColName()
+	if !indb && len(f.siftFn) == 0 {
+		return nil
+	}
+	params := []jen.Code{jen.Id("q"), jen.Lit(cn), jsv}
+	cfn := f.siftFn
+	if f.isDate && f.isIntDt {
+		params = append(params, jen.True())
+	}
+	params = append(params, jen.False())
+	return jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
 }

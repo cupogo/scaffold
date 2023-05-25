@@ -14,7 +14,8 @@ type Model struct {
 	Comment    string   `yaml:"comment,omitempty"`
 	Name       string   `yaml:"name"`
 	Label      string   `yaml:"label"`
-	TableTag   string   `yaml:"tableTag,omitempty"`
+	CollName   string   `yaml:"collName,omitempty"` // for mongodb only
+	TableTag   string   `yaml:"tableTag,omitempty"` // uptrace/bun & go-pg
 	Fields     Fields   `yaml:"fields"`
 	Plural     string   `yaml:"plural,omitempty"`
 	OIDCat     string   `yaml:"oidcat,omitempty"`
@@ -34,6 +35,7 @@ type Model struct {
 	PreSet         bool `yaml:"preSet,omitempty"`
 	PostSet        bool `yaml:"postSet,omitempty"`
 	DisableLog     bool `yaml:"disableLog,omitempty"` // 不记录model的日志
+	Bsonable       bool `yaml:"bson,omitempty"`       // for mongodb only
 
 	doc *Document
 	pkg string
@@ -103,6 +105,7 @@ type UniField struct {
 	Name       string
 	Column     string
 	IgnoreCase bool
+	Tags       Tags
 }
 
 func (uf *UniField) Op() string {
@@ -120,15 +123,21 @@ func (m *Model) UniqueOne() (u UniField, onlyOne bool) {
 			u.Name = field.Name
 			u.Column = cn
 			u.IgnoreCase = field.IgnoreCase
+			u.Tags = field.Tags
 		}
 	}
 	onlyOne = count == 1
 	return
 }
 
-func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
+func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []jen.Code) {
 	if m.PreSet {
-		scs = append(scs, jen.Id("z").Dot("PreSet").Call(jen.Op("&").Id("o")))
+		imples = append(imples, jen.Id("z").Dot("PreSet").Call(jen.Op("&").Id("o")))
+	}
+	bsonable := m.IsBsonable()
+	if bsonable {
+		rets = append(rets, jen.Id("base.BM"))
+		imples = append(imples, jen.Id("m").Op(":=").Id("base.BM").Op("{}"))
 	}
 	var hasMeta bool
 	var hasOwner bool
@@ -176,11 +185,13 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			tags.extOrder(idx)
 			code.Tag(tags)
 		}
+		members = append(members, code)
+
+		bsonName, bsonOK := field.BsonName()
 
 		jcsa := jen.Id("z").Dot("SetChange").Call(jen.Lit(cn))
 
-		ccs = append(ccs, code)
-		scs = append(scs, jen.If(jcond).BlockFunc(func(g *jen.Group) {
+		imples = append(imples, jen.If(jcond).BlockFunc(func(g *jen.Group) {
 			if isInDb && !m.DisableLog && !field.isOid {
 				g.Id("z").Dot("LogChangeValue").Call(jen.Lit(cn), jen.Id("z").Dot(field.Name), jen.Id("o").Dot(field.Name))
 			}
@@ -205,14 +216,17 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 			if isInDb && !field.isOid && m.DisableLog {
 				g.Add(jcsa)
 			}
+			if bsonable && bsonOK {
+				g.Id("m").Index(jen.Lit(bsonName)).Op("=").Id("z").Dot(field.Name)
+			}
 		}))
 	}
 
 	if m.WithCreatedSet {
 		idx++
 		// CreatedAt time.Time `bson:"createdAt" json:"createdAt" form:"createdAt" pg:"created,notnull,default:now()" extensions:"x-order=["` // 创建时间
-		ccs = append(ccs, createdUpCode(idx))
-		scs = append(scs, jen.If(jen.Id("o").Dot(createdField).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
+		members = append(members, createdUpCode(idx))
+		imples = append(imples, jen.If(jen.Id("o").Dot(createdField).Op("!=").Nil().BlockFunc(func(g *jen.Group) {
 			g.Id("z").Dot(createdField).Op("=").Op("*").Id("o").Dot(createdField)
 			g.Id("z").Dot("SetChange").Call(jen.Lit(createdColumn))
 		})))
@@ -220,16 +234,20 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 
 	if hasMeta {
 		name := "MetaDiff"
-		ccs = append(ccs, metaUpCode())
-		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("MetaUp").Call(jen.Id("o").Dot(name))).Block(
-			jen.Id("z").Dot("SetChange").Call(jen.Lit("meta")),
+		jmetaup := []jen.Code{jen.Id("z").Dot("SetChange").Call(jen.Lit("meta"))}
+		if bsonable {
+			jmetaup = append(jmetaup, jen.Id("m").Index(jen.Lit("meta")).Op("=").Id("z").Dot("Meta"))
+		}
+		members = append(members, metaUpCode())
+		imples = append(imples, jen.If(jen.Id("o").Dot(name).Op("!=").Nil().Op("&&").Id("z").Dot("MetaUp").Call(jen.Id("o").Dot(name))).Block(
+			jmetaup...,
 		))
 	}
 	if hasOwner {
 		idx++
 		name := "OwnerID"
-		ccs = append(ccs, ownerUpCode(idx))
-		scs = append(scs, jen.If(jen.Id("o").Dot(name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
+		members = append(members, ownerUpCode(idx))
+		imples = append(imples, jen.If(jen.Id("o").Dot(name).Op("!=").Nil()).BlockFunc(func(g *jen.Group) {
 			g.If(jen.Id("id").Op(":=").Id("oid").Dot("Cast").Call(jen.Op("*").Id("o").Dot(name)).Op(";").
 				Id("z").Dot(name).Op("!=").Id("id")).BlockFunc(func(g1 *jen.Group) {
 				if !m.DisableLog {
@@ -244,7 +262,10 @@ func (m *Model) ChangablCodes() (ccs []jen.Code, scs []jen.Code) {
 	}
 
 	if m.PostSet {
-		scs = append(scs, jen.Id("z").Dot("PostSet").Call(jen.Op("&").Id("o")))
+		imples = append(imples, jen.Id("z").Dot("PostSet").Call(jen.Op("&").Id("o")))
+	}
+	if bsonable {
+		imples = append(imples, jen.Return(jen.Id("m")))
 	}
 	return
 }
@@ -253,16 +274,24 @@ func (m *Model) Codes() jen.Code {
 	st := jen.Empty()
 	basicName := m.Name + "Basic"
 	var cs []jen.Code
-	if m.IsTable() {
-		st.Comment("consts of " + m.Name + " " + m.shortComment()).Line()
-		st.Const().DefsFunc(func(g *jen.Group) {
-			g.Id(m.Name + "Table").Op("=").Lit(m.tableName())
-			g.Id(m.Name + "Alias").Op("=").Lit(m.tableAlias())
-			g.Id(m.Name + "Label").Op("=").Lit(LcFirst(m.Name))
-		}).Line()
+	isTable := m.IsTable()
+	if isTable {
 		cs = append(cs, m.TableField())
 	}
-	mcs, bcs := m.Fields.Codes(basicName)
+
+	st.Comment("consts of " + m.Name + " " + m.shortComment()).Line()
+	st.Const().DefsFunc(func(g *jen.Group) {
+		if isTable {
+			g.Id(m.Name + "Table").Op("=").Lit(m.tableName())
+			g.Id(m.Name + "Alias").Op("=").Lit(m.tableAlias())
+		} else if m.IsBsonable() {
+			g.Id(m.Name + "Collection").Op("=").Lit(m.CollectionName())
+		}
+
+		g.Id(m.Name + "Label").Op("=").Lit(m.getLabel())
+	}).Line()
+
+	mcs, bcs := m.Fields.Codes(basicName, m.IsBsonable())
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
 	var prefix string
@@ -294,14 +323,14 @@ func (m *Model) Codes() jen.Code {
 		st.Add(ic)
 	}
 
-	if ccs, scs := m.ChangablCodes(); len(ccs) > 0 {
+	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 {
 		changeSetName := m.Name + "Set"
-		st.Type().Id(changeSetName).Struct(ccs...).Add(jen.Comment("@name " + prefix + changeSetName)).Line().Line()
+		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + prefix + changeSetName)).Line().Line()
 		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
-		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params().Block(
-			scs...,
+		).Id("SetWith").Params(jen.Id("o").Id(changeSetName)).Params(rets...).Block(
+			stmts...,
 		).Line()
 	}
 	if jc := m.metaAddCodes(); jc != nil {
@@ -372,6 +401,17 @@ func (mod *Model) IsTable() bool {
 	return false
 }
 
+func (m *Model) IsBsonable() bool {
+	return m.Bsonable || len(m.CollName) > 0
+}
+
+func (m *Model) CollectionName() string {
+	if len(m.CollName) > 0 {
+		return m.CollName
+	}
+	return Underscore(m.GetPlural())
+}
+
 func (m *Model) hookModelCodes() (st *jen.Statement) {
 	if hasHooks, idF, dtF := m.hasModHook(); hasHooks {
 		st = new(jen.Statement)
@@ -430,7 +470,11 @@ func (m *Model) basicCodes() (st *jen.Statement) {
 	st.Line()
 	st.Func().Id("New" + m.Name + "WithID").Params(jen.Id("id").Any()).Op("*").Id(m.Name).BlockFunc(func(g *jen.Group) {
 		g.Id("obj").Op(":=").New(jen.Id(m.Name))
-		g.Op("_=").Id("obj").Dot("SetID").Call(jen.Id("id"))
+		if m.IsBsonable() {
+			g.Id("obj").Dot("SetID").Call(jen.Id("id"))
+		} else {
+			g.Op("_=").Id("obj").Dot("SetID").Call(jen.Id("id"))
+		}
 		g.Return(jen.Id("obj"))
 	})
 	st.Line()
@@ -523,9 +567,96 @@ func (m *Model) sortableColumns() (cs []string) {
 	return
 }
 
+func (m *Model) jSpecBasic() (name, parent string, args []jen.Code, rets []jen.Code,
+	jfsc func(on string) jen.Code) {
+	name = m.Name + "Spec"
+	if m.IsBsonable() || m.doc.IsMongo() {
+		parent = "base.ModelSpec"
+		args = append(args, jen.Id("q").Id("BD"))
+		rets = append(rets, jen.Id("BD"))
+		jfsc = func(on string) jen.Code {
+			return jen.Id("q").Op("=").Id("spec").Dot(on).Dot("Sift").Call(jen.Id("q"))
+		}
+	} else {
+		parent = "ModelSpec"
+		args = append(args, jen.Id("q").Op("*").Id("ormQuery"))
+		rets = append(rets, jen.Op("*").Id("ormQuery"))
+		if m.doc.IsPG10() {
+			rets = append(rets, jen.Error())
+			jfsc = func(on string) jen.Code {
+				return jen.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(name).Dot("Sift").Call(jen.Id("q"))
+			}
+		} else { // bun
+			jfsc = func(on string) jen.Code {
+				return jen.Id("q").Op("=").Id("spec").Dot(on).Dot("Sift").Call(jen.Id("q"))
+			}
+		}
+
+	}
+
+	return
+}
+
+func (m *Model) genSiftCode(field, fieldM Field, isPG10, withRel bool) jen.Code {
+	utilsQual, _ := m.doc.getQual("utils")
+	cn, indb, _ := field.ColName()
+	if !indb && len(field.siftFn) == 0 {
+		return nil
+	}
+	acn := cn
+	if !isPG10 && withRel {
+		// cn = m.tableAlias() + "." + cn
+		acn = "?TableAlias." + cn
+	}
+	jSV := jen.Id("spec").Dot(field.Name)
+	jq := field.siftCode(m.IsBsonable() || m.doc.IsMongo())
+	jSiftVals := jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit("IN"), jen.Id("vals"), jen.Lit(false))
+	if field.siftExt == "decode" {
+		return jen.If(jen.Len(jSV).Op(">0")).Block(
+			jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
+			jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jSV).Op(";").Err().Op("==").Nil()).Block(
+				jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(acn+" = ?"), jen.Id("v")),
+			),
+		)
+	}
+	if field.siftOp == "any" {
+		return jen.If(jen.Id("vals").Op(":=").Qual("strings", "Split").Call(jSV, jen.Lit(",")).Op(";").Len(jSV).Op(">0").Op("&&").Len(jen.Id("vals")).Op(">0")).Block(
+			// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+			jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit(field.siftOp), jen.Id("vals"), jen.Lit(false)),
+		)
+	}
+	if field.siftExt == "hasVals" {
+		return jen.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
+			// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+			jSiftVals,
+		).Else().Block(jq)
+	}
+	if field.siftExt == "ints" {
+		return jen.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
+			// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+			jSiftVals,
+		).Else().Block(jq)
+	}
+	if field.siftExt == "strs" {
+		return jen.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseStrs").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
+			// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+			jSiftVals,
+		).Else().Block(jq)
+	}
+	if field.siftExt == "oids" {
+		return jen.If(jen.Id("vals").Op(":=").Id("spec").Dot(fieldM.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
+			// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
+			jSiftVals,
+		).Else().Block(jq)
+	}
+
+	return jen.Add(jq)
+}
+
 func (m *Model) getSpecCodes() jen.Code {
 	var fcs []jen.Code
-	fcs = append(fcs, jen.Id("PageSpec"), jen.Id("ModelSpec"))
+	tname, parent, args, rets, jfSiftCall := m.jSpecBasic()
+	fcs = append(fcs, jen.Id("PageSpec"), jen.Id(parent))
 	if m.hasAudit() {
 		fcs = append(fcs, jen.Id("AuditSpec"))
 	}
@@ -573,23 +704,14 @@ func (m *Model) getSpecCodes() jen.Code {
 		idx++
 	}
 
-	tname := m.Name + "Spec"
 	st := jen.Type().Id(tname).Struct(fcs...).Line()
 	if len(fcs) > 2 {
 		isPG10 := m.doc.IsPG10()
-		jfSiftCall := func(name string) jen.Code {
-			if isPG10 {
-				return jen.Id("q").Op(",").Id("_").Op("=").Id("spec").Dot(name).Dot("Sift").Call(jen.Id("q"))
-			}
-			return jen.Id("q").Op("=").Id("spec").Dot(name).Dot("Sift").Call(jen.Id("q"))
-		}
-		args := []jen.Code{jen.Op("*").Id("ormQuery")}
-		if isPG10 {
-			args = append(args, jen.Error())
-		}
-		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(jen.Id("q").Op("*").Id("ormQuery")).
-			Params(args...)
+		st.Func().Params(jen.Id("spec").Op("*").Id(tname)).Id("Sift").Params(args...).Params(rets...)
 		st.BlockFunc(func(g *jen.Group) {
+			// if m.IsBsonable() || m.doc.IsMongo() {
+			// 	g.Var().Id("qd").Id("BD")
+			// }
 			if len(relFields) > 0 && !okAL {
 				log.Printf("%s belongsTo Names %+v", m.Name, relFields)
 				// g.Var().Id("pre").String()
@@ -614,7 +736,6 @@ func (m *Model) getSpecCodes() jen.Code {
 			for _, sifter := range m.Sifters {
 				g.Add(jfSiftCall(sifter))
 			}
-			utilsQual, _ := m.doc.getQual("utils")
 
 			for i := 0; i < len(specFields); i++ {
 				field := specFields[i]
@@ -623,58 +744,9 @@ func (m *Model) getSpecCodes() jen.Code {
 					field = specFields[i+1]
 					i++
 				}
-				cn, indb, _ := field.ColName()
-				if !indb && len(field.siftFn) == 0 {
-					continue
-				}
-				acn := cn
-				if !isPG10 && len(withRel) > 0 {
-					// cn = m.tableAlias() + "." + cn
-					acn = "?TableAlias." + cn
-				}
-				jSV := jen.Id("spec").Dot(field.Name)
-				params := []jen.Code{jen.Id("q"), jen.Lit(cn), jSV}
-				cfn := field.siftFn
-				if field.isDate && field.isIntDt {
-					params = append(params, jen.True())
-				}
-				params = append(params, jen.False())
-				jq := jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
-				jSiftVals := jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit("IN"), jen.Id("vals"), jen.Lit(false))
-				if field.siftExt == "decode" {
-					g.If(jen.Len(jSV).Op(">0")).Block(
-						jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
-						jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jSV).Op(";").Err().Op("==").Nil()).Block(
-							jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(acn+" = ?"), jen.Id("v")),
-						),
-					)
-				} else if field.siftOp == "any" {
-					g.If(jen.Id("vals").Op(":=").Qual("strings", "Split").Call(jSV, jen.Lit(",")).Op(";").Len(jSV).Op(">0").Op("&&").Len(jen.Id("vals")).Op(">0")).Block(
-						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
-						jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit(field.siftOp), jen.Id("vals"), jen.Lit(false)),
-					)
-				} else if field.siftExt == "hasVals" {
-					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(field.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
-						jSiftVals,
-					).Else().Block(jq)
-				} else if field.siftExt == "ints" {
-					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseInts").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
-						jSiftVals,
-					).Else().Block(jq)
-				} else if field.siftExt == "strs" {
-					g.If(jen.Id("vals").Op(",").Id("ok").Op(":=").Qual(utilsQual, "ParseStrs").Call(jen.Id("spec").Dot(fieldM.Name)).Op(";").Id("ok")).Block(
-						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
-						jSiftVals,
-					).Else().Block(jq)
-				} else if field.siftExt == "oids" {
-					g.If(jen.Id("vals").Op(":=").Id("spec").Dot(fieldM.Name).Dot("Vals").Call().Op(";").Len(jen.Id("vals")).Op(">0")).Block(
-						// jen.Id("q").Dot("Where").Call(jen.Lit(cn+" IN(?)"), jen.Id("pgIn").Call(jen.Id("vals"))),
-						jSiftVals,
-					).Else().Block(jq)
-				} else {
-					g.Add(jq)
+				jscs := m.genSiftCode(field, fieldM, isPG10, len(withRel) > 0)
+				if jscs != nil {
+					g.Add(jscs)
 				}
 
 			}
@@ -796,6 +868,9 @@ func createdUpCode(idx int) jen.Code {
 }
 
 func (m *Model) HasTextSearch() (cols []string, ok bool) {
+	if m.IsBsonable() {
+		return
+	}
 	var hasTs bool
 	for _, field := range m.Fields {
 		if strings.HasSuffix(field.Query, "fts") {
@@ -861,6 +936,11 @@ func (m *Model) dbTxFn() string {
 }
 
 func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
+	mList := "s.w.db.ListModel"
+	if m.IsBsonable() {
+		swdb = jen.Id("s.w.mdb")
+		mList = "s.w.listModel"
+	}
 	return []jen.Code{jen.Id("spec").Op("*").Id(m.Name + "Spec")},
 		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
 			jen.Id("total").Int(), jen.Err().Error()},
@@ -892,7 +972,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.If(jen.Err().Op("=").Id("s").Dot(hkBL).Call(jen.Id("ctx"), jspec, jen.Id("q")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
 				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jen.Id("ctx"), jspec, jen.Id("q"))
 			} else {
-				g.Id("total").Op(",").Id("err").Op("=").Add(swdb).Dot("ListModel").Call(
+				g.Id("total").Op(",").Id("err").Op("=").Id(mList).Call(
 					jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
 				)
 			}
@@ -912,15 +992,28 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
-			jload := jen.Id("err").Op("=").Add(swdb).Dot("GetModel").Call(
-				jen.Id("ctx"), jen.Id("obj"), jen.Id("id"))
+			jload := jen.Id("err").Op("=")
+			fnGet := "dbGet"
+
+			if mod.IsBsonable() {
+				fnGet = "mgGet"
+				jload.Id(fnGet).Call(jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
+			} else {
+				jload.Add(swdb).Dot("GetModel").Call(
+					jen.Id("ctx"), jen.Id("obj"), jen.Id("id"))
+			}
 			if uf, isuniq := mod.UniqueOne(); isuniq {
-				g.If(jen.Err().Op("=").Id("dbGet").Call(
-					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(fmt.Sprintf("%s %s ?", uf.Column, uf.Op())), jen.Id("id"),
+				ukey := fmt.Sprintf("%s %s ?", uf.Column, uf.Op())
+				if mod.IsBsonable() {
+					ukey = uf.Column
+				}
+				g.If(jen.Err().Op("=").Id(fnGet).Call(
+					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(ukey), jen.Id("id"),
 				).Op(";").Err().Op("!=").Nil()).Block(jload)
 			} else {
 				g.Add(jload)
 			}
+
 			jer := jen.Empty()
 			if mod.doc.hasQualErrors() {
 				jer.If(jen.Err().Op("==").Id("ErrNotFound")).Block(
@@ -987,6 +1080,11 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	isPG10 := mod.doc.IsPG10()
 	unfd, isuniq := mod.UniqueOne()
 
+	fnCreate := "dbInsert"
+	if mod.IsBsonable() {
+		fnCreate = "mgCreate"
+	}
+
 	arg = []jen.Code{jen.Id("in").Qual(mod.getIPath(), tname)}
 	ret = []jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
 	jaf := func(g *jen.Group, jdb jen.Code) {
@@ -994,7 +1092,7 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		g.Id("obj").Op("=").Qual(mod.getIPath(), nname).Call(jen.Id("in"))
 
 		targs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
-		if isuniq {
+		if isuniq && !mod.IsBsonable() {
 			g.If(jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")).Block(
 				jen.Err().Op("=").Id("ErrEmptyKey"),
 				jen.Return())
@@ -1015,11 +1113,11 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 					jen.Return(),
 				)
 			}
-			if mod.hasMeta() {
+			if mod.hasMeta() && !mod.IsBsonable() {
 				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id("obj"))
 			}
 
-			g.Err().Op("=").Id("dbInsert").Call(targs...)
+			g.Err().Op("=").Id(fnCreate).Call(targs...)
 			if okAC {
 				g.If(jen.Err().Op("==")).Nil().Block(
 					jen.Err().Op("=").Id(hkAC).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
@@ -1031,11 +1129,11 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			}
 
 		} else {
-			if mod.hasMeta() {
+			if mod.hasMeta() && !mod.IsBsonable() {
 				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
 			}
 
-			g.Err().Op("=").Id("dbInsert").Call(targs...)
+			g.Err().Op("=").Id(fnCreate).Call(targs...)
 		}
 	}
 	if mth.Export {
@@ -1094,16 +1192,26 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 }
 
 func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
+	fnGet := "getModelWithPKID"
+	fnUpdate := "dbUpdate"
+	if mod.IsBsonable() {
+		fnGet = "mgGet"
+		fnUpdate = "mgUpdate"
+	}
 	tname := mod.Name + "Set"
 	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
 		[]jen.Code{jen.Error()},
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
-			g.If(jen.Err().Op(":=").Id("getModelWithPKID").Call(
+			g.If(jen.Err().Op(":=").Id(fnGet).Call(
 				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
 			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-			g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
+			if mod.IsBsonable() {
+				g.Id("up").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+			} else {
+				g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
+			}
 
 			if jt, ok := mod.textSearchCodes("exist"); ok {
 				g.Add(jt)
@@ -1134,9 +1242,12 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
 						}
 
-						jup := jen.Id("dbUpdate").Call(
-							jen.Id("ctx"), jdb, jen.Id("exist"),
-						)
+						jupArgs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("exist")}
+						if mod.IsBsonable() {
+							jupArgs = append(jupArgs, jen.Id("up"))
+						}
+
+						jup := jen.Id(fnUpdate).Call(jupArgs...)
 
 						if okAU {
 							g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
@@ -1161,12 +1272,14 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 				})
 
 			} else {
-				if mod.hasMeta() {
+				if mod.hasMeta() && !mod.IsBsonable() {
 					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
 				}
-				jfbd.Id("dbUpdate").Call(
-					jen.Id("ctx"), swdb, jen.Id("exist"),
-				)
+				jupArgs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("exist")}
+				if mod.IsBsonable() {
+					jupArgs = append(jupArgs, jen.Id("up"))
+				}
+				jfbd.Id(fnUpdate).Call(jupArgs...)
 			}
 
 			hkau, okau := mod.hasStoreHook(afterUpdated)
@@ -1290,6 +1403,11 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 }
 
 func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
+	mDelete := "s.w.db.DeleteModel"
+	if mod.IsBsonable() {
+		swdb = jen.Id("s.w.mdb")
+		mDelete = "s.w.deleteModel"
+	}
 	jqual := jen.Qual(mod.getIPath(), mod.Name)
 	jtabl := jen.Qual(mod.getIPath(), mod.Name+"Table")
 	return []jen.Code{jen.Id("id").String()},
@@ -1340,7 +1458,7 @@ func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 						jen.Id("ctx"), jtabl, jen.Id("obj").Dot("ID"),
 					)
 				} else {
-					jfbd.Add(swdb).Dot("DeleteModel").Call(
+					jfbd.Id(mDelete).Call(
 						jen.Id("ctx"), jen.Id("obj"), jen.Id("id"),
 					)
 				}
@@ -1400,6 +1518,13 @@ func (m *Model) identityCode() (st *jen.Statement) {
 			jen.Id("_").Op("*").Id(m.Name),
 		).Id("IdentityAlias").Params().String().Block(
 			jen.Return(jen.Id(m.Name + "Alias")),
+		).Line()
+	} else if m.IsBsonable() {
+		st = new(jen.Statement)
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("CollectionName").Params().String().Block(
+			jen.Return(jen.Id(m.Name + "Collection")),
 		).Line()
 	}
 	return st

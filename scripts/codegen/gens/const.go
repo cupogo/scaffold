@@ -17,6 +17,15 @@ const (
 	modelSerial  = "SerialModel"
 )
 
+// dbcode
+type DbCode string
+
+const (
+	DbBun DbCode = "bun" // github.com/uptrace/bun
+	DbPgx DbCode = "pgx" // github.com/go-pg/pg/v10
+	DbMgm DbCode = "mgm" // go.mongodb.org, ORM with github.com/kamva/mgm/v3
+)
+
 const (
 	relBelongsTo = "belongs-to"
 	relHasOne    = "has-one"

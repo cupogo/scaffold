@@ -78,10 +78,6 @@ func (s *contentStore) deleteESArticle(ctx context.Context, obj *cms1.Article) e
 	}
 	return nil
 }
-func dbAfterSaveArticle(ctx context.Context, db ormDB, obj *cms1.Article) error {
-	// TODO: need implement
-	return nil
-}
 func dbAfterCreateArticle(ctx context.Context, db ormDB, obj *cms1.Article) error {
 	// TODO: need implement
 	return nil
