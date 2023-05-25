@@ -557,6 +557,9 @@ func (m *Model) specFields() (out Fields) {
 func (m *Model) sortableColumns() (cs []string) {
 	for _, f := range m.Fields {
 		if f.isEmbed() {
+			if f.isOwner() && f.Sortable {
+				cs = append(cs, "owner_id")
+			}
 			continue
 		}
 
