@@ -55,7 +55,7 @@ var (
 	dbOpModelMeta      = pgx.DoMetaUp
 
 	sift      = pgx.Sift
-	siftEquel = pgx.SiftEquel
+	siftEqual = pgx.SiftEqual
 	siftICE   = pgx.SiftICE
 	siftMatch = pgx.SiftMatch
 	siftOID   = pgx.SiftOID

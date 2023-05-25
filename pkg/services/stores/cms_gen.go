@@ -95,13 +95,13 @@ func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
 	if vals, ok := utils.ParseInts(spec.Statuses); ok {
 		q, _ = sift(q, "status", "IN", vals, false)
 	} else {
-		q, _ = siftEquel(q, "status", spec.Status, false)
+		q, _ = siftEqual(q, "status", spec.Status, false)
 	}
 	q, _ = siftOIDs(q, "author_id", spec.AuthorID, false)
 	if vals, ok := utils.ParseStrs(spec.Srcs); ok {
 		q, _ = sift(q, "src", "IN", vals, false)
 	} else {
-		q, _ = siftEquel(q, "src", spec.Src, false)
+		q, _ = siftEqual(q, "src", spec.Src, false)
 	}
 	q = spec.TextSearchSpec.Sift(q)
 
