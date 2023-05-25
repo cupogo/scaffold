@@ -26,3 +26,23 @@ go run -tags=codegen ./scripts/codegen docs/cms.yaml
 ```bash
 make codegen MDs=docs/cms.yaml SPEC=7
 ```
+
+### 新项目操作示例 Example for a new project
+
+```bash
+cd ~/myworkspace
+test -d scaffold || git clone https://github.com/cupogo/scaffold
+test -d myproject || mkdir myproject
+cd myproject
+test -f go.mod || go mod init mycom/mywork/myproject
+test -d docs || mkdir docs
+
+test -d pkg/web || mkdir -p pkg/web
+test -d pkg/web/resp || cp -r ../scaffold/pkg/web/resp pkg/web/
+test -d pkg/web/routes || cp -r ../scaffold/pkg/web/routes pkg/web/
+
+code docs/cms.yaml
+
+go run -tags=codegen ../scaffold/scripts/codegen docs/cms.yaml
+
+```
