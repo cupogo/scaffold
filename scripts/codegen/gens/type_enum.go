@@ -33,7 +33,7 @@ type EnumVal struct {
 	Lower  bool   `yaml:"lower,omitempty"`
 }
 
-func (ev EnumVal) getLabel(shorted bool) (s string) {
+func (ev EnumVal) getCode(shorted bool) (s string) {
 	if ev.Lower || isUpperString(ev.Suffix) {
 		s = strings.ToLower(ev.Suffix)
 	} else {
@@ -90,9 +90,9 @@ func (e *Enum) Code() jen.Code {
 			st.Func().Params(jen.Id("z").Op("*").Id(e.Name)).Id("Decode").Params(jen.Id("s").String()).Error()
 			st.Block(jen.Switch(jen.Id("s")).BlockFunc(func(g *jen.Group) {
 				if zeroValue != nil {
-					label := zeroValue.getLabel(e.Shorted)
-					cases := []jen.Code{jen.Lit("0"), jen.Lit(label)}
-					if ss := zeroValue.getLabel(false); ss != label && e.Shorted {
+					code := zeroValue.getCode(e.Shorted)
+					cases := []jen.Code{jen.Lit("0"), jen.Lit(code)}
+					if ss := zeroValue.getCode(false); ss != code && e.Shorted {
 						cases = append(cases, jen.Lit(ss))
 					}
 					g.Case(cases...)
@@ -105,13 +105,16 @@ func (e *Enum) Code() jen.Code {
 					}
 					name := e.Name + ev.Suffix
 					id := fmt.Sprint(val)
-					label := ev.getLabel(e.Shorted)
-					cases := []jen.Code{jen.Lit(id), jen.Lit(label)}
-					if ss := ev.getLabel(false); ss != label && e.Shorted {
+					code := ev.getCode(e.Shorted)
+					cases := []jen.Code{jen.Lit(id), jen.Lit(code)}
+					if ss := ev.getCode(false); ss != code && e.Shorted {
 						cases = append(cases, jen.Lit(ss))
 					}
-					if label != ev.Suffix {
+					if code != ev.Suffix {
 						cases = append(cases, jen.Lit(ev.Suffix))
+					}
+					if IsAlphaOnly(ev.Label) && code != ev.Label && ev.Suffix != ev.Label {
+						cases = append(cases, jen.Lit(ev.Label))
 					}
 					g.Case(cases...)
 					g.Op("*").Id("z").Op("=").Id(name)
@@ -134,7 +137,7 @@ func (e *Enum) Code() jen.Code {
 				for _, ev := range e.Values {
 					name := e.Name + ev.Suffix
 					g.Case(jen.Id(name))
-					g.Return(jen.Lit(ev.getLabel(e.Shorted)))
+					g.Return(jen.Lit(ev.getCode(e.Shorted)))
 				}
 				g.Default().Return(jen.Qual("fmt", "Sprintf").Call(jen.Lit(LcFirst(e.Name)+" %d"), jen.Id(e.Type).Call(jen.Id("z"))))
 			}))
