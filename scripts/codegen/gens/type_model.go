@@ -305,7 +305,9 @@ func (m *Model) Codes() jen.Code {
 		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + prefix + basicName)).Line().Line()
 	}
 
-	st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
+	if plurals := m.GetPlural(); plurals != m.Name && (isTable || m.IsBsonable()) {
+		st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
+	}
 
 	if jhk := m.hookModelCodes(); jhk != nil {
 		st.Add(jhk)
@@ -409,7 +411,7 @@ func (m *Model) CollectionName() string {
 	if len(m.CollName) > 0 {
 		return m.CollName
 	}
-	return Underscore(m.GetPlural())
+	return strings.ToLower(m.GetPlural())
 }
 
 func (m *Model) hookModelCodes() (st *jen.Statement) {
@@ -531,7 +533,7 @@ func (m *Model) specFields() (out Fields) {
 				f.Type = "string"
 				f.isDate = true
 				f.siftFn = "siftDate"
-			} else if f.Type == "bool" {
+			} else if f.Type == "bool" || ext == "str" {
 				f.Type = "string"
 				f.siftFn = sfn
 			} else {
@@ -615,11 +617,19 @@ func (m *Model) genSiftCode(field, fieldM Field, isPG10, withRel bool) jen.Code 
 	jq := field.siftCode(m.IsBsonable() || m.doc.IsMongo())
 	jSiftVals := jen.Id("q").Op(",").Id("_").Op("=").Id("sift").Call(jen.Id("q"), jen.Lit(cn), jen.Lit("IN"), jen.Id("vals"), jen.Lit(false))
 	if field.siftExt == "decode" {
+		if m.IsBsonable() || m.doc.IsMongo() {
+			jv := jen.Id("v")
+			if field.isTagJsonString() {
+				jv = jen.Id("fmt.Sprintf").Call(jen.Lit("%d"), jv)
+			}
+			jq = jen.Id("q").Op("=").Id("mg"+ToExported(field.siftFn)).Call(
+				jen.Id("q"), jen.Lit(cn), jv)
+		} else {
+			jq = jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(acn+" = ?"), jen.Id("v"))
+		}
 		return jen.If(jen.Len(jSV).Op(">0")).Block(
 			jen.Var().Id("v").Add(field.typeCode(m.doc.getModQual(field.getType()))),
-			jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jSV).Op(";").Err().Op("==").Nil()).Block(
-				jen.Id("q").Op("=").Id("q").Dot("Where").Call(jen.Lit(acn+" = ?"), jen.Id("v")),
-			),
+			jen.If(jen.Err().Op(":=").Id("v").Dot("Decode").Call(jSV).Op(";").Err().Op("==").Nil()).Block(jq),
 		)
 	}
 	if field.siftOp == "any" {
@@ -939,10 +949,16 @@ func (m *Model) dbTxFn() string {
 }
 
 func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
+	jdataptr := jen.Op("&").Id("data")
+	jspec := jen.Id("spec")
 	mList := "s.w.db.ListModel"
+	jargs := []jen.Code{jen.Id("ctx")}
 	if m.IsBsonable() {
 		swdb = jen.Id("s.w.mdb")
-		mList = "s.w.listModel"
+		jargs = append(jargs, swdb, jen.Qual(m.getIPath(), m.Name+"Collection"), jspec, jdataptr)
+		mList = "mgList"
+	} else {
+		jargs = append(jargs, jspec, jdataptr)
 	}
 	return []jen.Code{jen.Id("spec").Op("*").Id(m.Name + "Spec")},
 		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
@@ -963,8 +979,6 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 
 			isPG10 := m.doc.IsPG10()
 			if hkBL, okBL := m.hasStoreHook(beforeList); okBL {
-				jdataptr := jen.Op("&").Id("data")
-				jspec := jen.Id("spec")
 				var jcall jen.Code
 				if isPG10 {
 					jcall = jen.Dot("ModelContext").Call(jen.Id("ctx"), jdataptr)
@@ -976,7 +990,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jen.Id("ctx"), jspec, jen.Id("q"))
 			} else {
 				g.Id("total").Op(",").Id("err").Op("=").Id(mList).Call(
-					jen.Id("ctx"), jen.Id("spec"), jen.Op("&").Id("data"),
+					jargs...,
 				)
 			}
 
