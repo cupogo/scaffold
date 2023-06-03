@@ -225,6 +225,13 @@ func (f *Field) BsonName() (name string, has bool) {
 	return
 }
 
+func (f *Field) isTagJsonString() bool {
+	if s, ok := f.Tags["json"]; ok && strings.HasSuffix(s, ",string") {
+		return true
+	}
+	return false
+}
+
 func (f *Field) relMode(dbtag ...string) (string, bool) {
 	if len(dbtag) == 0 {
 		dbtag = []string{"pg", "bun"}
