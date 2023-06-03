@@ -30,6 +30,7 @@ type Enum struct {
 type EnumVal struct {
 	Label  string `yaml:"label,omitempty"`
 	Suffix string `yaml:"suffix"`
+	Value  int    `yaml:"value,omitempty"`
 	Lower  bool   `yaml:"lower,omitempty"`
 }
 
@@ -74,6 +75,8 @@ func (e *Enum) Code() jen.Code {
 				cmt := fmt.Sprintf("%2d %s", val, ev.Label)
 				if i == 0 {
 					g.Id(name).Id(e.Name).Op("=").Lit(e.Start).Op(op).Id("iota").Comment(cmt)
+				} else if ev.Value > 0 && i == len(vals)-1 {
+					g.Id(name).Id(e.Name).Op("=").Lit(ev.Value).Comment(cmt)
 				} else {
 					g.Id(name).Comment(cmt)
 				}
@@ -102,6 +105,8 @@ func (e *Enum) Code() jen.Code {
 					val := e.Start + i
 					if e.Multiple {
 						val = e.Start << i
+					} else if ev.Value > 0 && i == len(vals)-1 {
+						val = ev.Value
 					}
 					name := e.Name + ev.Suffix
 					id := fmt.Sprint(val)
