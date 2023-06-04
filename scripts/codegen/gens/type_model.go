@@ -47,7 +47,7 @@ func (m *Model) String() string {
 
 func (m *Model) GetPlural() string {
 	if m.Plural == "" {
-		m.Plural = Plural(m.Name)
+		return Plural(m.Name)
 	}
 	return m.Plural
 }
@@ -102,10 +102,8 @@ func (m *Model) TableField() jen.Code {
 }
 
 type UniField struct {
-	Name       string
-	Column     string
-	IgnoreCase bool
-	Tags       Tags
+	Field
+	Column string
 }
 
 func (uf *UniField) Op() string {
@@ -120,10 +118,8 @@ func (m *Model) UniqueOne() (u UniField, onlyOne bool) {
 	for _, field := range m.Fields {
 		if cn, _, ok := field.ColName(); ok {
 			count++
-			u.Name = field.Name
+			u.Field = field
 			u.Column = cn
-			u.IgnoreCase = field.IgnoreCase
-			u.Tags = field.Tags
 		}
 	}
 	onlyOne = count == 1
@@ -305,7 +301,7 @@ func (m *Model) Codes() jen.Code {
 		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + prefix + basicName)).Line().Line()
 	}
 
-	if plurals := m.GetPlural(); plurals != m.Name && (isTable || m.IsBsonable()) {
+	if plurals := m.GetPlural(); plurals != m.Name && (isTable || m.IsBsonable() || len(m.Plural) > 0) {
 		st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
 	}
 
@@ -549,6 +545,7 @@ func (m *Model) specFields() (out Fields) {
 				Tags:    Tags{"form": "owner", "json": "owner,omitempty"},
 				siftFn:  "siftOIDs",
 				colname: "owner_id",
+				bson:    m.IsBsonable(),
 			}
 			out = append(out, f0)
 		}
@@ -1022,7 +1019,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 			if uf, isuniq := mod.UniqueOne(); isuniq {
 				ukey := fmt.Sprintf("%s %s ?", uf.Column, uf.Op())
 				if mod.IsBsonable() {
-					ukey = uf.Column
+					ukey, _ = uf.BsonName()
 				}
 				g.If(jen.Err().Op("=").Id(fnGet).Call(
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(ukey), jen.Id("id"),
