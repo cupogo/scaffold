@@ -1108,7 +1108,13 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 		targs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
 		if isuniq && !mod.IsBsonable() {
-			g.If(jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")).Block(
+			var jcond jen.Code
+			if unfd.isOID() {
+				jcond = jen.Op("!").Id("obj").Dot(unfd.Name).Dot("Valid").Call()
+			} else {
+				jcond = jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")
+			}
+			g.If(jcond).Block(
 				jen.Err().Op("=").Id("ErrEmptyKey"),
 				jen.Return())
 			targs = append(targs, jen.Lit(unfd.Column))
