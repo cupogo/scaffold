@@ -1110,7 +1110,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		if isuniq && !mod.IsBsonable() {
 			var jcond jen.Code
 			if unfd.isOID() {
-				jcond = jen.Op("!").Id("obj").Dot(unfd.Name).Dot("Valid").Call()
+				jcond = jen.Id("obj").Dot(unfd.Name).Dot("IsZero").Call()
 			} else {
 				jcond = jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")
 			}
