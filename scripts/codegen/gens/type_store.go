@@ -148,30 +148,30 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ac
 
 		switch mth.action {
 		case "Get":
-			args, rets, cs = mod.codestoreGet()
+			args, rets, cs = mod.codeStoreGet()
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 		case "List":
 			tcs = append(tcs, mod.getSpecCodes())
-			args, rets, cs = mod.codestoreList()
+			args, rets, cs = mod.codeStoreList()
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 		case "Create":
-			args, rets, ac, cs = mod.codestoreCreate(mth)
+			args, rets, ac, cs = mod.codeStoreCreate(mth)
 			acs = append(acs, ac)
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 		case "Update":
-			args, rets, cs = mod.codestoreUpdate()
+			args, rets, cs = mod.codeStoreUpdate()
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 		case "Put":
-			args, rets, cs = mod.codestorePut(mth.Simple)
+			args, rets, cs = mod.codeStorePut(mth.Simple)
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 
 		case "Delete":
-			args, rets, cs = mod.codestoreDelete()
+			args, rets, cs = mod.codeStoreDelete()
 			bcs = append(bcs, cs.Line())
 			nap = append(nap, true)
 		default:

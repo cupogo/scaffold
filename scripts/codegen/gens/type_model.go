@@ -945,7 +945,7 @@ func (m *Model) dbTxFn() string {
 	return "RunInTx"
 }
 
-func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (m *Model) codeStoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 	jdataptr := jen.Op("&").Id("data")
 	jspec := jen.Id("spec")
 	mList := "s.w.db.ListModel"
@@ -1000,7 +1000,7 @@ func (m *Model) codestoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 		})
 }
 
-func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codeStoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 	utilsQual, _ := mod.doc.getQual("utils")
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
@@ -1084,7 +1084,7 @@ func (mod *Model) codestoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
 		})
 }
 
-func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, acode jen.Code, bcode *jen.Statement) {
+func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, acode jen.Code, bcode *jen.Statement) {
 	tname := mod.Name + "Basic"
 
 	hkBC, okBC := mod.hasStoreHook(beforeCreating)
@@ -1205,7 +1205,7 @@ func (mod *Model) codestoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	return
 }
 
-func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codeStoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 	fnGet := "getModelWithPKID"
 	fnUpdate := "dbUpdate"
 	if mod.IsBsonable() {
@@ -1326,7 +1326,7 @@ func (mod *Model) codestoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 		})
 }
 
-func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codeStorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statement) {
 	jqset := jen.Qual(mod.getIPath(), mod.Name+"Set")
 	jqobp := jen.Op("*").Qual(mod.getIPath(), mod.Name)
 	var jret *jen.Statement
@@ -1416,7 +1416,7 @@ func (mod *Model) codestorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 		})
 }
 
-func (mod *Model) codestoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 	mDelete := "s.w.db.DeleteModel"
 	if mod.IsBsonable() {
 		swdb = jen.Id("s.w.mdb")
