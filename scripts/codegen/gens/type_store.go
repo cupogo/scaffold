@@ -148,7 +148,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ac
 
 		switch mth.action {
 		case "Get":
-			args, rets, cs = mod.codeStoreGet()
+			args, rets, cs = mod.codeStoreGet(mth)
 			bcs = append(bcs, cs)
 			nap = append(nap, false)
 		case "List":

@@ -1000,7 +1000,8 @@ func (m *Model) codeStoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
 		})
 }
 
-func (mod *Model) codeStoreGet() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codeStoreGet(mth Method) ([]jen.Code, []jen.Code, *jen.Statement) {
+	// TODO: export
 	utilsQual, _ := mod.doc.getQual("utils")
 	return []jen.Code{jen.Id("id").String()},
 		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
