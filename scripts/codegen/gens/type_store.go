@@ -130,7 +130,7 @@ func (s *Store) hasModel(name string) bool {
 	return false
 }
 
-func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, acs []jen.Code, bcs []*jen.Statement) {
+func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, additions []jen.Code, blocks []*jen.Statement) {
 	// if _, ok := doc.getQual("comm"); !ok {
 	// 	log.Print("get qual comm fail")
 	// }
@@ -138,8 +138,8 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ac
 	for _, mth := range s.Methods {
 
 		var args, rets []jen.Code
-		var ac jen.Code
-		var cs *jen.Statement
+		var addition jen.Code
+		var blkcode *jen.Statement
 
 		mod, modok := s.doc.modelWithName(mth.model)
 		if !modok {
@@ -148,35 +148,35 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ac
 
 		switch mth.action {
 		case "Get":
-			args, rets, cs = mod.codeStoreGet(mth)
-			bcs = append(bcs, cs)
+			args, rets, blkcode = mod.codeStoreGet(mth)
+			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 		case "List":
 			tcs = append(tcs, mod.getSpecCodes())
-			args, rets, cs = mod.codeStoreList()
-			bcs = append(bcs, cs)
+			args, rets, blkcode = mod.codeStoreList()
+			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 		case "Create":
-			args, rets, ac, cs = mod.codeStoreCreate(mth)
-			acs = append(acs, ac)
-			bcs = append(bcs, cs)
+			args, rets, addition, blkcode = mod.codeStoreCreate(mth)
+			additions = append(additions, addition)
+			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 		case "Update":
-			args, rets, cs = mod.codeStoreUpdate()
-			bcs = append(bcs, cs)
+			args, rets, blkcode = mod.codeStoreUpdate()
+			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 		case "Put":
-			args, rets, cs = mod.codeStorePut(mth.Simple)
-			bcs = append(bcs, cs)
+			args, rets, blkcode = mod.codeStorePut(mth.Simple)
+			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 
 		case "Delete":
-			args, rets, cs = mod.codeStoreDelete()
-			bcs = append(bcs, cs.Line())
+			args, rets, blkcode = mod.codeStoreDelete()
+			blocks = append(blocks, blkcode.Line())
 			nap = append(nap, true)
 		default:
 			log.Printf("unknown action: %s", mth.action)
-			bcs = append(bcs, jen.Block())
+			blocks = append(blocks, jen.Block())
 			nap = append(nap, false)
 		}
 		args = append([]jen.Code{jen.Id("ctx").Qual("context", "Context")}, args...)
@@ -206,7 +206,7 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	if !ok {
 		log.Printf("get modpkg %s fail", modpkg)
 	}
-	tcs, mcs, nap, acs, bcs := s.Interfaces(modelpkg)
+	tcs, mcs, nap, additions, bcs := s.Interfaces(modelpkg)
 	var ics []jen.Code
 	if len(s.Embed) > 0 {
 		ics = append(ics, jen.Id(s.Embed).Line())
@@ -248,7 +248,7 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	for i := range mcs {
 		st.Func().Params(jen.Id("s").Op("*").Id(s.Name)).Add(mcs[i], bcs[i]).Line()
 	}
-	st.Add(acs...)
+	st.Add(additions...)
 
 	return st
 }

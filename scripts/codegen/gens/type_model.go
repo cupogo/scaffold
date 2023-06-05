@@ -1085,7 +1085,7 @@ func (mod *Model) codeStoreGet(mth Method) ([]jen.Code, []jen.Code, *jen.Stateme
 		})
 }
 
-func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, acode jen.Code, bcode *jen.Statement) {
+func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, addition jen.Code, blkcode *jen.Statement) {
 	tname := mod.Name + "Basic"
 
 	hkBC, okBC := mod.hasStoreHook(beforeCreating)
@@ -1160,13 +1160,13 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	if mth.Export {
 		args := []jen.Code{jactx, jadb}
 		args = append(args, arg...)
-		acode = jen.Func().Id(mth.Name).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
+		addition = jen.Func().Id(mth.Name).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
 			jaf(g, jen.Id("db"))
 			g.Return()
 		}).Line()
 	}
 
-	bcode = jen.BlockFunc(func(g *jen.Group) {
+	blkcode = jen.BlockFunc(func(g *jen.Group) {
 		jbf := func(g2 *jen.Group, jdb jen.Code) {
 			if mth.Export {
 				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("in")}
