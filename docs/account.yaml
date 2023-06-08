@@ -35,7 +35,7 @@ enums:
     multiple: true
 
 
-modelpkg: accs
+modelpkg: accounts
 models:
   - name: Account
     comment: '账号'
@@ -87,6 +87,11 @@ models:
         type: string
         tags: {json: 'password,omitempty', pg: "-"}
         isset: true
+      # - comment: 'Checked testonly'
+      #   name: Checked
+      #   type: bool
+      #   tags: {json: 'checked,omitempty', pg: "-"}
+      #   isset: true
       - type: comm.MetaField
       # - type: comm.TextSearchField
     oidcat: account

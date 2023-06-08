@@ -1,6 +1,6 @@
 // This file is generated - Do Not Edit.
 
-package accs
+package accounts
 
 import (
 	"fmt"
@@ -97,7 +97,7 @@ type Account struct {
 	AccountBasic
 
 	comm.MetaField
-} // @name accsAccount
+} // @name accountsAccount
 
 type AccountBasic struct {
 	// 登录名 唯一
@@ -118,7 +118,7 @@ type AccountBasic struct {
 	Password string `bun:"-" extensions:"x-order=H" form:"password" json:"password,omitempty" pg:"-"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
-} // @name accsAccountBasic
+} // @name accountsAccountBasic
 
 type Accounts []Account
 
@@ -171,7 +171,7 @@ type AccountSet struct {
 	Password *string `extensions:"x-order=H" json:"password,omitempty"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
-} // @name accsAccountSet
+} // @name accountsAccountSet
 
 func (z *Account) SetWith(o AccountSet) {
 	if o.Username != nil && z.Username != *o.Username {
@@ -234,14 +234,14 @@ type AccountPasswd struct {
 	AccountPasswdBasic
 
 	comm.MetaField
-} // @name accsAccountPasswd
+} // @name accountsAccountPasswd
 
 type AccountPasswdBasic struct {
 	// 密码
 	Password string `bun:",notnull,type:varchar(99)" extensions:"x-order=A" form:"password" json:"password" pg:",notnull,type:varchar(99)"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
-} // @name accsAccountPasswdBasic
+} // @name accountsAccountPasswdBasic
 
 type AccountPasswds []AccountPasswd
 
@@ -280,7 +280,7 @@ type AccountPasswdSet struct {
 	Password *string `extensions:"x-order=A" json:"password"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
-} // @name accsAccountPasswdSet
+} // @name accountsAccountPasswdSet
 
 func (z *AccountPasswd) SetWith(o AccountPasswdSet) {
 	if o.Password != nil && z.Password != *o.Password {

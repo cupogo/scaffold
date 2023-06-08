@@ -3,7 +3,7 @@
 package apiv1
 
 import (
-	"github.com/cupogo/scaffold/pkg/models/accs"
+	"github.com/cupogo/scaffold/pkg/models/accounts"
 	"github.com/cupogo/scaffold/pkg/services/stores"
 	gin "github.com/gin-gonic/gin"
 )
@@ -33,7 +33,7 @@ func init() {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   query  query   stores.AccountSpec  true   "Object"
-// @Success 200 {object} Done{result=ResultData{data=accs.Accounts}}
+// @Success 200 {object} Done{result=ResultData{data=accounts.Accounts}}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
 // @Failure 404 {object} Failure "目标未找到"
@@ -63,7 +63,7 @@ func (a *api) getAccounts(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Success 200 {object} Done{result=accs.Account}
+// @Success 200 {object} Done{result=accounts.Account}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
 // @Failure 404 {object} Failure "目标未找到"
@@ -86,7 +86,7 @@ func (a *api) getAccount(c *gin.Context) {
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
-// @Param   query  body   accs.AccountBasic  true   "Object"
+// @Param   query  body   accounts.AccountBasic  true   "Object"
 // @Success 200 {object} Done{result=ResultID}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
@@ -94,7 +94,7 @@ func (a *api) getAccount(c *gin.Context) {
 // @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/accounts [post]
 func (a *api) postAccount(c *gin.Context) {
-	var in accs.AccountBasic
+	var in accounts.AccountBasic
 	if err := c.Bind(&in); err != nil {
 		fail(c, 400, err)
 		return
@@ -116,7 +116,7 @@ func (a *api) postAccount(c *gin.Context) {
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
 // @Param   id    path   string  true   "编号"
-// @Param   query  body   accs.AccountSet  true   "Object"
+// @Param   query  body   accounts.AccountSet  true   "Object"
 // @Success 200 {object} Done{result=string}
 // @Failure 400 {object} Failure "请求或参数错误"
 // @Failure 401 {object} Failure "未登录"
@@ -125,7 +125,7 @@ func (a *api) postAccount(c *gin.Context) {
 // @Router /api/v1/accounts/{id} [put]
 func (a *api) putAccount(c *gin.Context) {
 	id := c.Param("id")
-	var in accs.AccountSet
+	var in accounts.AccountSet
 	if err := c.Bind(&in); err != nil {
 		fail(c, 400, err)
 		return

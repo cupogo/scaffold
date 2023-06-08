@@ -5,30 +5,30 @@ package stores
 import (
 	"context"
 
-	"github.com/cupogo/scaffold/pkg/models/accs"
+	"github.com/cupogo/scaffold/pkg/models/accounts"
 )
 
-// type Account = accs.Account
-// type AccountBasic = accs.AccountBasic
-// type AccountPasswd = accs.AccountPasswd
-// type AccountPasswdBasic = accs.AccountPasswdBasic
-// type AccountPasswdSet = accs.AccountPasswdSet
-// type AccountPasswds = accs.AccountPasswds
-// type AccountSet = accs.AccountSet
-// type AccountStatus = accs.AccountStatus
-// type Accounts = accs.Accounts
+// type Account = accounts.Account
+// type AccountBasic = accounts.AccountBasic
+// type AccountPasswd = accounts.AccountPasswd
+// type AccountPasswdBasic = accounts.AccountPasswdBasic
+// type AccountPasswdSet = accounts.AccountPasswdSet
+// type AccountPasswds = accounts.AccountPasswds
+// type AccountSet = accounts.AccountSet
+// type AccountStatus = accounts.AccountStatus
+// type Accounts = accounts.Accounts
 
 func init() {
-	RegisterModel((*accs.Account)(nil), (*accs.AccountPasswd)(nil))
+	RegisterModel((*accounts.Account)(nil), (*accounts.AccountPasswd)(nil))
 }
 
 type AccountStore interface {
 	AccountStoreX
 
-	ListAccount(ctx context.Context, spec *AccountSpec) (data accs.Accounts, total int, err error)
-	GetAccount(ctx context.Context, id string) (obj *accs.Account, err error)
-	CreateAccount(ctx context.Context, in accs.AccountBasic) (obj *accs.Account, err error)
-	UpdateAccount(ctx context.Context, id string, in accs.AccountSet) error
+	ListAccount(ctx context.Context, spec *AccountSpec) (data accounts.Accounts, total int, err error)
+	GetAccount(ctx context.Context, id string) (obj *accounts.Account, err error)
+	CreateAccount(ctx context.Context, in accounts.AccountBasic) (obj *accounts.Account, err error)
+	UpdateAccount(ctx context.Context, id string, in accounts.AccountSet) error
 	DeleteAccount(ctx context.Context, id string) error
 }
 
@@ -41,7 +41,7 @@ type AccountSpec struct {
 	// 昵称
 	Nickname string `extensions:"x-order=B" form:"nickname" json:"nickname"`
 	// 状态: 1=激活，2=禁用
-	Status accs.AccountStatus `extensions:"x-order=C" form:"status" json:"status" swaggertype:"integer"`
+	Status accounts.AccountStatus `extensions:"x-order=C" form:"status" json:"status" swaggertype:"integer"`
 	// 邮箱
 	Email string `extensions:"x-order=D" form:"email" json:"email,omitempty"`
 	// 全部字段
@@ -62,12 +62,12 @@ type accountStore struct {
 	w *Wrap
 }
 
-func (s *accountStore) ListAccount(ctx context.Context, spec *AccountSpec) (data accs.Accounts, total int, err error) {
+func (s *accountStore) ListAccount(ctx context.Context, spec *AccountSpec) (data accounts.Accounts, total int, err error) {
 	total, err = s.w.db.ListModel(ctx, spec, &data)
 	return
 }
-func (s *accountStore) GetAccount(ctx context.Context, id string) (obj *accs.Account, err error) {
-	obj = new(accs.Account)
+func (s *accountStore) GetAccount(ctx context.Context, id string) (obj *accounts.Account, err error) {
+	obj = new(accounts.Account)
 	if err = dbGet(ctx, s.w.db, obj, "username ILIKE ?", id); err != nil {
 		err = s.w.db.GetModel(ctx, obj, id)
 	}
@@ -76,9 +76,9 @@ func (s *accountStore) GetAccount(ctx context.Context, id string) (obj *accs.Acc
 	}
 	return
 }
-func (s *accountStore) CreateAccount(ctx context.Context, in accs.AccountBasic) (obj *accs.Account, err error) {
+func (s *accountStore) CreateAccount(ctx context.Context, in accounts.AccountBasic) (obj *accounts.Account, err error) {
 	err = s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
-		obj = accs.NewAccountWithBasic(in)
+		obj = accounts.NewAccountWithBasic(in)
 		if obj.Username == "" {
 			err = ErrEmptyKey
 			return
@@ -95,8 +95,8 @@ func (s *accountStore) CreateAccount(ctx context.Context, in accs.AccountBasic) 
 	})
 	return
 }
-func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accs.AccountSet) error {
-	exist := new(accs.Account)
+func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accounts.AccountSet) error {
+	exist := new(accounts.Account)
 	if err := getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
 		return err
 	}
@@ -114,6 +114,6 @@ func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accs.Acc
 	})
 }
 func (s *accountStore) DeleteAccount(ctx context.Context, id string) error {
-	obj := new(accs.Account)
+	obj := new(accounts.Account)
 	return s.w.db.DeleteModel(ctx, obj, id)
 }
