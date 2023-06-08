@@ -945,7 +945,8 @@ func (m *Model) dbTxFn() string {
 	return "RunInTx"
 }
 
-func (m *Model) codeStoreList() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (m *Model) codeStoreList(mth Method) ([]jen.Code, []jen.Code, *jen.Statement) {
+	// TODO: export
 	jdataptr := jen.Op("&").Id("data")
 	jspec := jen.Id("spec")
 	mList := "s.w.db.ListModel"

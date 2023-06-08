@@ -301,5 +301,3 @@ type File struct {
 	Name string `extensions:"x-order=A" form:"name" json:"name"`
 	Path string `extensions:"x-order=B" form:"path" json:"path"`
 } // @name cms1File
-
-type Files []File

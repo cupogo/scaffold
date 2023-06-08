@@ -23,7 +23,6 @@ import (
 // type ClauseSet = cms1.ClauseSet
 // type Clauses = cms1.Clauses
 // type File = cms1.File
-// type Files = cms1.Files
 
 func init() {
 	RegisterModel((*cms1.Article)(nil), (*cms1.Attachment)(nil), (*cms1.Clause)(nil))
