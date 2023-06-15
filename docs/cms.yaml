@@ -97,6 +97,7 @@ models:
           pg: 'path,notnull'
         isset: true
         query: 'match'
+      - type: comm.MetaField
     oidcat: file
 
   - name: Clause

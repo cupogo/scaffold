@@ -276,6 +276,7 @@ func CreateArticle(ctx context.Context, db ormDB, in cms1.ArticleBasic) (obj *cm
 }
 func CreateAttachment(ctx context.Context, db ormDB, in cms1.AttachmentBasic) (obj *cms1.Attachment, err error) {
 	obj = cms1.NewAttachmentWithBasic(in)
+	dbOpModelMeta(ctx, db, obj)
 	err = dbInsert(ctx, db, obj)
 	return
 }

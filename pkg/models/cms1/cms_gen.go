@@ -155,6 +155,8 @@ type Attachment struct {
 	comm.DefaultModel
 
 	AttachmentBasic
+
+	comm.MetaField
 } // @name cms1Attachment
 
 type AttachmentBasic struct {
@@ -165,6 +167,8 @@ type AttachmentBasic struct {
 	// 类型
 	Mime string `bun:",notnull" extensions:"x-order=C" form:"mime" json:"mime" pg:",notnull"`
 	Path string `bun:"path,notnull" extensions:"x-order=D" form:"path" json:"path" pg:"path,notnull"`
+	// for meta update
+	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
 } // @name cms1AttachmentBasic
 
 type Attachments []Attachment
@@ -181,6 +185,7 @@ func NewAttachmentWithBasic(in AttachmentBasic) *Attachment {
 	obj := &Attachment{
 		AttachmentBasic: in,
 	}
+	_ = obj.MetaUp(in.MetaDiff)
 	return obj
 }
 func NewAttachmentWithID(id any) *Attachment {
@@ -206,6 +211,8 @@ type AttachmentSet struct {
 	// 类型
 	Mime *string `extensions:"x-order=C" json:"mime"`
 	Path *string `extensions:"x-order=D" json:"path"`
+	// for meta update
+	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
 } // @name cms1AttachmentSet
 
 func (z *Attachment) SetWith(o AttachmentSet) {
@@ -227,6 +234,17 @@ func (z *Attachment) SetWith(o AttachmentSet) {
 		z.LogChangeValue("path", z.Path, o.Path)
 		z.Path = *o.Path
 	}
+	if o.MetaDiff != nil && z.MetaUp(o.MetaDiff) {
+		z.SetChange("meta")
+	}
+}
+func (in *AttachmentBasic) MetaAddKVs(args ...any) *AttachmentBasic {
+	in.MetaDiff = comm.MetaDiffAddKVs(in.MetaDiff, args...)
+	return in
+}
+func (in *AttachmentSet) MetaAddKVs(args ...any) *AttachmentSet {
+	in.MetaDiff = comm.MetaDiffAddKVs(in.MetaDiff, args...)
+	return in
 }
 
 // consts of Clause 条款

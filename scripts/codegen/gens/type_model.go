@@ -1152,7 +1152,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 		} else {
 			if mod.hasMeta() && !mod.IsBsonable() {
-				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("obj"))
+				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id("obj"))
 			}
 
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
