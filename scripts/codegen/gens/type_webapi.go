@@ -56,6 +56,7 @@ type UriSpot struct {
 	Model  string `yaml:"model"`
 	Prefix string `yaml:"prefix,omitempty"`
 	URI    string `yaml:"uri,omitempty"`
+	Ignore string `yaml:"ignore,omitempty"`
 
 	HandReg  bool `yaml:"handReg,omitempty"`
 	NeedAuth bool `yaml:"needAuth,omitempty"`
@@ -81,6 +82,12 @@ type WebAPI struct {
 func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle, match bool) {
 	if us.Model != mth.model {
 		return
+	}
+	for _, c := range us.Ignore {
+		if a, ok := hods[c]; ok && strings.HasPrefix(mth.Name, a) {
+			// log.Printf("ignore: method: %+v, %v", mth.Name, a)
+			return
+		}
 	}
 	var mod *Model
 	mod, match = wa.doc.modelWithName(us.Model)
