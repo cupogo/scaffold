@@ -365,7 +365,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	}
 
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
-	jmcc := jen.Op(":=").Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
+	jmcc := jen.Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
 	jfail := func(st int) []jen.Code {
 		return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("c"), jen.Lit(st), jen.Err()), jen.Return())
 	}
@@ -381,6 +381,13 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 			if act == "Get" || act == "Load" {
+				op := ":="
+				needDef := strings.ContainsAny(h.Ignore, "CU")
+				if needDef {
+					op = "="
+					g.Var().Id("obj").Op("*").Add(doc.qual(mth.Rets[0].Type))
+					g.Var().Err().Error()
+				}
 				if rels := mod.Fields.relHasOne(); len(rels) > 0 {
 					g.Id("ctx").Op(":=").Add(jctx)
 					g.If(
@@ -392,10 +399,10 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 							),
 						)
 
-					g.Id("obj").Op(",").Err().Add(jmcc).Call(jen.Id("ctx"), jen.Id("id"))
+					g.Id("obj").Op(",").Err().Op(op).Add(jmcc).Call(jen.Id("ctx"), jen.Id("id"))
 
 				} else {
-					g.Id("obj").Op(",").Err().Add(jmcc).Call(
+					g.Id("obj").Op(",").Err().Op(op).Add(jmcc).Call(
 						jctx, jen.Id("id"),
 					)
 				}
@@ -414,11 +421,11 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					} else {
 						retName = "obj"
 					}
-					g.Id(retName).Op(",").Err().Add(jmcc).Call(
+					g.Id(retName).Op(",").Err().Op(":=").Add(jmcc).Call(
 						jctx, jen.Id("id"), jen.Id("in"),
 					)
 				} else {
-					g.Err().Add(jmcc).Call(
+					g.Err().Op(":=").Add(jmcc).Call(
 						jctx, jen.Id("id"), jen.Id("in"),
 					)
 				}
@@ -432,7 +439,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
 				}
 			} else if act == "Delete" {
-				g.Err().Add(jmcc).Call(
+				g.Err().Op(":=").Add(jmcc).Call(
 					jctx, jen.Id("id"),
 				)
 				g.If(jen.Err().Op("!=").Nil()).Block(
@@ -447,7 +454,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			if len(mod.SpecUp) > 0 {
 				g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mname))
 			}
-			g.Id("data").Op(",").Id("total").Op(",").Err().Add(jmcc).Call(
+			g.Id("data").Op(",").Id("total").Op(",").Err().Op(":=").Add(jmcc).Call(
 				jen.Id("ctx"), jen.Op("&").Id("spec"),
 			)
 			g.If(jen.Err().Op("!=").Nil()).Block(
@@ -457,7 +464,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		} else if act == "Create" && len(mth.Args) > 1 {
 			g.Var().Id("in").Add(doc.qual(mth.Args[1].Type))
 			g.Add(jbind("in"))
-			g.Id("obj").Op(",").Err().Add(jmcc).Call(
+			g.Id("obj").Op(",").Err().Op(":=").Add(jmcc).Call(
 				jctx, jen.Id("in"),
 			)
 			g.If(jen.Err().Op("!=").Nil()).Block(
