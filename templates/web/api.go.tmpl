@@ -125,3 +125,8 @@ func dtResult(data any, total int) *resp.ResultData {
 func idResult(id any) *resp.ResultID {
 	return &resp.ResultID{ID: id}
 }
+
+// nolint
+func getError(c *gin.Context, code int, err error, args ...any) resp.Error {
+	return resp.GetError(c.Request, code, err, args...)
+}

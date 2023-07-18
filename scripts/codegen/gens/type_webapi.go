@@ -57,6 +57,7 @@ type UriSpot struct {
 	Prefix string `yaml:"prefix,omitempty"`
 	URI    string `yaml:"uri,omitempty"`
 	Ignore string `yaml:"ignore,omitempty"`
+	Batch  string `yaml:"batch,omitempty"`
 
 	HandReg  bool `yaml:"handReg,omitempty"`
 	NeedAuth bool `yaml:"needAuth,omitempty"`
@@ -258,6 +259,10 @@ func (h *Handle) GetFails(act string) []int {
 	return h.Failures
 }
 
+func (us UriSpot) IsBatchCreate() bool {
+	return strings.ContainsRune(us.Batch, 'C')
+}
+
 func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if len(h.Summary) == 0 {
 		log.Printf("WARN: empty handle summary of %s", h.Name)
@@ -366,13 +371,23 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
 	jmcc := jen.Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
-	jfail := func(st int) []jen.Code {
-		return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("c"), jen.Lit(st), jen.Err()), jen.Return())
+	jfail := func(sc int, a ...jen.Code) []jen.Code {
+		if len(a) == 0 {
+			a = append(a, jen.Err())
+		}
+		return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("c"), jen.Lit(sc), a[0]), jen.Return())
 	}
 	jbind := func(id string) jen.Code {
 		return jen.If(jen.Err().Op(":=").Id("c").Dot("Bind").Call(jen.Op("&").Id(id))).Op(";").Err().Op("!=").Nil().Block(
 			jfail(400)...,
 		).Line()
+	}
+	jbindWith := func(id string, blks ...jen.Code) jen.Code {
+		st := new(jen.Statement)
+		st.If(jen.Err().Op(":=").Id("c").Dot("ShouldBindBodyWith").Call(jen.Op("&").Id(id), jen.Id("bb"))).Op(";").Err().Op("!=").Nil().Block(
+			blks...,
+		).Line()
+		return st
 	}
 	st := jen.Add(h.CommentCodes(doc))
 	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
@@ -462,15 +477,41 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			).Line()
 			g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
 		} else if act == "Create" && len(mth.Args) > 1 {
-			g.Var().Id("in").Add(doc.qual(mth.Args[1].Type))
-			g.Add(jbind("in"))
-			g.Id("obj").Op(",").Err().Op(":=").Add(jmcc).Call(
-				jctx, jen.Id("in"),
-			)
-			g.If(jen.Err().Op("!=").Nil()).Block(
-				jfail(503)...,
-			).Line()
-			g.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
+			jfm := func() jen.Code {
+				st := new(jen.Statement)
+				st.Id("obj").Op(",").Err().Op(":=").Add(jmcc).Call(
+					jctx, jen.Id("in"),
+				).Line()
+				st.If(jen.Err().Op("!=").Nil()).Block(
+					jfail(503)...,
+				).Line().Line()
+				st.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
+				return st
+			}
+			if h.IsBatchCreate() {
+				g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
+				g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
+				g.If(jen.Op("!ok")).Block(
+					jfail(400, jen.Lit("bad request"))...)
+				g.Var().Id("ain").Index().Add(doc.qual(mth.Args[1].Type))
+				g.Add(jbindWith("ain",
+					jen.Var().Id("in").Add(doc.qual(mth.Args[1].Type)),
+					jen.Add(jbindWith("in", jfail(400)...)),
+					jfm(),
+					jen.Return(),
+				))
+				g.Var().Id("ret").Index().Any()
+				g.For(jen.Id("_,in").Op(":=").Range().Id("ain")).Block(jen.Id("obj").Op(",").Err().Op(":=").Add(jmcc).Call(
+					jctx, jen.Id("in"),
+				), jen.If(jen.Err().Op("!=").Nil()).Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("getError").Call(jen.Id("c"), jen.Lit(0), jen.Err()))).
+					Else().Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))),
+				)
+				g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
+			} else {
+				g.Var().Id("in").Add(doc.qual(mth.Args[1].Type))
+				g.Add(jbind("in"))
+				g.Add(jfm())
+			}
 
 		}
 
