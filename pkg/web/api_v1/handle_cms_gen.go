@@ -6,6 +6,7 @@ import (
 	"github.com/cupogo/scaffold/pkg/models/cms1"
 	"github.com/cupogo/scaffold/pkg/services/stores"
 	gin "github.com/gin-gonic/gin"
+	binding "github.com/gin-gonic/gin/binding"
 )
 
 func init() {
@@ -224,19 +225,40 @@ func (a *api) getContentArticle(c *gin.Context) {
 // @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles [post]
 func (a *api) postContentArticle(c *gin.Context) {
-	var in cms1.ArticleBasic
-	if err := c.Bind(&in); err != nil {
-		fail(c, 400, err)
+	bd := binding.Default(c.Request.Method, c.ContentType())
+	bb, ok := bd.(binding.BindingBody)
+	if !ok {
+		fail(c, 400, "bad request")
+		return
+	}
+	var ain []cms1.ArticleBasic
+	if err := c.ShouldBindBodyWith(&ain, bb); err != nil {
+		var in cms1.ArticleBasic
+		if err := c.ShouldBindBodyWith(&in, bb); err != nil {
+			fail(c, 400, err)
+			return
+		}
+
+		obj, err := a.sto.Content().CreateArticle(c.Request.Context(), in)
+		if err != nil {
+			fail(c, 503, err)
+			return
+		}
+
+		success(c, idResult(obj.ID))
 		return
 	}
 
-	obj, err := a.sto.Content().CreateArticle(c.Request.Context(), in)
-	if err != nil {
-		fail(c, 503, err)
-		return
+	var ret []any
+	for _, in := range ain {
+		obj, err := a.sto.Content().CreateArticle(c.Request.Context(), in)
+		if err != nil {
+			ret = append(ret, getError(c, 0, err))
+		} else {
+			ret = append(ret, idResult(obj.ID))
+		}
 	}
-
-	success(c, idResult(obj.ID))
+	success(c, dtResult(ret, len(ret)))
 }
 
 // @Tags 默认 文档生成
