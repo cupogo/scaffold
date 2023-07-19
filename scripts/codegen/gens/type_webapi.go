@@ -177,7 +177,7 @@ type Handle struct {
 	Tags     string   `yaml:"tags,omitempty"`
 	Store    string   `yaml:"store,omitempty"`
 	Method   string   `yaml:"method,omitempty"`
-	BindObj  string   `yaml:"bindobj,omitempty"`
+	BindObj  string   `yaml:"bindobj,omitempty"` // Obsoleted
 	Summary  string   `yaml:"summary,omitempty"`
 	Accept   string   `yaml:"accept,omitempty"`
 	Produce  string   `yaml:"produce,omitempty"`
@@ -187,7 +187,15 @@ type Handle struct {
 	Success  string   `yaml:"success,omitempty" `
 	Failures []int    `yaml:"failures,flow,omitempty"`
 
+	act  string // action
+	mona string // model name
+
 	wa *WebAPI
+}
+
+func (h *Handle) cuted() (ok bool) {
+	h.act, h.mona, ok = cutMethod(h.Method)
+	return
 }
 
 func (h *Handle) GetAccept() string {
@@ -296,7 +304,6 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 			st.Comment("@Param  " + param).Line()
 		}
 	}
-	act, _, _ := cutMethod(h.Method)
 	if !paramed {
 		if mth, ok := doc.getMethod(h.Method); ok {
 			for _, arg := range mth.Args {
@@ -309,7 +316,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 					st.Comment("@Param   " + arg.Name + "  path  " + arg.Type + "  true  \"\"").Line()
 				} else if strings.Contains(arg.Type, ".") {
 					ppos := "formData"
-					switch act {
+					switch h.act {
 					case "List":
 						ppos = "query"
 					case "Create", "Update", "Put":
@@ -329,9 +336,9 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	} else if mth, ok := doc.getMethod(h.Method); ok {
 		if len(mth.Rets) > 0 && mth.Rets[0].Type != "error" {
 			success = true
-			if act == "List" {
+			if h.act == "List" {
 				st.Comment("@Success 200 {object} Done{result=ResultData{data=" + mth.Rets[0].Type + "}}").Line()
-			} else if act == "Create" {
+			} else if h.act == "Create" {
 				st.Comment("@Success 200 {object} Done{result=ResultID}").Line()
 			} else {
 				st.Comment("@Success 200 {object} Done{result=" + mth.Rets[0].Type + "}").Line()
@@ -339,13 +346,13 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 		}
 	}
 	if !success {
-		if act == "Put" || act == "Update" {
+		if h.act == "Put" || h.act == "Update" {
 			st.Comment("@Success 200 {object} Done{result=string}").Line()
 		} else {
 			st.Comment("@Success 200 {object} Done").Line()
 		}
 	}
-	for _, fi := range h.GetFails(act) {
+	for _, fi := range h.GetFails(h.act) {
 		if s, ok := preFails[fi]; ok {
 			st.Comment("@Failure " + s).Line()
 		} else {
@@ -367,18 +374,14 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		log.Printf("unknown method: %s", h.Method)
 		return nil
 	}
-	act, mname, ok := cutMethod(h.Method)
-	if !ok {
+	if !h.cuted() {
 		log.Printf("cut method %s fail", h.Method)
 		return nil
 	}
-	mod, modok := doc.modelWithName(mname)
+	mod, modok := doc.modelWithName(h.mona)
 	if !modok {
-		panic("invalid model: " + mname)
+		panic("invalid model: " + h.mona)
 	}
-
-	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
-	jmcc := h.jcall()
 
 	st := jen.Add(h.CommentCodes(doc))
 	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
@@ -386,124 +389,18 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
-			if act == "Get" || act == "Load" {
-				op := ":="
-				needDef := strings.ContainsAny(h.Ignore, "CU")
-				if needDef {
-					op = "="
-					g.Var().Id("obj").Op("*").Add(doc.qual(mth.Rets[0].Type))
-					g.Var().Err().Error()
-				}
-				if rels := mod.Fields.relHasOne(); len(rels) > 0 {
-					g.Id("ctx").Op(":=").Add(jctx)
-					g.If(
-						jen.Id("rels").Op(",").Id("ok").Op(":=").Id("c").Dot("GetQueryArray").Call(jen.Lit("rel")).
-							Op(";").Id("ok").Op("&&").Len(jen.Id("rels")).Op(">").Lit(0)).
-						Block(
-							jen.Id("ctx").Op("=").Id("stores").Dot("ContextWithRelation").Call(
-								jen.Id("ctx"), jen.Id("rels").Op("..."),
-							),
-						)
-
-					g.Id("obj").Op(",").Err().Op(op).Add(jmcc).Call(jen.Id("ctx"), jen.Id("id"))
-
-				} else {
-					g.Id("obj").Op(",").Err().Op(op).Add(jmcc).Call(
-						jctx, jen.Id("id"),
-					)
-				}
-
-				g.If(jen.Err().Op("!=").Nil()).Block(
-					jfails(503)...,
-				).Line()
-				g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
-			} else if (act == "Put" || act == "Update") && len(mth.Args) > 2 {
-				g.Var().Id("in").Add(doc.qual(mth.Args[2].Type))
-				g.Add(jbind("in"))
-				var retName string
-				if act == "Put" {
-					if mth.Simple {
-						retName = "nid"
-					} else {
-						retName = "obj"
-					}
-					g.Id(retName).Op(",").Err().Op(":=").Add(jmcc).Call(
-						jctx, jen.Id("id"), jen.Id("in"),
-					)
-				} else {
-					g.Err().Op(":=").Add(jmcc).Call(
-						jctx, jen.Id("id"), jen.Id("in"),
-					)
-				}
-				g.If(jen.Err().Op("!=").Nil()).Block(
-					jfails(503)...,
-				).Line()
-
-				if act == "Put" {
-					g.Id("success").Call(jen.Id("c"), jen.Id(retName))
-				} else {
-					g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
-				}
-			} else if act == "Delete" {
-				g.Err().Op(":=").Add(jmcc).Call(
-					jctx, jen.Id("id"),
-				)
-				g.If(jen.Err().Op("!=").Nil()).Block(
-					jfails(503)...,
-				).Line()
-				g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+			if h.act == "Get" || h.act == "Load" {
+				rels := mod.Fields.relHasOne()
+				h.codeLoad(doc, &mth, g, rels)
+			} else if (h.act == "Put" || h.act == "Update") && len(mth.Args) > 2 {
+				h.codeUpdate(g, doc.qual(mth.Args[2].Type), mth.Simple)
+			} else if h.act == "Delete" {
+				g.Add(h.codeDelete())
 			}
-		} else if act == "List" && len(mth.Args) > 1 {
-			g.Var().Id("spec").Add(doc.qual(mth.Args[1].Type))
-			g.Add(jbind("spec"))
-			g.Id("ctx").Op(":=").Add(jctx)
-			if len(mod.SpecUp) > 0 {
-				g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mname))
-			}
-			g.Id("data").Op(",").Id("total").Op(",").Err().Op(":=").Add(jmcc).Call(
-				jen.Id("ctx"), jen.Op("&").Id("spec"),
-			)
-			g.If(jen.Err().Op("!=").Nil()).Block(
-				jfails(503)...,
-			).Line()
-			g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
-		} else if act == "Create" && len(mth.Args) > 1 {
-			jfm := func() jen.Code {
-				st := new(jen.Statement)
-				st.Id("obj").Op(",").Err().Op(":=").Add(jmcc).Call(
-					jctx, jen.Id("in"),
-				).Line()
-				st.If(jen.Err().Op("!=").Nil()).Block(
-					jfails(503)...,
-				).Line().Line()
-				st.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
-				return st
-			}
-			if h.IsBatchCreate() {
-				g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
-				g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
-				g.If(jen.Op("!ok")).Block(
-					jfails(400, jen.Lit("bad request"))...)
-				g.Var().Id("ain").Index().Add(doc.qual(mth.Args[1].Type))
-				g.Add(jbindWith("ain", true,
-					jen.Var().Id("in").Add(doc.qual(mth.Args[1].Type)),
-					jen.Add(jbindWith("in", true, jfails(400)...)),
-					jfm(),
-					jen.Return(),
-				))
-				g.Var().Id("ret").Index().Any()
-				g.For(jen.Id("_,in").Op(":=").Range().Id("ain")).Block(jen.Id("obj").Op(",").Err().Op(":=").Add(jmcc).Call(
-					jctx, jen.Id("in"),
-				), jen.If(jen.Err().Op("!=").Nil()).Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("getError").Call(jen.Id("c"), jen.Lit(0), jen.Err()))).
-					Else().Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))),
-				)
-				g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
-			} else {
-				g.Var().Id("in").Add(doc.qual(mth.Args[1].Type))
-				g.Add(jbind("in"))
-				g.Add(jfm())
-			}
-
+		} else if h.act == "List" && len(mth.Args) > 1 {
+			h.codeList(g, doc.qual(mth.Args[1].Type), mod)
+		} else if h.act == "Create" && len(mth.Args) > 1 {
+			h.codeCreate(g, doc.qual(mth.Args[1].Type))
 		}
 
 	})
@@ -511,6 +408,131 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	// log.Printf("generate handle %s => %s done", h.Name, mth.Name)
 
 	return st
+}
+
+func (h *Handle) codeLoad(doc *Document, mth *Method, g *jen.Group, rels Fields) {
+	op := ":="
+	needDef := strings.ContainsAny(h.Ignore, "CU")
+	if needDef {
+		op = "="
+		g.Var().Id("obj").Op("*").Add(doc.qual(mth.Rets[0].Type))
+		g.Var().Err().Error()
+	}
+	if len(rels) > 0 {
+		g.Id("ctx").Op(":=").Add(jrctx)
+		g.If(
+			jen.Id("rels").Op(",").Id("ok").Op(":=").Id("c").Dot("GetQueryArray").Call(jen.Lit("rel")).
+				Op(";").Id("ok").Op("&&").Len(jen.Id("rels")).Op(">").Lit(0)).
+			Block(
+				jen.Id("ctx").Op("=").Id("stores").Dot("ContextWithRelation").Call(
+					jen.Id("ctx"), jen.Id("rels").Op("..."),
+				),
+			)
+
+		g.Id("obj").Op(",").Err().Op(op).Add(h.jcall()).Call(jen.Id("ctx"), jen.Id("id"))
+
+	} else {
+		g.Id("obj").Op(",").Err().Op(op).Add(h.jcall()).Call(
+			jrctx, jen.Id("id"),
+		)
+	}
+
+	g.If(jen.Err().Op("!=").Nil()).Block(
+		jfails(503)...,
+	).Line()
+	g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
+}
+
+func (h *Handle) codeUpdate(g *jen.Group, in jen.Code, simple bool) {
+	g.Var().Id("in").Add(in)
+	g.Add(jbind("in"))
+	var retName string
+	if h.act == "Put" {
+		if simple {
+			retName = "nid"
+		} else {
+			retName = "obj"
+		}
+		g.Id(retName).Op(",").Err().Op(":=").Add(h.jcall()).Call(
+			jrctx, jen.Id("id"), jen.Id("in"),
+		)
+	} else {
+		g.Err().Op(":=").Add(h.jcall()).Call(
+			jrctx, jen.Id("id"), jen.Id("in"),
+		)
+	}
+	g.If(jen.Err().Op("!=").Nil()).Block(
+		jfails(503)...,
+	).Line()
+
+	if h.act == "Put" {
+		g.Id("success").Call(jen.Id("c"), jen.Id(retName))
+	} else {
+		g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+	}
+}
+
+func (h *Handle) codeDelete() jen.Code {
+	return jen.Err().Op(":=").Add(h.jcall()).Call(
+		jrctx, jen.Id("id"),
+	).Line().
+		If(jen.Err().Op("!=").Nil()).Block(
+		jfails(503)...,
+	).Line().Line().
+		Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+}
+
+func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
+	g.Var().Id("spec").Add(spec)
+	g.Add(jbind("spec"))
+	g.Id("ctx").Op(":=").Add(jrctx)
+	if len(mod.SpecUp) > 0 {
+		g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mod.Name))
+	}
+	g.Id("data").Op(",").Id("total").Op(",").Err().Op(":=").Add(h.jcall()).Call(
+		jen.Id("ctx"), jen.Op("&").Id("spec"),
+	)
+	g.If(jen.Err().Op("!=").Nil()).Block(
+		jfails(503)...,
+	).Line()
+	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
+}
+
+func (h *Handle) jstomb() jen.Code {
+	return jen.Id("obj").Op(",").Err().Op(":=").Add(h.jcall()).Call(
+		jrctx, jen.Id("in"),
+	).Line().
+		If(jen.Err().Op("!=").Nil()).Block(
+		jfails(503)...,
+	).Line().Line().
+		Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
+}
+
+func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
+	if h.IsBatchCreate() {
+		g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
+		g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
+		g.If(jen.Op("!ok")).Block(
+			jfails(400, jen.Lit("bad request"))...)
+		g.Var().Id("ain").Index().Add(jarg)
+		g.Add(jbindWith("ain", true,
+			jen.Var().Id("in").Add(jarg),
+			jen.Add(jbindWith("in", true, jfails(400)...)),
+			h.jstomb(),
+			jen.Return(),
+		))
+		g.Var().Id("ret").Index().Any()
+		g.For(jen.Id("_,in").Op(":=").Range().Id("ain")).Block(jen.Id("obj").Op(",").Err().Op(":=").Add(h.jcall()).Call(
+			jrctx, jen.Id("in"),
+		), jen.If(jen.Err().Op("!=").Nil()).Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("getError").Call(jen.Id("c"), jen.Lit(0), jen.Err()))).
+			Else().Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))),
+		)
+		g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
+	} else {
+		g.Var().Id("in").Add(jarg)
+		g.Add(jbind("in"))
+		g.Add(h.jstomb())
+	}
 }
 
 func (wa *WebAPI) initRegCodes() jen.Code {
