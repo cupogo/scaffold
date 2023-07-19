@@ -390,7 +390,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 			if h.act == "Get" || h.act == "Load" {
 				rels := mod.Fields.relHasOne()
-				h.codeLoad(doc, &mth, g, rels)
+				h.codeLoad(g, rels, doc.qual(mth.Rets[0].Type))
 				return
 			}
 			if (h.act == "Put" || h.act == "Update") && len(mth.Args) > 2 {
@@ -421,12 +421,12 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	return st
 }
 
-func (h *Handle) codeLoad(doc *Document, mth *Method, g *jen.Group, rels Fields) {
+func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 	op := ":="
 	needDef := strings.ContainsAny(h.Ignore, "CU")
 	if needDef {
 		op = "="
-		g.Var().Id("obj").Op("*").Add(doc.qual(mth.Rets[0].Type))
+		g.Var().Id("obj").Op("*").Add(jarg)
 		g.Var().Err().Error()
 	}
 	if len(rels) > 0 {
