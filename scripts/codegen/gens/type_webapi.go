@@ -391,16 +391,28 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 			if h.act == "Get" || h.act == "Load" {
 				rels := mod.Fields.relHasOne()
 				h.codeLoad(doc, &mth, g, rels)
-			} else if (h.act == "Put" || h.act == "Update") && len(mth.Args) > 2 {
-				h.codeUpdate(g, doc.qual(mth.Args[2].Type), mth.Simple)
-			} else if h.act == "Delete" {
-				g.Add(h.codeDelete())
+				return
 			}
-		} else if h.act == "List" && len(mth.Args) > 1 {
-			h.codeList(g, doc.qual(mth.Args[1].Type), mod)
-		} else if h.act == "Create" && len(mth.Args) > 1 {
-			h.codeCreate(g, doc.qual(mth.Args[1].Type))
+			if (h.act == "Put" || h.act == "Update") && len(mth.Args) > 2 {
+				h.codeUpdate(g, doc.qual(mth.Args[2].Type), mth.Simple)
+				return
+			}
+			if h.act == "Delete" {
+				g.Add(h.codeDelete())
+				return
+			}
+			log.Printf("invalid act: %s", h.act)
+			return
 		}
+		if h.act == "List" && len(mth.Args) > 1 {
+			h.codeList(g, doc.qual(mth.Args[1].Type), mod)
+			return
+		}
+		if h.act == "Create" && len(mth.Args) > 1 {
+			h.codeCreate(g, doc.qual(mth.Args[1].Type))
+			return
+		}
+		log.Printf("invalid act: %s", h.act)
 
 	})
 
