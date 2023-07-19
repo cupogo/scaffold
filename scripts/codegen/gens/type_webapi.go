@@ -357,6 +357,10 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	return st
 }
 
+func (h *Handle) jcall() jen.Code {
+	return jen.Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
+}
+
 func (h *Handle) Codes(doc *Document) jen.Code {
 	mth, ok := doc.getMethod(h.Method)
 	if !ok {
@@ -374,7 +378,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	}
 
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
-	jmcc := jen.Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
+	jmcc := h.jcall()
 
 	st := jen.Add(h.CommentCodes(doc))
 	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))

@@ -921,12 +921,6 @@ func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
 	return st, false
 }
 
-var (
-	swdb jen.Code = jen.Id("s").Dot("w").Dot("db")
-	jctx jen.Code = jen.Id("ctx").Id("context.Context")
-	jdbO jen.Code = jen.Id("db").Id("ormDB")
-)
-
 func (m *Model) getIPath() string {
 	if m.doc != nil {
 		return m.doc.modipath
@@ -1159,7 +1153,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		}
 	}
 	if mth.Export {
-		args := []jen.Code{jctx, jdbO}
+		args := []jen.Code{jactx, jadbO}
 		args = append(args, arg...)
 		addition = jen.Func().Id(mth.Name).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
 			jaf(g, jen.Id("db"))
@@ -1187,7 +1181,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
 				} else {
 					g1.Nil()
-					g1.Func().Params(jctx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
 				}
 
 			})
@@ -1289,7 +1283,7 @@ func (mod *Model) codeStoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 					} else {
 						g1.Nil()
-						g1.Func().Params(jctx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 					}
 				})
 
@@ -1407,7 +1401,7 @@ func (mod *Model) codeStorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 						g2.Return(jen.Err())
 					}
 					g1.Nil()
-					g1.Func().Params(jctx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 				})
 			} else {
 				if isuniq {
@@ -1467,7 +1461,7 @@ func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 					} else {
 						g1.Nil()
-						g1.Func().Params(jctx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 					}
 
 				})
