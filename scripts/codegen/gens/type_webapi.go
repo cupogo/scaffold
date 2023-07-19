@@ -263,6 +263,10 @@ func (us UriSpot) IsBatchCreate() bool {
 	return strings.ContainsRune(us.Batch, 'C')
 }
 
+func (us UriSpot) IsBatchUpdate() bool {
+	return strings.ContainsRune(us.Batch, 'U')
+}
+
 func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if len(h.Summary) == 0 {
 		log.Printf("WARN: empty handle summary of %s", h.Name)
@@ -371,24 +375,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 
 	jctx := jen.Id("c").Dot("Request").Dot("Context").Call()
 	jmcc := jen.Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
-	jfail := func(sc int, a ...jen.Code) []jen.Code {
-		if len(a) == 0 {
-			a = append(a, jen.Err())
-		}
-		return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("c"), jen.Lit(sc), a[0]), jen.Return())
-	}
-	jbind := func(id string) jen.Code {
-		return jen.If(jen.Err().Op(":=").Id("c").Dot("Bind").Call(jen.Op("&").Id(id))).Op(";").Err().Op("!=").Nil().Block(
-			jfail(400)...,
-		).Line()
-	}
-	jbindWith := func(id string, blks ...jen.Code) jen.Code {
-		st := new(jen.Statement)
-		st.If(jen.Err().Op(":=").Id("c").Dot("ShouldBindBodyWith").Call(jen.Op("&").Id(id), jen.Id("bb"))).Op(";").Err().Op("!=").Nil().Block(
-			blks...,
-		).Line()
-		return st
-	}
+
 	st := jen.Add(h.CommentCodes(doc))
 	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
 	st.BlockFunc(func(g *jen.Group) {
@@ -423,7 +410,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				}
 
 				g.If(jen.Err().Op("!=").Nil()).Block(
-					jfail(503)...,
+					jfails(503)...,
 				).Line()
 				g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
 			} else if (act == "Put" || act == "Update") && len(mth.Args) > 2 {
@@ -445,7 +432,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					)
 				}
 				g.If(jen.Err().Op("!=").Nil()).Block(
-					jfail(503)...,
+					jfails(503)...,
 				).Line()
 
 				if act == "Put" {
@@ -458,7 +445,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					jctx, jen.Id("id"),
 				)
 				g.If(jen.Err().Op("!=").Nil()).Block(
-					jfail(503)...,
+					jfails(503)...,
 				).Line()
 				g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
 			}
@@ -473,7 +460,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				jen.Id("ctx"), jen.Op("&").Id("spec"),
 			)
 			g.If(jen.Err().Op("!=").Nil()).Block(
-				jfail(503)...,
+				jfails(503)...,
 			).Line()
 			g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
 		} else if act == "Create" && len(mth.Args) > 1 {
@@ -483,7 +470,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 					jctx, jen.Id("in"),
 				).Line()
 				st.If(jen.Err().Op("!=").Nil()).Block(
-					jfail(503)...,
+					jfails(503)...,
 				).Line().Line()
 				st.Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
 				return st
@@ -492,11 +479,11 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
 				g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
 				g.If(jen.Op("!ok")).Block(
-					jfail(400, jen.Lit("bad request"))...)
+					jfails(400, jen.Lit("bad request"))...)
 				g.Var().Id("ain").Index().Add(doc.qual(mth.Args[1].Type))
-				g.Add(jbindWith("ain",
+				g.Add(jbindWith("ain", true,
 					jen.Var().Id("in").Add(doc.qual(mth.Args[1].Type)),
-					jen.Add(jbindWith("in", jfail(400)...)),
+					jen.Add(jbindWith("in", true, jfails(400)...)),
 					jfm(),
 					jen.Return(),
 				))
@@ -573,4 +560,32 @@ func getDftFails(act string) []int {
 		return []int{400, 401, 404, 503}
 	}
 	return []int{400, 401, 403, 503}
+}
+
+func jfails(sc int, ae ...jen.Code) []jen.Code {
+	if len(ae) == 0 {
+		ae = append(ae, jen.Err())
+	}
+	return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("c"), jen.Lit(sc), ae[0]), jen.Return())
+}
+
+func jbind(id string) jen.Code {
+	return jbindWith(id, false, jfails(400)...)
+}
+
+func jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code {
+	st := jen.Empty()
+	if len(blocks) == 0 || len(id) == 0 {
+		return st
+	}
+	bind := "Bind"
+	args := []jen.Code{jen.Op("&").Id(id)}
+	if useBody {
+		bind = "ShouldBindBodyWith"
+		args = append(args, jen.Id("bb"))
+	}
+	st.If(jen.Err().Op(":=").Id("c").Dot(bind).Call(args...)).Op(";").Err().Op("!=").Nil().Block(
+		blocks...,
+	).Line()
+	return st
 }
