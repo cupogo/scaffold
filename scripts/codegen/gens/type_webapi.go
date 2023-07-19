@@ -177,7 +177,6 @@ type Handle struct {
 	Tags     string   `yaml:"tags,omitempty"`
 	Store    string   `yaml:"store,omitempty"`
 	Method   string   `yaml:"method,omitempty"`
-	BindObj  string   `yaml:"bindobj,omitempty"` // Obsoleted
 	Summary  string   `yaml:"summary,omitempty"`
 	Accept   string   `yaml:"accept,omitempty"`
 	Produce  string   `yaml:"produce,omitempty"`

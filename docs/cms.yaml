@@ -149,7 +149,6 @@ webapi:
     - name: putCmsClause
       store: Content
       method: PutClause
-      bindobj: cms1.ClauseSet
       summary: 录入内容条款
       route: '/api/v1/cms/clauses/{id} [put]'
       needAuth: true
@@ -157,7 +156,6 @@ webapi:
     - name: getCmsClauses
       store: Content
       method: ListClause
-      bindobj: stores.ClauseSpec
       summary: 列出内容条款
       route: '/api/v1/cms/clauses [get]'
       needAuth: true
