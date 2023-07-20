@@ -14,6 +14,7 @@ type Done = resp.Done
 type Failure = resp.Failure
 type ResultData = resp.ResultData
 type ResultID = resp.ResultID
+type ResultOk = resp.ResultOk
 
 var handles = []handleIn{}
 

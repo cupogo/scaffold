@@ -289,6 +289,11 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if hid := h.GetPermID(); len(hid) > 0 {
 		st.Comment("@ID " + hid).Line()
 	}
+	if h.act == "Create" && h.IsBatchCreate() {
+		st.Comment("@Description 本接口支持批量创建，传入数组实体，返回结果也为数组").Line()
+	} else if h.act == "Update" && h.IsBatchUpdate() {
+		st.Comment("@Description 本接口支持批量更新，路径中传入的主键以逗号分隔，同时使用数组实体，返回结果也为数组").Line()
+	}
 	st.Comment("@Summary " + h.Summary).Line()
 	st.Comment("@Accept " + h.GetAccept()).Line()
 	st.Comment("@Produce " + h.GetProduce()).Line()
@@ -387,8 +392,8 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	st.BlockFunc(func(g *jen.Group) {
 
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
-			g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 			if h.act == "Get" || h.act == "Load" {
+				g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 				rels := mod.Fields.relHasOne()
 				h.codeLoad(g, rels, doc.qual(mth.Rets[0].Type))
 				return
@@ -398,6 +403,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				return
 			}
 			if h.act == "Delete" {
+				g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
 				g.Add(h.codeDelete())
 				return
 			}
@@ -454,8 +460,25 @@ func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 	g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
 }
 
-func (h *Handle) codeUpdate(g *jen.Group, in jen.Code, simple bool) {
-	g.Var().Id("in").Add(in)
+func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
+	if h.IsBatchUpdate() {
+		g.Id("ids").Op(":=").Qual("strings", "Split").Call(jen.Id("c").Dot("Param").Call(jen.Lit("id")), jen.Lit(","))
+		jprebb(g)
+		g.Var().Id("ain").Index().Add(jarg)
+		g.Add(jbindWith("ain", true, jfails(400)...))
+		g.If(jen.Len(jen.Id("ids")).Op("!=").Len(jen.Id("ain"))).Block(jfails(400, jen.Lit("mismatch length"))...)
+		g.Id("ctx").Op(":=").Add(jrctx)
+		g.Id("ret").Op(":=").Make(jen.Index().Any(), jen.Len(jen.Id("ids")))
+		g.For(jen.Id("i").Op(":=0;").Id("i").Op("<").Len(jen.Id("ids")).Op(";i++")).Block(jen.Err().Op(":=").Add(h.jcall()).Call(
+			jen.Id("ctx"), jen.Id("ids").Index(jen.Id("i")), jen.Id("ain").Index(jen.Id("i")),
+		), jen.If(jen.Err().Op("!=").Nil()).Block(jen.Id("ret").Index(jen.Id("i")).Op("=").Id("getError").Call(jen.Id("c"), jen.Lit(0), jen.Err())).
+			Else().Block(jen.Id("ret").Index(jen.Id("i")).Op("=").Id("idResult").Call(jen.Id("ids").Index(jen.Id("i")))),
+		)
+		return
+	}
+
+	g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
+	g.Var().Id("in").Add(jarg)
 	g.Add(jbind("in"))
 	var retName string
 	if h.act == "Put" {
@@ -481,6 +504,7 @@ func (h *Handle) codeUpdate(g *jen.Group, in jen.Code, simple bool) {
 	} else {
 		g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
 	}
+
 }
 
 func (h *Handle) codeDelete() jen.Code {
@@ -509,7 +533,7 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
 }
 
-func (h *Handle) jstomb() jen.Code {
+func (h *Handle) jstombc() jen.Code {
 	return jen.Id("obj").Op(",").Err().Op(":=").Add(h.jcall()).Call(
 		jrctx, jen.Id("in"),
 	).Line().
@@ -521,15 +545,12 @@ func (h *Handle) jstomb() jen.Code {
 
 func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 	if h.IsBatchCreate() {
-		g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
-		g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
-		g.If(jen.Op("!ok")).Block(
-			jfails(400, jen.Lit("bad request"))...)
+		jprebb(g)
 		g.Var().Id("ain").Index().Add(jarg)
 		g.Add(jbindWith("ain", true,
 			jen.Var().Id("in").Add(jarg),
 			jen.Add(jbindWith("in", true, jfails(400)...)),
-			h.jstomb(),
+			h.jstombc(),
 			jen.Return(),
 		))
 		g.Var().Id("ret").Index().Any()
@@ -542,7 +563,7 @@ func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 	} else {
 		g.Var().Id("in").Add(jarg)
 		g.Add(jbind("in"))
-		g.Add(h.jstomb())
+		g.Add(h.jstombc())
 	}
 }
 
@@ -625,4 +646,11 @@ func jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code {
 		blocks...,
 	).Line()
 	return st
+}
+
+func jprebb(g *jen.Group) {
+	g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
+	g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
+	g.If(jen.Op("!ok")).Block(
+		jfails(400, jen.Lit("bad request"))...)
 }

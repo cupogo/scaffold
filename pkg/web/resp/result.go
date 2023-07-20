@@ -19,3 +19,7 @@ func (dr *ResultData) PatchView() {
 type ResultID struct {
 	ID any `json:"id"` // 主键值，多数时候是字串
 } // @name ResultID
+
+type ResultOk struct {
+	Ok bool `json:"ok"`
+}
