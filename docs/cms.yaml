@@ -136,7 +136,7 @@ webapi:
   uris:
     - model: Article
       prefix: '/api/v1/cms'
-      batch: C
+      batch: CU
     - model: Attachment
       prefix: '/api/v1/cms'
   handles:

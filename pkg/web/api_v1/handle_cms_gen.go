@@ -3,6 +3,8 @@
 package apiv1
 
 import (
+	"strings"
+
 	"github.com/cupogo/scaffold/pkg/models/cms1"
 	"github.com/cupogo/scaffold/pkg/services/stores"
 	gin "github.com/gin-gonic/gin"
@@ -213,6 +215,7 @@ func (a *api) getContentArticle(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-post
+// @Description 本接口支持批量创建，传入数组实体，返回结果也为数组
 // @Summary 录入文章
 // @Accept json,mpfd
 // @Produce json
@@ -263,6 +266,7 @@ func (a *api) postContentArticle(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-id-put
+// @Description 本接口支持批量更新，路径中传入的主键以逗号分隔，同时使用数组实体，返回结果也为数组
 // @Summary 更新文章
 // @Accept json,mpfd
 // @Produce json
@@ -276,20 +280,33 @@ func (a *api) postContentArticle(c *gin.Context) {
 // @Failure 503 {object} Failure "服务端错误"
 // @Router /api/v1/cms/articles/{id} [put]
 func (a *api) putContentArticle(c *gin.Context) {
-	id := c.Param("id")
-	var in cms1.ArticleSet
-	if err := c.Bind(&in); err != nil {
+	ids := strings.Split(c.Param("id"), ",")
+	bd := binding.Default(c.Request.Method, c.ContentType())
+	bb, ok := bd.(binding.BindingBody)
+	if !ok {
+		fail(c, 400, "bad request")
+		return
+	}
+	var ain []cms1.ArticleSet
+	if err := c.ShouldBindBodyWith(&ain, bb); err != nil {
 		fail(c, 400, err)
 		return
 	}
 
-	err := a.sto.Content().UpdateArticle(c.Request.Context(), id, in)
-	if err != nil {
-		fail(c, 503, err)
+	if len(ids) != len(ain) {
+		fail(c, 400, "mismatch length")
 		return
 	}
-
-	success(c, "ok")
+	ctx := c.Request.Context()
+	ret := make([]any, len(ids))
+	for i := 0; i < len(ids); i++ {
+		err := a.sto.Content().UpdateArticle(ctx, ids[i], ain[i])
+		if err != nil {
+			ret[i] = getError(c, 0, err)
+		} else {
+			ret[i] = idResult(ids[i])
+		}
+	}
 }
 
 // @Tags 默认 文档生成
