@@ -162,7 +162,8 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ad
 			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 		case "Update":
-			args, rets, blkcode = mod.codeStoreUpdate()
+			args, rets, addition, blkcode = mod.codeStoreUpdate()
+			additions = append(additions, addition)
 			blocks = append(blocks, blkcode)
 			nap = append(nap, false)
 		case "Put":

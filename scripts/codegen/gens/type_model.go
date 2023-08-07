@@ -1207,7 +1207,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	return
 }
 
-func (mod *Model) codeStoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
+func (mod *Model) codeStoreUpdate() (arg []jen.Code, ret []jen.Code, addition jen.Code, blkc *jen.Statement) {
 	fnGet := "getModelWithPKID"
 	fnUpdate := "dbUpdate"
 	if mod.IsBsonable() {
@@ -1215,117 +1215,119 @@ func (mod *Model) codeStoreUpdate() ([]jen.Code, []jen.Code, *jen.Statement) {
 		fnUpdate = "mgUpdate"
 	}
 	tname := mod.Name + "Set"
-	return []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)},
-		[]jen.Code{jen.Error()},
-		jen.BlockFunc(func(g *jen.Group) {
-			g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
-			g.If(jen.Err().Op(":=").Id(fnGet).Call(
-				jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
-			).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
+	arg = []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)}
+	ret = []jen.Code{jen.Error()}
+	// TODO: for export
+	blkc = jen.BlockFunc(func(g *jen.Group) {
+		g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
+		g.If(jen.Err().Op(":=").Id(fnGet).Call(
+			jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
+		).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
-			if mod.IsBsonable() {
-				g.Id("up").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
-			} else {
-				g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
-			}
+		if mod.IsBsonable() {
+			g.Id("up").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+		} else {
+			g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
+		}
 
-			if jt, ok := mod.textSearchCodes("exist"); ok {
-				g.Add(jt)
-			}
-			isPG10 := mod.doc.IsPG10()
+		if jt, ok := mod.textSearchCodes("exist"); ok {
+			g.Add(jt)
+		}
+		isPG10 := mod.doc.IsPG10()
 
-			jfbd := jen.Empty()
-			hkBU, okBU := mod.hasStoreHook(beforeUpdating)
-			hkAU, okAU := mod.hasStoreHook(afterUpdating)
-			hkBS, okBS := mod.hasStoreHook(beforeSaving)
-			hkAS, okAS := mod.hasStoreHook(afterSaving)
-			if okBU || okAU || okBS || okAS {
-				jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
-					jdb := jen.Id("tx")
-					g1.Id("ctx")
-					jbf := func(g2 *jen.Group) {
-						g2.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
-						if okBU {
-							g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
-								jen.Return(),
-							)
-						} else if okBS {
-							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
-								jen.Return(),
-							)
-						}
-						if mod.hasMeta() {
-							g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
-						}
-
-						jupArgs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("exist")}
-						if mod.IsBsonable() {
-							jupArgs = append(jupArgs, jen.Id("up"))
-						}
-
-						jup := jen.Id(fnUpdate).Call(jupArgs...)
-
-						if okAU {
-							g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
-								jen.Return().Id(hkAU).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
-							)
-							g2.Return()
-						} else if okAS {
-							g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
-								jen.Return().Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
-							)
-							g2.Return()
-						} else {
-							g2.Return(jup)
-						}
+		jfbd := jen.Empty()
+		hkBU, okBU := mod.hasStoreHook(beforeUpdating)
+		hkAU, okAU := mod.hasStoreHook(afterUpdating)
+		hkBS, okBS := mod.hasStoreHook(beforeSaving)
+		hkAS, okAS := mod.hasStoreHook(afterSaving)
+		if okBU || okAU || okBS || okAS {
+			jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+				jdb := jen.Id("tx")
+				g1.Id("ctx")
+				jbf := func(g2 *jen.Group) {
+					g2.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
+					if okBU {
+						g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
+							jen.Return(),
+						)
+					} else if okBS {
+						g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
+							jen.Return(),
+						)
 					}
-					if isPG10 {
-						g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					if mod.hasMeta() {
+						g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
+					}
+
+					jupArgs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("exist")}
+					if mod.IsBsonable() {
+						jupArgs = append(jupArgs, jen.Id("up"))
+					}
+
+					jup := jen.Id(fnUpdate).Call(jupArgs...)
+
+					if okAU {
+						g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
+							jen.Return().Id(hkAU).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
+						)
+						g2.Return()
+					} else if okAS {
+						g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
+							jen.Return().Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
+						)
+						g2.Return()
 					} else {
-						g1.Nil()
-						g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+						g2.Return(jup)
 					}
-				})
-
-			} else {
-				if mod.hasMeta() && !mod.IsBsonable() {
-					g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
 				}
-				jupArgs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("exist")}
-				if mod.IsBsonable() {
-					jupArgs = append(jupArgs, jen.Id("up"))
+				if isPG10 {
+					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+				} else {
+					g1.Nil()
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
 				}
-				jfbd.Id(fnUpdate).Call(jupArgs...)
-			}
+			})
 
-			hkau, okau := mod.hasStoreHook(afterUpdated)
-			hkue, okue := mod.hasStoreHook(upsertES)
-			if okau && okue {
-				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
-					jen.Return(jen.Err()),
-				)
-				callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
-				g.If(jen.Err().Op(":=").Add(callau).Op(";").Err().Op("!=").Nil()).Block(
-					jen.Return(jen.Err()),
-				)
-				callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
-				g.Return(callke)
-			} else if okau {
-				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
-					jen.Return(jen.Err()),
-				)
-				callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
-				g.Return(callau)
-			} else if okue {
-				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
-					jen.Return(jen.Err()),
-				)
-				callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
-				g.Return(callke)
-			} else {
-				g.Return(jfbd)
+		} else {
+			if mod.hasMeta() && !mod.IsBsonable() {
+				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
 			}
-		})
+			jupArgs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("exist")}
+			if mod.IsBsonable() {
+				jupArgs = append(jupArgs, jen.Id("up"))
+			}
+			jfbd.Id(fnUpdate).Call(jupArgs...)
+		}
+
+		hkau, okau := mod.hasStoreHook(afterUpdated)
+		hkue, okue := mod.hasStoreHook(upsertES)
+		if okau && okue {
+			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+				jen.Return(jen.Err()),
+			)
+			callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
+			g.If(jen.Err().Op(":=").Add(callau).Op(";").Err().Op("!=").Nil()).Block(
+				jen.Return(jen.Err()),
+			)
+			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
+			g.Return(callke)
+		} else if okau {
+			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+				jen.Return(jen.Err()),
+			)
+			callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
+			g.Return(callau)
+		} else if okue {
+			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+				jen.Return(jen.Err()),
+			)
+			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
+			g.Return(callke)
+		} else {
+			g.Return(jfbd)
+		}
+	})
+	return
 }
 
 func (mod *Model) codeStorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statement) {
