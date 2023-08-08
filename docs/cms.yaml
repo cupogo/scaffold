@@ -60,6 +60,7 @@ models:
     hooks:
       beforeSaving: yes
       afterCreating: yes
+      afterUpdating: yes
       afterDeleting: yes
       beforeList: yes
       afterList: yes
@@ -128,7 +129,7 @@ stores:
   - name: contentStore
     hods:
       - { name: Clause, type: LGPD }
-      - { name: Article, type: LGCUD, export: C }
+      - { name: Article, type: LGCUD, export: CU }
       - { name: Attachment, type: LGCD, export: C }
 
 webapi:
