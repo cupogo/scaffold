@@ -82,3 +82,7 @@ func dbAfterCreateArticle(ctx context.Context, db ormDB, obj *cms1.Article) erro
 	// TODO: need implement
 	return nil
 }
+func dbAfterUpdateArticle(ctx context.Context, db ormDB, obj *cms1.Article) error {
+	// TODO: need implement
+	return nil
+}

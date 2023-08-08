@@ -199,23 +199,10 @@ func (s *contentStore) CreateArticle(ctx context.Context, in cms1.ArticleBasic) 
 	return
 }
 func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.ArticleSet) error {
-	exist := new(cms1.Article)
-	if err := getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
-		return err
-	}
-	exist.SetWith(in)
-	if tscfg, ok := DbTsCheck(); ok {
-		exist.TsCfgName = tscfg
-		exist.SetTsColumns("title", "content")
-		exist.SetChange("ts_cfg")
-	}
+	var exist *cms1.Article
 	if err := s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
-		exist.SetIsUpdate(true)
-		if err = dbBeforeSaveArticle(ctx, tx, exist); err != nil {
-			return
-		}
-		dbOpModelMeta(ctx, tx, exist)
-		return dbUpdate(ctx, tx, exist)
+		exist, err = UpdateArticle(ctx, tx, id, in)
+		return err
 	}); err != nil {
 		return err
 	}
@@ -272,6 +259,28 @@ func CreateArticle(ctx context.Context, db ormDB, in cms1.ArticleBasic) (obj *cm
 	if err == nil {
 		err = dbAfterCreateArticle(ctx, db, obj)
 	}
+	return
+}
+func UpdateArticle(ctx context.Context, db ormDB, id string, in cms1.ArticleSet) (exist *cms1.Article, err error) {
+	exist = new(cms1.Article)
+	if err = getModelWithPKID(ctx, db, exist, id); err != nil {
+		return
+	}
+	exist.SetWith(in)
+	if tscfg, ok := DbTsCheck(); ok {
+		exist.TsCfgName = tscfg
+		exist.SetTsColumns("title", "content")
+		exist.SetChange("ts_cfg")
+	}
+	exist.SetIsUpdate(true)
+	if err = dbBeforeSaveArticle(ctx, db, exist); err != nil {
+		return
+	}
+	dbOpModelMeta(ctx, db, exist)
+	if err = dbUpdate(ctx, db, exist); err != nil {
+		return
+	}
+	err = dbAfterUpdateArticle(ctx, db, exist)
 	return
 }
 func CreateAttachment(ctx context.Context, db ormDB, in cms1.AttachmentBasic) (obj *cms1.Attachment, err error) {

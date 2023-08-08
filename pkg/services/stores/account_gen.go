@@ -96,21 +96,21 @@ func (s *accountStore) CreateAccount(ctx context.Context, in accounts.AccountBas
 	return
 }
 func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accounts.AccountSet) error {
-	exist := new(accounts.Account)
-	if err := getModelWithPKID(ctx, s.w.db, exist, id); err != nil {
-		return err
-	}
-	exist.SetWith(in)
 	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
+		exist := new(accounts.Account)
+		if err = getModelWithPKID(ctx, tx, exist, id); err != nil {
+			return err
+		}
+		exist.SetWith(in)
 		exist.SetIsUpdate(true)
 		if err = dbBeforeUpdateAccount(ctx, tx, exist); err != nil {
-			return
+			return err
 		}
 		dbOpModelMeta(ctx, tx, exist)
-		if err = dbUpdate(ctx, tx, exist); err == nil {
-			return dbAfterSaveAccount(ctx, tx, exist)
+		if err = dbUpdate(ctx, tx, exist); err != nil {
+			return err
 		}
-		return
+		return dbAfterSaveAccount(ctx, tx, exist)
 	})
 }
 func (s *accountStore) DeleteAccount(ctx context.Context, id string) error {

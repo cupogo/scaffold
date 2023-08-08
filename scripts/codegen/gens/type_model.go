@@ -1087,6 +1087,8 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	hkAC, okAC := mod.hasStoreHook(afterCreating)
 	hkBS, okBS := mod.hasStoreHook(beforeSaving)
 	hkAS, okAS := mod.hasStoreHook(afterSaving)
+	hookTxing := okBC || okAC || okBS || okAS
+
 	isPG10 := mod.doc.IsPG10()
 	unfd, isuniq := mod.UniqueOne()
 
@@ -1119,7 +1121,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		if jt, ok := mod.textSearchCodes("obj"); ok {
 			g.Add(jt)
 		}
-		if okBC || okAC || okBS || okAS {
+		if hookTxing {
 			if okBC {
 				g.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 					jen.Return(),
@@ -1129,9 +1131,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 					jen.Return(),
 				)
 			}
-			if mod.hasMeta() && !mod.IsBsonable() {
-				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id("obj"))
-			}
+			mod.codeMetaUp(g, jdb, "obj")
 
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
 			if okAC {
@@ -1145,9 +1145,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			}
 
 		} else {
-			if mod.hasMeta() && !mod.IsBsonable() {
-				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id("obj"))
-			}
+			mod.codeMetaUp(g, jdb, "obj")
 
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
 		}
@@ -1207,25 +1205,56 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	return
 }
 
-func (mod *Model) codeStoreUpdate() (arg []jen.Code, ret []jen.Code, addition jen.Code, blkc *jen.Statement) {
+func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, addition jen.Code, blkc *jen.Statement) {
 	fnGet := "getModelWithPKID"
 	fnUpdate := "dbUpdate"
 	if mod.IsBsonable() {
 		fnGet = "mgGet"
 		fnUpdate = "mgUpdate"
 	}
+	hkBU, okBU := mod.hasStoreHook(beforeUpdating)
+	hkAU, okAU := mod.hasStoreHook(afterUpdating)
+	hkBS, okBS := mod.hasStoreHook(beforeSaving)
+	hkAS, okAS := mod.hasStoreHook(afterSaving)
+	hookTxing := okBU || okAU || okBS || okAS
+
+	hkAX, okAX := mod.hasStoreHook(afterUpdated)
+	hkue, okue := mod.hasStoreHook(upsertES)
+	hookTxDone := okAX || okue
+
 	tname := mod.Name + "Set"
 	arg = []jen.Code{jen.Id("id").String(), jen.Id("in").Qual(mod.getIPath(), tname)}
 	ret = []jen.Code{jen.Error()}
-	// TODO: for export
-	blkc = jen.BlockFunc(func(g *jen.Group) {
-		g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
-		g.If(jen.Err().Op(":=").Id(fnGet).Call(
-			jen.Id("ctx"), swdb, jen.Id("exist"), jen.Id("id"),
-		).Op(";").Err().Op("!=").Nil()).Block(jen.Return(jen.Err()))
+
+	isPG10 := mod.doc.IsPG10()
+	jretf := func(cs ...jen.Code) jen.Code {
+		if mth.Export {
+			if len(cs) > 0 {
+				return jen.Err().Op("=").Add(cs...).Line().Return()
+			}
+			return jen.Return()
+		}
+		if len(cs) == 0 {
+			cs = []jen.Code{jen.Err()}
+		}
+		return jen.Return(cs...)
+	}
+	jaf := func(g *jen.Group, jdb jen.Code, inTx bool) {
+		eop := "="
+		if !inTx && !mth.Export {
+			eop = ":="
+		}
+		if mth.Export || inTx && hookTxDone {
+			g.Id("exist").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
+		} else {
+			g.Id("exist").Op(":=").New(jen.Qual(mod.getIPath(), mod.Name))
+		}
+		g.If(jen.Err().Op(eop).Id(fnGet).Call(
+			jen.Id("ctx"), jdb, jen.Id("exist"), jen.Id("id"),
+		).Op(";").Err().Op("!=").Nil()).Block(jretf())
 
 		if mod.IsBsonable() {
-			g.Id("up").Op(":=").Id("exist").Dot("SetWith").Call(jen.Id("in"))
+			g.Id("up").Op(eop).Id("exist").Dot("SetWith").Call(jen.Id("in"))
 		} else {
 			g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
 		}
@@ -1233,89 +1262,104 @@ func (mod *Model) codeStoreUpdate() (arg []jen.Code, ret []jen.Code, addition je
 		if jt, ok := mod.textSearchCodes("exist"); ok {
 			g.Add(jt)
 		}
-		isPG10 := mod.doc.IsPG10()
 
-		jfbd := jen.Empty()
-		hkBU, okBU := mod.hasStoreHook(beforeUpdating)
-		hkAU, okAU := mod.hasStoreHook(afterUpdating)
-		hkBS, okBS := mod.hasStoreHook(beforeSaving)
-		hkAS, okAS := mod.hasStoreHook(afterSaving)
-		if okBU || okAU || okBS || okAS {
-			jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
-				jdb := jen.Id("tx")
+		jupArgs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("exist")}
+		if mod.IsBsonable() {
+			jupArgs = append(jupArgs, jen.Id("up"))
+		}
+
+		jup := jen.Id(fnUpdate).Call(jupArgs...)
+
+		if hookTxing {
+			jcondf := func(eop string, jnbc jen.Code) jen.Code {
+				return jen.If(jen.Err().Op(eop).Add(jnbc).Op(";").Err().Op("!=")).Nil().Block(jretf())
+			}
+			g.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
+			if okBU {
+				g.Add(jcondf(eop, jen.Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+			} else if okBS {
+				g.Add(jcondf(eop, jen.Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+			}
+
+			mod.codeMetaUp(g, jdb, "exist")
+
+			if okAU {
+				g.Add(jcondf(eop, jup))
+				g.Add(jretf(jen.Id(hkAU).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+			} else if okAS {
+				g.Add(jcondf(eop, jup))
+				g.Add(jretf(jen.Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+			} else if mth.Export {
+				g.Err().Op("=").Add(jup)
+				g.Return()
+			} else {
+				g.Return(jup)
+			}
+		} else {
+			mod.codeMetaUp(g, jdb, "exist")
+
+			g.Add(jretf(jup))
+		}
+	}
+	if mth.Export {
+		args := []jen.Code{jactx, jadbO}
+		args = append(args, arg...)
+		rets := []jen.Code{jen.Id("exist").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
+		addition = jen.Func().Id(mth.Name).Params(args...).Params(rets...).BlockFunc(func(g *jen.Group) {
+			jaf(g, jen.Id("db"), false)
+			// g.Return()
+		}).Line()
+	}
+
+	blkc = jen.BlockFunc(func(g *jen.Group) {
+		jbf := func(g2 *jen.Group, jdb jen.Code, inTx bool) {
+			if mth.Export {
+				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("id"), jen.Id("in")}
+				g2.Id("exist").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
+			} else {
+				jaf(g2, jdb, inTx)
+			}
+		}
+		var jfbd *jen.Statement
+		if hookTxing {
+			if hookTxDone {
+				g.Var().Id("exist").Op("*").Qual(mod.getIPath(), mod.Name)
+			}
+			jfbd = jen.Empty().Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 				g1.Id("ctx")
-				jbf := func(g2 *jen.Group) {
-					g2.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
-					if okBU {
-						g2.If(jen.Err().Op("=").Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
-							jen.Return(),
-						)
-					} else if okBS {
-						g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist")).Op(";").Err().Op("!=")).Nil().Block(
-							jen.Return(),
-						)
-					}
-					if mod.hasMeta() {
-						g2.Id("dbOpModelMeta").Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("exist"))
-					}
-
-					jupArgs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("exist")}
-					if mod.IsBsonable() {
-						jupArgs = append(jupArgs, jen.Id("up"))
-					}
-
-					jup := jen.Id(fnUpdate).Call(jupArgs...)
-
-					if okAU {
-						g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
-							jen.Return().Id(hkAU).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
-						)
-						g2.Return()
-					} else if okAS {
-						g2.If(jen.Err().Op("=").Add(jup).Op(";").Err().Op("==")).Nil().Block(
-							jen.Return().Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist")),
-						)
-						g2.Return()
-					} else {
-						g2.Return(jup)
+				jxf := func(g3 *jen.Group) {
+					jbf(g3, jen.Id("tx"), true)
+					if mth.Export {
+						g3.Return(jen.Err())
 					}
 				}
 				if isPG10 {
-					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					g1.Func().Params(jen.Id("tx").Op("*").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
 				} else {
 					g1.Nil()
-					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jbf)
+					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
 				}
 			})
 
 		} else {
-			if mod.hasMeta() && !mod.IsBsonable() {
-				g.Id("dbOpModelMeta").Call(jen.Id("ctx"), swdb, jen.Id("exist"))
-			}
-			jupArgs := []jen.Code{jen.Id("ctx"), swdb, jen.Id("exist")}
-			if mod.IsBsonable() {
-				jupArgs = append(jupArgs, jen.Id("up"))
-			}
-			jfbd.Id(fnUpdate).Call(jupArgs...)
+			jbf(g, swdb, false)
 		}
 
-		hkau, okau := mod.hasStoreHook(afterUpdated)
-		hkue, okue := mod.hasStoreHook(upsertES)
-		if okau && okue {
+		if okAX && okue {
 			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
 				jen.Return(jen.Err()),
 			)
-			callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
+			callau := jen.Id("s").Dot(hkAX).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.If(jen.Err().Op(":=").Add(callau).Op(";").Err().Op("!=").Nil()).Block(
 				jen.Return(jen.Err()),
 			)
 			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
-		} else if okau {
+		} else if okAX {
 			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
 				jen.Return(jen.Err()),
 			)
-			callau := jen.Id("s").Dot(hkau).Call(jen.Id("ctx"), jen.Id("exist"))
+			callau := jen.Id("s").Dot(hkAX).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callau)
 		} else if okue {
 			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
@@ -1323,8 +1367,10 @@ func (mod *Model) codeStoreUpdate() (arg []jen.Code, ret []jen.Code, addition je
 			)
 			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
-		} else {
+		} else if hookTxing {
 			g.Return(jfbd)
+		} else {
+			g.Add(jfbd)
 		}
 	})
 	return
@@ -1563,4 +1609,10 @@ func (m *Model) metaAddCodes() (st *jen.Statement) {
 		}(st, "Basic", "Set")
 	}
 	return
+}
+
+func (m *Model) codeMetaUp(g *jen.Group, jdb jen.Code, id string) {
+	if m.hasMeta() && !m.IsBsonable() {
+		g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id(id))
+	}
 }
