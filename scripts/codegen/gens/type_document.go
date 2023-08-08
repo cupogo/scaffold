@@ -719,6 +719,7 @@ func getVarFromTypesVar(v *types.Var) Var {
 
 func goImports(path string) (err error) {
 	cmd := exec.Command("goimports", "-w", path)
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("cmd.Run() failed with %s\n", err)

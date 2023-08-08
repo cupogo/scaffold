@@ -1298,7 +1298,14 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		} else {
 			mod.codeMetaUp(g, jdb, "exist")
 
-			g.Add(jretf(jup))
+			if hookTxDone {
+				g.If(jen.Err().Op(eop).Add(jup).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+			} else {
+				g.Add(jretf(jup))
+			}
+
 		}
 	}
 	if mth.Export {
@@ -1307,7 +1314,6 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		rets := []jen.Code{jen.Id("exist").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
 		addition = jen.Func().Id(mth.Name).Params(args...).Params(rets...).BlockFunc(func(g *jen.Group) {
 			jaf(g, jen.Id("db"), false)
-			// g.Return()
 		}).Line()
 	}
 
@@ -1320,12 +1326,12 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 				jaf(g2, jdb, inTx)
 			}
 		}
-		var jfbd *jen.Statement
 		if hookTxing {
+			jfbd := jen.Empty()
 			if hookTxDone {
 				g.Var().Id("exist").Op("*").Qual(mod.getIPath(), mod.Name)
 			}
-			jfbd = jen.Empty().Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
+			jfbd.Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 				g1.Id("ctx")
 				jxf := func(g3 *jen.Group) {
 					jbf(g3, jen.Id("tx"), true)
@@ -1340,15 +1346,19 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 					g1.Func().Params(jactx, jen.Id("tx").Id("pgTx")).Params(jen.Err().Error()).BlockFunc(jxf)
 				}
 			})
+			if hookTxDone {
+				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+			} else {
+				g.Return(jfbd)
+			}
 
 		} else {
 			jbf(g, swdb, false)
 		}
 
 		if okAX && okue {
-			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
-				jen.Return(jen.Err()),
-			)
 			callau := jen.Id("s").Dot(hkAX).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.If(jen.Err().Op(":=").Add(callau).Op(";").Err().Op("!=").Nil()).Block(
 				jen.Return(jen.Err()),
@@ -1356,21 +1366,11 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
 		} else if okAX {
-			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
-				jen.Return(jen.Err()),
-			)
 			callau := jen.Id("s").Dot(hkAX).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callau)
 		} else if okue {
-			g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
-				jen.Return(jen.Err()),
-			)
 			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
-		} else if hookTxing {
-			g.Return(jfbd)
-		} else {
-			g.Add(jfbd)
 		}
 	})
 	return
