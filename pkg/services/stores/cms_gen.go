@@ -4,6 +4,7 @@ package stores
 
 import (
 	"context"
+	"fmt"
 
 	pgx "github.com/cupogo/andvari/stores/pgx"
 	utils "github.com/cupogo/andvari/utils"
@@ -18,6 +19,10 @@ import (
 // type AttachmentBasic = cms1.AttachmentBasic
 // type AttachmentSet = cms1.AttachmentSet
 // type Attachments = cms1.Attachments
+// type Channel = cms1.Channel
+// type ChannelBasic = cms1.ChannelBasic
+// type ChannelSet = cms1.ChannelSet
+// type Channels = cms1.Channels
 // type Clause = cms1.Clause
 // type ClauseBasic = cms1.ClauseBasic
 // type ClauseSet = cms1.ClauseSet
@@ -25,7 +30,7 @@ import (
 // type File = cms1.File
 
 func init() {
-	RegisterModel((*cms1.Article)(nil), (*cms1.Attachment)(nil), (*cms1.Clause)(nil))
+	RegisterModel((*cms1.Channel)(nil), (*cms1.Article)(nil), (*cms1.Attachment)(nil), (*cms1.Clause)(nil))
 }
 
 type ContentStore interface {
@@ -33,6 +38,11 @@ type ContentStore interface {
 	GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error)
 	PutClause(ctx context.Context, id string, in cms1.ClauseSet) (obj *cms1.Clause, err error)
 	DeleteClause(ctx context.Context, id string) error
+
+	ListChannel(ctx context.Context, spec *ChannelSpec) (data cms1.Channels, total int, err error)
+	GetChannel(ctx context.Context, id string) (obj *cms1.Channel, err error)
+	PutChannel(ctx context.Context, id string, in cms1.ChannelSet) (obj *cms1.Channel, err error)
+	DeleteChannel(ctx context.Context, id string) error
 
 	ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error)
 	GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error)
@@ -56,6 +66,27 @@ type ClauseSpec struct {
 func (spec *ClauseSpec) Sift(q *ormQuery) *ormQuery {
 	q = spec.ModelSpec.Sift(q)
 	q, _ = siftMatch(q, "text", spec.Text, false)
+
+	return q
+}
+
+type ChannelSpec struct {
+	PageSpec
+	ModelSpec
+
+	// 自定义短ID
+	Slug string `extensions:"x-order=A" form:"slug" json:"key"`
+	// 父级ID
+	ParentID string `extensions:"x-order=B" form:"parentID" json:"parentID"`
+	// 名称
+	Name string `extensions:"x-order=C" form:"name" json:"name"`
+}
+
+func (spec *ChannelSpec) Sift(q *ormQuery) *ormQuery {
+	q = spec.ModelSpec.Sift(q)
+	q, _ = siftEqual(q, "slug", spec.Slug, false)
+	q, _ = siftOID(q, "parent_id", spec.ParentID, false)
+	q, _ = siftEqual(q, "name", spec.Name, false)
 
 	return q
 }
@@ -164,6 +195,35 @@ func (s *contentStore) PutClause(ctx context.Context, id string, in cms1.ClauseS
 }
 func (s *contentStore) DeleteClause(ctx context.Context, id string) error {
 	obj := new(cms1.Clause)
+	return s.w.db.DeleteModel(ctx, obj, id)
+}
+
+func (s *contentStore) ListChannel(ctx context.Context, spec *ChannelSpec) (data cms1.Channels, total int, err error) {
+	total, err = s.w.db.ListModel(ctx, spec, &data)
+	return
+}
+func (s *contentStore) GetChannel(ctx context.Context, id string) (obj *cms1.Channel, err error) {
+	obj = new(cms1.Channel)
+	if err = dbGet(ctx, s.w.db, obj, "slug = ?", id); err != nil {
+		err = s.w.db.GetModel(ctx, obj, id)
+	}
+
+	return
+}
+func (s *contentStore) PutChannel(ctx context.Context, id string, in cms1.ChannelSet) (obj *cms1.Channel, err error) {
+	if in.Slug == nil || *in.Slug == "" {
+		err = fmt.Errorf("need slug")
+		return
+	}
+	if len(id) > 0 {
+		obj, err = pgx.StoreWithSet[*cms1.Channel](ctx, s.w.db, in, id)
+	} else {
+		obj, err = pgx.StoreWithSet[*cms1.Channel](ctx, s.w.db, in, *in.Slug, "slug")
+	}
+	return
+}
+func (s *contentStore) DeleteChannel(ctx context.Context, id string) error {
+	obj := new(cms1.Channel)
 	return s.w.db.DeleteModel(ctx, obj, id)
 }
 

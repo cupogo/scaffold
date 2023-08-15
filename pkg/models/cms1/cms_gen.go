@@ -7,6 +7,114 @@ import (
 	oid "github.com/cupogo/andvari/models/oid"
 )
 
+// consts of Channel 频道
+const (
+	ChannelTable = "cms_channel"
+	ChannelAlias = "c"
+	ChannelLabel = "channel"
+)
+
+// Channel 频道
+type Channel struct {
+	comm.BaseModel `bun:"table:cms_channel,alias:c" json:"-"`
+
+	comm.DefaultModel
+
+	ChannelBasic
+
+	comm.MetaField
+} // @name cms1Channel
+
+type ChannelBasic struct {
+	// 自定义短ID
+	Slug string `bun:"slug,notnull,type:name,unique" extensions:"x-order=A" form:"slug" json:"key" pg:"slug,notnull,type:name,unique"`
+	// 父级ID
+	ParentID oid.OID `bun:",notnull" extensions:"x-order=B" json:"parentID" pg:",notnull,use_zero"`
+	// 名称
+	Name string `bun:",notnull" extensions:"x-order=C" form:"name" json:"name" pg:",notnull"`
+	// 描述
+	Description string `bun:",notnull" extensions:"x-order=D" form:"description" json:"description,omitempty" pg:",notnull,use_zero"`
+	// for meta update
+	MetaDiff *comm.MetaDiff `bson:"-" bun:"-" json:"metaUp,omitempty" pg:"-" swaggerignore:"true"`
+} // @name cms1ChannelBasic
+
+type Channels []Channel
+
+// Creating function call to it's inner fields defined hooks
+func (z *Channel) Creating() error {
+	if z.IsZeroID() {
+		z.SetID(oid.NewID(oid.OtArticle))
+	}
+
+	return z.DefaultModel.Creating()
+}
+func NewChannelWithBasic(in ChannelBasic) *Channel {
+	obj := &Channel{
+		ChannelBasic: in,
+	}
+	_ = obj.MetaUp(in.MetaDiff)
+	return obj
+}
+func NewChannelWithID(id any) *Channel {
+	obj := new(Channel)
+	_ = obj.SetID(id)
+	return obj
+}
+func (_ *Channel) IdentityLabel() string {
+	return ChannelLabel
+}
+func (_ *Channel) IdentityTable() string {
+	return ChannelTable
+}
+func (_ *Channel) IdentityAlias() string {
+	return ChannelAlias
+}
+
+type ChannelSet struct {
+	// 自定义短ID
+	Slug *string `extensions:"x-order=A" json:"key"`
+	// 父级ID
+	ParentID *string `extensions:"x-order=B" json:"parentID"`
+	// 名称
+	Name *string `extensions:"x-order=C" json:"name"`
+	// 描述
+	Description *string `extensions:"x-order=D" json:"description,omitempty"`
+	// for meta update
+	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
+} // @name cms1ChannelSet
+
+func (z *Channel) SetWith(o ChannelSet) {
+	if o.Slug != nil && z.Slug != *o.Slug {
+		z.LogChangeValue("slug", z.Slug, o.Slug)
+		z.Slug = *o.Slug
+	}
+	if o.ParentID != nil {
+		if id := oid.Cast(*o.ParentID); z.ParentID != id {
+			z.LogChangeValue("parent_id", z.ParentID, id)
+			z.ParentID = id
+		}
+	}
+	if o.Name != nil && z.Name != *o.Name {
+		z.LogChangeValue("name", z.Name, o.Name)
+		z.Name = *o.Name
+	}
+	if o.Description != nil && z.Description != *o.Description {
+		z.LogChangeValue("description", z.Description, o.Description)
+		z.Description = *o.Description
+	}
+	if o.MetaDiff != nil && z.MetaUp(o.MetaDiff) {
+		z.SetChange("meta")
+	}
+}
+func (in *ChannelBasic) MetaAddKVs(args ...any) *ChannelBasic {
+	in.MetaDiff = comm.MetaDiffAddKVs(in.MetaDiff, args...)
+	return in
+}
+func (in *ChannelSet) MetaAddKVs(args ...any) *ChannelSet {
+	in.MetaDiff = comm.MetaDiffAddKVs(in.MetaDiff, args...)
+	return in
+}
+
 // consts of Article 文章
 const (
 	ArticleTable = "cms_article"
@@ -76,6 +184,9 @@ func (_ *Article) IdentityTable() string {
 }
 func (_ *Article) IdentityAlias() string {
 	return ArticleAlias
+}
+func (_ *Article) WithFK() bool {
+	return true
 }
 
 type ArticleSet struct {

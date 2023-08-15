@@ -5,9 +5,41 @@ depends:
 
 modelpkg: cms1
 models:
+  - name: Channel
+    comment: '频道'
+    tableTag: 'cms_channel,alias:c'
+    fields:
+      - name: comm.DefaultModel
+      - comment: 自定义短ID
+        name: Slug
+        type: string
+        tags: {json: 'key', pg: 'slug,notnull,type:name,unique', form: 'slug' }
+        isset: true
+        query: 'equal'
+      - comment: 父级ID
+        name: ParentID
+        type: oid.OID
+        tags: {json: 'parentID', pg: ',notnull,use_zero'}
+        isset: true
+        query: 'equal'
+      - comment: 名称
+        name: Name
+        type: string
+        tags: {json: 'name', pg: ',notnull'}
+        isset: true
+        query: 'equal'
+      - comment: 描述
+        name: Description
+        type: string
+        tags: {json: 'description,omitempty', pg: ',notnull,use_zero'}
+        isset: true
+      - type: comm.MetaField
+    oidcat: article
+
   - name: Article
     comment: '文章'
     tableTag: 'cms_article,alias:a'
+    withFK: true
     fields:
       - name: comm.DefaultModel
       - comment: 作者
@@ -129,6 +161,7 @@ stores:
   - name: contentStore
     hods:
       - { name: Clause, type: LGPD }
+      - { name: Channel, type: LGPD }
       - { name: Article, type: LGCUD, export: CU }
       - { name: Attachment, type: LGCD, export: C }
 

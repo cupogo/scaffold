@@ -26,6 +26,7 @@ type Model struct {
 	SpecUp     string   `yaml:"specUp,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
+	WithForeignKey bool `yaml:"withFK,omitempty"`         // 允许在创建时关联外键
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
 	WithColumnList bool `yaml:"withColumnList,omitempty"` // List时允许定制列
 	DbTriggerSave  bool `yaml:"dbTriggerSave,omitempty"`  // 已存在保存时生效的数据表触发器
@@ -319,6 +320,13 @@ func (m *Model) Codes() jen.Code {
 	}
 	if ic := m.identityCode(); ic != nil {
 		st.Add(ic)
+	}
+
+	if m.WithForeignKey {
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("WithFK").Params().Bool().Block(jen.Return(jen.Lit(true)))
+		st.Line()
 	}
 
 	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 {
