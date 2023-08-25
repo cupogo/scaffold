@@ -16,9 +16,11 @@ type ResultData = resp.ResultData
 type ResultID = resp.ResultID
 type ResultOk = resp.ResultOk
 
+type HandlerFunc = gin.HandlerFunc
+
 var handles = []handleIn{}
 
-type haFunc func(a *api) gin.HandlerFunc
+type haFunc func(a *api) HandlerFunc
 
 type handleIn struct {
 	auth   bool
@@ -33,7 +35,7 @@ func regHI(auth bool, method string, path string, rid string, hafn haFunc) {
 }
 
 // nolint
-func route(r gin.IRoutes, method, path string, hs ...gin.HandlerFunc) {
+func route(r gin.IRoutes, method, path string, hs ...HandlerFunc) {
 	switch method {
 	case http.MethodPost:
 		r.Handle(http.MethodPost, path, hs...)

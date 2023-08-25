@@ -9,19 +9,19 @@ import (
 )
 
 func init() {
-	regHI(true, "GET", "/accounts", "v1-accounts-get", func(a *api) gin.HandlerFunc {
+	regHI(true, "GET", "/accounts", "v1-accounts-get", func(a *api) HandlerFunc {
 		return a.getAccounts
 	})
-	regHI(true, "GET", "/accounts/:id", "v1-accounts-id-get", func(a *api) gin.HandlerFunc {
+	regHI(true, "GET", "/accounts/:id", "v1-accounts-id-get", func(a *api) HandlerFunc {
 		return a.getAccount
 	})
-	regHI(true, "POST", "/accounts", "v1-accounts-post", func(a *api) gin.HandlerFunc {
+	regHI(true, "POST", "/accounts", "v1-accounts-post", func(a *api) HandlerFunc {
 		return a.postAccount
 	})
-	regHI(true, "PUT", "/accounts/:id", "v1-accounts-id-put", func(a *api) gin.HandlerFunc {
+	regHI(true, "PUT", "/accounts/:id", "v1-accounts-id-put", func(a *api) HandlerFunc {
 		return a.putAccount
 	})
-	regHI(true, "DELETE", "/accounts/:id", "v1-accounts-id-delete", func(a *api) gin.HandlerFunc {
+	regHI(true, "DELETE", "/accounts/:id", "v1-accounts-id-delete", func(a *api) HandlerFunc {
 		return a.deleteAccount
 	})
 }
