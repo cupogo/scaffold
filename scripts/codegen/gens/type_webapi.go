@@ -588,7 +588,7 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 			uri, method := h.GenPathMethod()
 			g.Id("regHI").Call(
 				jen.Lit(h.NeedAuth), jen.Lit(method), jen.Lit(uri), jen.Lit(h.GetPermID()),
-				jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("HandlerFunc").Block(
+				jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("gin.HandlerFunc").Block(
 					jen.Return(jen.Id("a."+h.Name)),
 				),
 			)
@@ -596,7 +596,7 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 			if !h.NoPost && strings.HasPrefix(h.Method, "Put") && strings.HasSuffix(uri, "/:id") {
 				g.Id("regHI").Call(
 					jen.Lit(h.NeedAuth), jen.Lit("POST"), jen.Lit(uri[0:len(uri)-4]), jen.Lit(h.GetPermID()),
-					jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("HandlerFunc").Block(
+					jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("gin.HandlerFunc").Block(
 						jen.Return(jen.Id("a."+h.Name)),
 					),
 				)
