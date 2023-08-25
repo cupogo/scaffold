@@ -63,8 +63,9 @@ type UriSpot struct {
 	NeedAuth bool `yaml:"needAuth,omitempty"`
 	NeedPerm bool `yaml:"needPerm,omitempty"`
 	NoPost   bool `yaml:"noPost,omitempty"`
-	Auth     bool `yaml:"auth,omitempty"` // old
-	Perm     bool `yaml:"perm,omitempty"` // old
+	NotNull  bool `yaml:"notnull,omitempty"` // for list
+	Auth     bool `yaml:"auth,omitempty"`    // old
+	Perm     bool `yaml:"perm,omitempty"`    // old
 }
 
 type WebAPI struct {
@@ -188,6 +189,7 @@ type Handle struct {
 
 	act  string // action
 	mona string // model name
+	mth  Method
 
 	wa *WebAPI
 }
@@ -378,6 +380,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 		log.Printf("unknown method: %s", h.Method)
 		return nil
 	}
+	h.mth = mth
 	if !h.cuted() {
 		log.Printf("cut method %s fail", h.Method)
 		return nil
@@ -530,6 +533,11 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	g.If(jen.Err().Op("!=").Nil()).Block(
 		jfails(503)...,
 	).Line()
+	if h.NotNull {
+		g.If(jen.Id("data").Op("==").Nil()).Block(
+			jen.Id("data").Op("=").Id(h.mth.Rets[0].Type).Block(),
+		)
+	}
 	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
 }
 
