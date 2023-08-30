@@ -947,16 +947,48 @@ func (m *Model) dbTxFn() string {
 	return "RunInTx"
 }
 
+func (m *Model) jvdbcall(c rune) (db jen.Code, cn string, isBson bool) {
+	if m.IsBsonable() { // mongodb
+		isBson = true
+		db = jen.Id("s.w.mdb")
+		switch c {
+		case 'L':
+			cn = "mgList"
+		case 'C':
+			cn = "mgCreate"
+		case 'U':
+			cn = "mgUpdate"
+		case 'D':
+			cn = "s.w.deleteModel"
+		case 'G':
+			cn = "mgGet"
+		}
+	} else { // pgx
+		db = jen.Id("s").Dot("w").Dot("db")
+		switch c {
+		case 'L':
+			cn = "s.w.db.ListModel"
+		case 'C':
+			cn = "dbInsert"
+		case 'U':
+			cn = "dbUpdate"
+		case 'D':
+			cn = "s.w.db.DeleteModel"
+		case 'G':
+			cn = "dbGet"
+		}
+	}
+	return
+}
+
 func (m *Model) codeStoreList(mth Method) ([]jen.Code, []jen.Code, *jen.Statement) {
 	// TODO: export
 	jdataptr := jen.Op("&").Id("data")
 	jspec := jen.Id("spec")
-	mList := "s.w.db.ListModel"
+	swdb, mList, isBson := m.jvdbcall('L')
 	jargs := []jen.Code{jen.Id("ctx")}
-	if m.IsBsonable() {
-		swdb = jen.Id("s.w.mdb")
+	if isBson {
 		jargs = append(jargs, swdb, jen.Qual(m.getIPath(), m.Name+"Collection"), jspec, jdataptr)
-		mList = "mgList"
 	} else {
 		jargs = append(jargs, jspec, jdataptr)
 	}
@@ -1011,10 +1043,9 @@ func (mod *Model) codeStoreGet(mth Method) ([]jen.Code, []jen.Code, *jen.Stateme
 		jen.BlockFunc(func(g *jen.Group) {
 			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
 			jload := jen.Id("err").Op("=")
-			fnGet := "dbGet"
+			swdb, fnGet, isBson := mod.jvdbcall('G')
 
-			if mod.IsBsonable() {
-				fnGet = "mgGet"
+			if isBson {
 				jload.Id(fnGet).Call(jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
 			} else {
 				jload.Add(swdb).Dot("GetModel").Call(
@@ -1100,10 +1131,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	isPG10 := mod.doc.IsPG10()
 	unfd, isuniq := mod.UniqueOne()
 
-	fnCreate := "dbInsert"
-	if mod.IsBsonable() {
-		fnCreate = "mgCreate"
-	}
+	swdb, fnCreate, _ := mod.jvdbcall('C')
 
 	arg = []jen.Code{jen.Id("in").Qual(mod.getIPath(), tname)}
 	ret = []jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
@@ -1215,10 +1243,9 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, addition jen.Code, blkc *jen.Statement) {
 	fnGet := "getModelWithPKID"
-	fnUpdate := "dbUpdate"
-	if mod.IsBsonable() {
+	swdb, fnUpdate, isBson := mod.jvdbcall('U')
+	if isBson {
 		fnGet = "mgGet"
-		fnUpdate = "mgUpdate"
 	}
 	hkBU, okBU := mod.hasStoreHook(beforeUpdating)
 	hkAU, okAU := mod.hasStoreHook(afterUpdating)
@@ -1475,11 +1502,8 @@ func (mod *Model) codeStorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 }
 
 func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
-	mDelete := "s.w.db.DeleteModel"
-	if mod.IsBsonable() {
-		swdb = jen.Id("s.w.mdb")
-		mDelete = "s.w.deleteModel"
-	}
+	swdb, mDelete, _ := mod.jvdbcall('D')
+
 	jqual := jen.Qual(mod.getIPath(), mod.Name)
 	jtabl := jen.Qual(mod.getIPath(), mod.Name+"Table")
 	return []jen.Code{jen.Id("id").String()},
