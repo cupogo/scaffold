@@ -951,31 +951,13 @@ func (m *Model) jvdbcall(c rune) (db jen.Code, cn string, isBson bool) {
 	if m.IsBsonable() { // mongodb
 		isBson = true
 		db = jen.Id("s.w.mdb")
-		switch c {
-		case 'L':
-			cn = "mgList"
-		case 'C':
-			cn = "mgCreate"
-		case 'U':
-			cn = "mgUpdate"
-		case 'D':
-			cn = "s.w.deleteModel"
-		case 'G':
-			cn = "mgGet"
+		if s, ok := methodsMongo[c]; ok {
+			cn = s
 		}
 	} else { // pgx
 		db = jen.Id("s").Dot("w").Dot("db")
-		switch c {
-		case 'L':
-			cn = "s.w.db.ListModel"
-		case 'C':
-			cn = "dbInsert"
-		case 'U':
-			cn = "dbUpdate"
-		case 'D':
-			cn = "s.w.db.DeleteModel"
-		case 'G':
-			cn = "dbGet"
+		if s, ok := methodsPGx[c]; ok {
+			cn = s
 		}
 	}
 	return
