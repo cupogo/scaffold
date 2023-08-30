@@ -135,7 +135,7 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ad
 	// 	log.Print("get qual comm fail")
 	// }
 
-	for _, mth := range s.Methods {
+	for i, mth := range s.Methods {
 
 		var args, rets []jen.Code
 		var addition jen.Code
@@ -150,36 +150,35 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ad
 		case "Get":
 			args, rets, blkcode = mod.codeStoreGet(mth)
 			blocks = append(blocks, blkcode)
-			nap = append(nap, false)
 		case "List":
 			tcs = append(tcs, mod.getSpecCodes())
 			args, rets, blkcode = mod.codeStoreList(mth)
 			blocks = append(blocks, blkcode)
-			nap = append(nap, false)
 		case "Create":
 			args, rets, addition, blkcode = mod.codeStoreCreate(mth)
 			additions = append(additions, addition)
 			blocks = append(blocks, blkcode)
-			nap = append(nap, false)
 		case "Update":
 			args, rets, addition, blkcode = mod.codeStoreUpdate(mth)
 			additions = append(additions, addition)
 			blocks = append(blocks, blkcode)
-			nap = append(nap, false)
 		case "Put":
 			args, rets, blkcode = mod.codeStorePut(mth.Simple)
 			blocks = append(blocks, blkcode)
-			nap = append(nap, false)
-
 		case "Delete":
 			args, rets, blkcode = mod.codeStoreDelete()
 			blocks = append(blocks, blkcode.Line())
-			nap = append(nap, true)
 		default:
 			log.Printf("unknown action: %s", mth.action)
 			blocks = append(blocks, jen.Block())
+		}
+
+		if i < len(s.Methods)-1 && s.Methods[i+1].model != mth.model {
+			nap = append(nap, true)
+		} else {
 			nap = append(nap, false)
 		}
+
 		args = append([]jen.Code{jen.Id("ctx").Qual("context", "Context")}, args...)
 		mcs = append(mcs, jen.Id(mth.Name).Params(args...).Params(rets...))
 	}
