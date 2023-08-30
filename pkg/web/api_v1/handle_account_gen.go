@@ -9,26 +9,26 @@ import (
 )
 
 func init() {
-	regHI(true, "GET", "/accounts", "v1-accounts-get", func(a *api) HandlerFunc {
+	regHI(true, "GET", "/accounts", "v1-accounts-get", func(a *api) gin.HandlerFunc {
 		return a.getAccounts
 	})
-	regHI(true, "GET", "/accounts/:id", "v1-accounts-id-get", func(a *api) HandlerFunc {
+	regHI(true, "GET", "/accounts/:id", "v1-accounts-id-get", func(a *api) gin.HandlerFunc {
 		return a.getAccount
 	})
-	regHI(true, "POST", "/accounts", "v1-accounts-post", func(a *api) HandlerFunc {
+	regHI(true, "POST", "/accounts", "v1-accounts-post", func(a *api) gin.HandlerFunc {
 		return a.postAccount
 	})
-	regHI(true, "PUT", "/accounts/:id", "v1-accounts-id-put", func(a *api) HandlerFunc {
+	regHI(true, "PUT", "/accounts/:id", "v1-accounts-id-put", func(a *api) gin.HandlerFunc {
 		return a.putAccount
 	})
-	regHI(true, "DELETE", "/accounts/:id", "v1-accounts-id-delete", func(a *api) HandlerFunc {
+	regHI(true, "DELETE", "/accounts/:id", "v1-accounts-id-delete", func(a *api) gin.HandlerFunc {
 		return a.deleteAccount
 	})
 }
 
 // @Tags Cupola-accounts
 // @ID v1-accounts-get
-// @Summary 列出账号
+// @Summary 列出账号 🔑
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -58,7 +58,7 @@ func (a *api) getAccounts(c *gin.Context) {
 
 // @Tags Cupola-accounts
 // @ID v1-accounts-id-get
-// @Summary 获取账号
+// @Summary 获取账号 🔑
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -82,7 +82,7 @@ func (a *api) getAccount(c *gin.Context) {
 
 // @Tags Cupola-accounts
 // @ID v1-accounts-post
-// @Summary 录入账号
+// @Summary 录入账号 🔑
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -111,7 +111,7 @@ func (a *api) postAccount(c *gin.Context) {
 
 // @Tags Cupola-accounts
 // @ID v1-accounts-id-put
-// @Summary 更新账号
+// @Summary 更新账号 🔑
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -142,7 +142,7 @@ func (a *api) putAccount(c *gin.Context) {
 
 // @Tags Cupola-accounts
 // @ID v1-accounts-id-delete
-// @Summary 删除账号
+// @Summary 删除账号 🔑
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"

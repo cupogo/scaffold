@@ -296,7 +296,11 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	} else if h.act == "Update" && h.IsBatchUpdate() {
 		st.Comment("@Description 本接口支持批量更新，路径中传入的主键以逗号分隔，同时使用数组实体，返回结果也为数组").Line()
 	}
-	st.Comment("@Summary " + h.Summary).Line()
+	var suffix string
+	if h.NeedPerm {
+		suffix = " 🔑"
+	}
+	st.Comment("@Summary " + h.Summary + suffix).Line()
 	st.Comment("@Accept " + h.GetAccept()).Line()
 	st.Comment("@Produce " + h.GetProduce()).Line()
 	if h.NeedAuth || h.NeedPerm {

@@ -81,7 +81,7 @@ func (a *api) getCmsClause(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-clauses-id-put
-// @Summary 录入内容条款
+// @Summary 录入内容条款 🔑
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -141,7 +141,7 @@ func (a *api) getCmsClauses(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-clauses-id-delete
-// @Summary 删除内容条款
+// @Summary 删除内容条款 🔑
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -216,7 +216,7 @@ func (a *api) getContentArticle(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-post
 // @Description 本接口支持批量创建，传入数组实体，返回结果也为数组
-// @Summary 录入文章
+// @Summary 录入文章 🔑
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -267,7 +267,7 @@ func (a *api) postContentArticle(c *gin.Context) {
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-id-put
 // @Description 本接口支持批量更新，路径中传入的主键以逗号分隔，同时使用数组实体，返回结果也为数组
-// @Summary 更新文章
+// @Summary 更新文章 🔑
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -311,7 +311,7 @@ func (a *api) putContentArticle(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-articles-id-delete
-// @Summary 删除文章
+// @Summary 删除文章 🔑
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -385,7 +385,7 @@ func (a *api) getContentAttachment(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-attachments-post
-// @Summary 录入附件
+// @Summary 录入附件 🔑
 // @Accept json,mpfd
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
@@ -414,7 +414,7 @@ func (a *api) postContentAttachment(c *gin.Context) {
 
 // @Tags 默认 文档生成
 // @ID v1-cms-attachments-id-delete
-// @Summary 删除附件
+// @Summary 删除附件 🔑
 // @Accept json
 // @Produce json
 // @Param token    header   string  true "登录票据凭证"
