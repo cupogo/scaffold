@@ -1044,7 +1044,7 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 				args = append(args, jen.Lit(ukey), jen.Id("id"))
 			} else {
 				ukey = uf.Column
-				fnGet2 = "getModelWith"
+				fnGet2 = "dbGetWith"
 				args = append(args, jen.Lit(ukey), jen.Lit(uf.Op()), jen.Id("id"))
 			}
 			if mth.Export {
@@ -1115,7 +1115,7 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 					}
 					g2.If(jen.Id("rn").Op("==").Lit(rf.Name).Op("&&").Add(jck)).Block(
 						jen.Id("ro").Op(":=").New(rf.typeCode(mod.getIPath())),
-						jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
+						jen.If(jen.Err().Op("=").Id("dbGetWithPKID").Call(
 							jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(lastName)).Op(";").Err().Op("==").Nil()).Block(
 							jen.Id("obj").Dot(rf.Name).Op("=").Id("ro"),
 							jen.Continue(),
@@ -1256,7 +1256,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 }
 
 func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, addition jen.Code, blkc *jen.Statement) {
-	fnGet := "getModelWithPKID"
+	fnGet := "dbGetWithPKID"
 	swdb, fnUpdate, isBson := mod.jvdbcall('U')
 	if isBson {
 		fnGet = "mgGet"
@@ -1528,7 +1528,7 @@ func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 			hkBD, okBD := mod.hasStoreHook(beforeDeleting)
 			hkAD, okAD := mod.hasStoreHook(afterDeleting)
 			if okBD || okAD {
-				g.If(jen.Id("err").Op(":=").Id("getModelWithPKID").Call(
+				g.If(jen.Id("err").Op(":=").Id("dbGetWithPKID").Call(
 					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"),
 				).Op(";").Id("err").Op("!=").Nil()).Block(jen.Return(jen.Err()))
 
@@ -1659,6 +1659,6 @@ func (m *Model) metaAddCodes() (st *jen.Statement) {
 
 func (m *Model) codeMetaUp(g *jen.Group, jdb jen.Code, id string) {
 	if m.hasMeta() && !m.IsBsonable() {
-		g.Id("dbOpModelMeta").Call(jen.Id("ctx"), jdb, jen.Id(id))
+		g.Id("dbMetaUp").Call(jen.Id("ctx"), jdb, jen.Id(id))
 	}
 }
