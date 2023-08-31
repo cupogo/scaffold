@@ -2,7 +2,6 @@
 package gens
 
 import (
-	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -1017,88 +1016,121 @@ func (m *Model) codeStoreList(mth Method) ([]jen.Code, []jen.Code, *jen.Statemen
 		})
 }
 
-func (mod *Model) codeStoreGet(mth Method) ([]jen.Code, []jen.Code, *jen.Statement) {
-	// TODO: export
+func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addition jen.Code, blkcode *jen.Statement) {
+
 	utilsQual, _ := mod.doc.getQual("utils")
-	return []jen.Code{jen.Id("id").String()},
-		[]jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()},
-		jen.BlockFunc(func(g *jen.Group) {
-			g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
-			jload := jen.Id("err").Op("=")
-			swdb, fnGet, isBson := mod.jvdbcall('G')
+	arg = []jen.Code{jen.Id("id").String()}
+	ret = []jen.Code{jen.Id("obj").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
 
+	jload := jen.Id("err").Op("=")
+	swdb, fnGet, isBson := mod.jvdbcall('G')
+
+	jaf := func(g *jen.Group, jdb jen.Code) {
+		g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
+
+		args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj"), jen.Id("id")}
+		if mth.Export {
+			args = append(args, jen.Id("cols").Op("..."))
+		}
+		jload.Id(fnGet).Call(args...)
+		if uf, isuniq := mod.UniqueOne(); isuniq {
+			args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
+			var ukey string
+			var fnGet2 string
+			// ukey := fmt.Sprintf("%s %s ?", uf.Column, uf.Op())
 			if isBson {
-				jload.Id(fnGet).Call(jen.Id("ctx"), swdb, jen.Id("obj"), jen.Id("id"))
+				ukey, _ = uf.BsonName()
+				fnGet2 = fnGet
+				args = append(args, jen.Lit(ukey), jen.Id("id"))
 			} else {
-				jload.Add(swdb).Dot("GetModel").Call(
-					jen.Id("ctx"), jen.Id("obj"), jen.Id("id"))
+				ukey = uf.Column
+				fnGet2 = "getModelWith"
+				args = append(args, jen.Lit(ukey), jen.Lit(uf.Op()), jen.Id("id"))
 			}
-			if uf, isuniq := mod.UniqueOne(); isuniq {
-				ukey := fmt.Sprintf("%s %s ?", uf.Column, uf.Op())
-				if mod.IsBsonable() {
-					ukey, _ = uf.BsonName()
-				}
-				g.If(jen.Err().Op("=").Id(fnGet).Call(
-					jen.Id("ctx"), swdb, jen.Id("obj"), jen.Lit(ukey), jen.Id("id"),
-				).Op(";").Err().Op("!=").Nil()).Block(jload)
-			} else {
-				g.Add(jload)
+			if mth.Export {
+				args = append(args, jen.Id("cols").Op("..."))
 			}
+			g.If(jen.Err().Op("=").Id(fnGet2).Call(args...).
+				Op(";").Err().Op("!=").Nil()).Block(jload)
+		} else {
+			g.Add(jload)
+		}
+	}
+	if mth.Export {
+		args := []jen.Code{jactx, jadbO}
+		args = append(args, arg...)
+		args = append(args, jen.Id("cols").Op("...").String())
+		addition = jen.Func().Id(mth.Name).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
+			jaf(g, jen.Id("db"))
+			g.Return()
+		}).Line()
+	}
 
-			jer := jen.Empty()
+	blkcode = jen.BlockFunc(func(g *jen.Group) {
+		if mth.Export && !isBson {
+			args := []jen.Code{jen.Id("ctx"), swdb, jen.Id("id")}
+			if mth.ColGet {
+				args = append(args, jen.Id("ColumnsFromContext").Call(jen.Id("ctx")).Op("..."))
+			}
+			g.Id("obj").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
+		} else {
+			jaf(g, swdb)
+		}
+		jer := jen.Empty()
+		if mod.doc.hasQualErrors() {
+			jer.If(jen.Err().Op("==").Id("ErrNotFound")).Block(
+				jen.Err().Op("=").Add(mod.doc.qual("errors.NewErrNotFound")).
+					Call(jen.Lit(mod.getLabel()), jen.Id("id")),
+			)
+		}
+
+		if hkEL, okEL := mod.hasStoreHook(errorLoad); okEL {
+			g.If(jen.Err().Op("!=").Nil()).Block(
+				jen.Err().Op("=").Id("s").Dot(hkEL).Call(jen.Id("ctx"), jen.Id("id"), jen.Err(), jen.Id("obj")),
+			)
+		}
+
+		if hkAL, okAL := mod.hasStoreHook(afterLoad); okAL {
+			g.If(jen.Err().Op("==").Nil()).Block(
+				jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("obj")),
+			)
 			if mod.doc.hasQualErrors() {
-				jer.If(jen.Err().Op("==").Id("ErrNotFound")).Block(
-					jen.Err().Op("=").Add(mod.doc.qual("errors.NewErrNotFound")).
-						Call(jen.Lit(mod.getLabel()), jen.Id("id")),
-				)
-			}
-
-			if hkEL, okEL := mod.hasStoreHook(errorLoad); okEL {
-				g.If(jen.Err().Op("!=").Nil()).Block(
-					jen.Err().Op("=").Id("s").Dot(hkEL).Call(jen.Id("ctx"), jen.Id("id"), jen.Err(), jen.Id("obj")),
-				)
-			}
-
-			if hkAL, okAL := mod.hasStoreHook(afterLoad); okAL {
-				g.If(jen.Err().Op("==").Nil()).Block(
-					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("obj")),
-				)
-				if mod.doc.hasQualErrors() {
-					g.Add(jer)
-				}
-			} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
-				g.If(jen.Err().Op("!=").Nil()).BlockFunc(func(g1 *jen.Group) {
-					if mod.doc.hasQualErrors() {
-						g1.Add(jer)
-					}
-					g1.Return()
-				})
-				g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
-					for _, rf := range rels {
-						lastName := rf.Name + "ID"
-						var jck jen.Code
-						if fieldI, ok := mod.Fields.withName(lastName); ok && fieldI.isOID() {
-							jck = jen.Id("obj." + lastName).Dot("Valid").Call()
-						} else {
-							jck = jen.Op("!").Qual(utilsQual, "IsZero").Call(jen.Id("obj." + lastName))
-						}
-						g2.If(jen.Id("rn").Op("==").Lit(rf.Name).Op("&&").Add(jck)).Block(
-							jen.Id("ro").Op(":=").New(rf.typeCode(mod.getIPath())),
-							jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
-								jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(lastName)).Op(";").Err().Op("==").Nil()).Block(
-								jen.Id("obj").Dot(rf.Name).Op("=").Id("ro"),
-								jen.Continue(),
-							),
-						)
-					}
-
-				})
-			} else {
 				g.Add(jer)
 			}
+		} else if rels := mod.Fields.relHasOne(); len(rels) > 0 {
+			g.If(jen.Err().Op("!=").Nil()).BlockFunc(func(g1 *jen.Group) {
+				if mod.doc.hasQualErrors() {
+					g1.Add(jer)
+				}
+				g1.Return()
+			})
+			g.For().Op("_,").Id("rn").Op(":=").Range().Id("RelationFromContext").Call(jen.Id("ctx")).BlockFunc(func(g2 *jen.Group) {
+				for _, rf := range rels {
+					lastName := rf.Name + "ID"
+					var jck jen.Code
+					if fieldI, ok := mod.Fields.withName(lastName); ok && fieldI.isOID() {
+						jck = jen.Id("obj." + lastName).Dot("Valid").Call()
+					} else {
+						jck = jen.Op("!").Qual(utilsQual, "IsZero").Call(jen.Id("obj." + lastName))
+					}
+					g2.If(jen.Id("rn").Op("==").Lit(rf.Name).Op("&&").Add(jck)).Block(
+						jen.Id("ro").Op(":=").New(rf.typeCode(mod.getIPath())),
+						jen.If(jen.Err().Op("=").Id("getModelWithPKID").Call(
+							jen.Id("ctx"), swdb, jen.Id("ro"), jen.Id("obj").Dot(lastName)).Op(";").Err().Op("==").Nil()).Block(
+							jen.Id("obj").Dot(rf.Name).Op("=").Id("ro"),
+							jen.Continue(),
+						),
+					)
+				}
 
-			g.Return()
-		})
+			})
+		} else {
+			g.Add(jer)
+		}
+
+		g.Return()
+	})
+	return
 }
 
 func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, addition jen.Code, blkcode *jen.Statement) {

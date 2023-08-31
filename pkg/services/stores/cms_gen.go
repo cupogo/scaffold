@@ -185,7 +185,7 @@ func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data c
 }
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
-	err = s.w.db.GetModel(ctx, obj, id)
+	err = getModelWithPKID(ctx, s.w.db, obj, id)
 
 	return
 }
@@ -204,8 +204,8 @@ func (s *contentStore) ListChannel(ctx context.Context, spec *ChannelSpec) (data
 }
 func (s *contentStore) GetChannel(ctx context.Context, id string) (obj *cms1.Channel, err error) {
 	obj = new(cms1.Channel)
-	if err = dbGet(ctx, s.w.db, obj, "slug = ?", id); err != nil {
-		err = s.w.db.GetModel(ctx, obj, id)
+	if err = getModelWith(ctx, s.w.db, obj, "slug", "=", id); err != nil {
+		err = getModelWithPKID(ctx, s.w.db, obj, id)
 	}
 
 	return
@@ -242,7 +242,7 @@ func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
 	obj = new(cms1.Article)
-	err = s.w.db.GetModel(ctx, obj, id)
+	err = getModelWithPKID(ctx, s.w.db, obj, id)
 	if err == nil {
 		err = s.afterLoadArticle(ctx, obj)
 	}
@@ -291,7 +291,7 @@ func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec)
 }
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
 	obj = new(cms1.Attachment)
-	err = s.w.db.GetModel(ctx, obj, id)
+	err = getModelWithPKID(ctx, s.w.db, obj, id)
 
 	return
 }

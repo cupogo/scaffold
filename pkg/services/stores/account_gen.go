@@ -67,10 +67,7 @@ func (s *accountStore) ListAccount(ctx context.Context, spec *AccountSpec) (data
 	return
 }
 func (s *accountStore) GetAccount(ctx context.Context, id string) (obj *accounts.Account, err error) {
-	obj = new(accounts.Account)
-	if err = dbGet(ctx, s.w.db, obj, "username ILIKE ?", id); err != nil {
-		err = s.w.db.GetModel(ctx, obj, id)
-	}
+	obj, err = GetAccount(ctx, s.w.db, id, ColumnsFromContext(ctx)...)
 	if err == nil {
 		err = s.afterLoadAccount(ctx, obj)
 	}
@@ -116,4 +113,12 @@ func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accounts
 func (s *accountStore) DeleteAccount(ctx context.Context, id string) error {
 	obj := new(accounts.Account)
 	return s.w.db.DeleteModel(ctx, obj, id)
+}
+
+func GetAccount(ctx context.Context, db ormDB, id string, cols ...string) (obj *accounts.Account, err error) {
+	obj = new(accounts.Account)
+	if err = getModelWith(ctx, db, obj, "username", "ILIKE", id, cols...); err != nil {
+		err = getModelWithPKID(ctx, db, obj, id, cols...)
+	}
+	return
 }

@@ -47,6 +47,7 @@ var (
 	getModelWithPKID   = pgx.ModelWithPKID
 	getModelWithPKOID  = pgx.ModelWithPKID
 	getModelWithUnique = pgx.ModelWithUnique
+	getModelWith       = pgx.ModelWith
 	dbInsert           = pgx.DoInsert
 	dbUpdate           = pgx.DoUpdate
 	dbDeleteT          = pgx.DoDeleteT

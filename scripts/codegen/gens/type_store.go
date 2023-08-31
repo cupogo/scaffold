@@ -27,6 +27,7 @@ type Hod struct {
 	Name   string `yaml:"name"`
 	Value  string `yaml:"type"` // GLCUD,GLPD
 	Export string `yaml:"export,omitempty"`
+	ColGet bool   `yaml:"colget,omitempty"`
 }
 
 type Method struct {
@@ -35,6 +36,7 @@ type Method struct {
 	Args   []Var  `yaml:"args,omitempty"`
 	Rets   []Var  `yaml:"rets,omitempty"`
 	Export bool   `yaml:"export,omitempty"` // export for db ops
+	ColGet bool   `yaml:"colget,omitempty"` // get with column select
 
 	action string
 	model  string
@@ -108,7 +110,9 @@ func (s *Store) prepareMethods() {
 				k := a + m
 				if _, ok := s.allMM[k]; !ok {
 					export := strings.ContainsRune(hod.Export, c)
-					s.Methods = append(s.Methods, newMethod(a, m, export))
+					mth := newMethod(a, m, export)
+					mth.ColGet = hod.ColGet
+					s.Methods = append(s.Methods, mth)
 					s.allMM[k] = true
 				}
 			}
@@ -148,7 +152,8 @@ func (s *Store) Interfaces(modelpkg string) (tcs, mcs []jen.Code, nap []bool, ad
 
 		switch mth.action {
 		case "Get":
-			args, rets, blkcode = mod.codeStoreGet(mth)
+			args, rets, addition, blkcode = mod.codeStoreGet(mth)
+			additions = append(additions, addition)
 			blocks = append(blocks, blkcode)
 		case "List":
 			tcs = append(tcs, mod.getSpecCodes())

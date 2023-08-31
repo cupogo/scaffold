@@ -20,6 +20,6 @@ var (
 		'C': "dbInsert",
 		'U': "dbUpdate",
 		'D': "s.w.db.DeleteModel",
-		'G': "dbGet",
+		'G': "getModelWithPKID",
 	}
 )

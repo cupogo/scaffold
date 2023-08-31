@@ -122,7 +122,8 @@ models:
 stores:
   - name: accountStore
     embed: AccountStoreX
-    hodBread: [ Account ]
+    hods:
+     - { name: Account, type: LGCUD, export: G, colget: true }
 
 webapi:
   pkg: api_v1
