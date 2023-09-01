@@ -83,7 +83,7 @@ func (s *accountStore) CreateAccount(ctx context.Context, in accounts.AccountBas
 		if err = dbBeforeCreateAccount(ctx, tx, obj); err != nil {
 			return
 		}
-		dbOpModelMeta(ctx, tx, obj)
+		dbMetaUp(ctx, tx, obj)
 		err = dbInsert(ctx, tx, obj, "username")
 		if err == nil {
 			err = dbAfterSaveAccount(ctx, tx, obj)
@@ -95,7 +95,7 @@ func (s *accountStore) CreateAccount(ctx context.Context, in accounts.AccountBas
 func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accounts.AccountSet) error {
 	return s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		exist := new(accounts.Account)
-		if err = getModelWithPKID(ctx, tx, exist, id); err != nil {
+		if err = dbGetWithPKID(ctx, tx, exist, id); err != nil {
 			return err
 		}
 		exist.SetWith(in)
@@ -103,7 +103,7 @@ func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accounts
 		if err = dbBeforeUpdateAccount(ctx, tx, exist); err != nil {
 			return err
 		}
-		dbOpModelMeta(ctx, tx, exist)
+		dbMetaUp(ctx, tx, exist)
 		if err = dbUpdate(ctx, tx, exist); err != nil {
 			return err
 		}
@@ -117,8 +117,8 @@ func (s *accountStore) DeleteAccount(ctx context.Context, id string) error {
 
 func GetAccount(ctx context.Context, db ormDB, id string, cols ...string) (obj *accounts.Account, err error) {
 	obj = new(accounts.Account)
-	if err = getModelWith(ctx, db, obj, "username", "ILIKE", id, cols...); err != nil {
-		err = getModelWithPKID(ctx, db, obj, id, cols...)
+	if err = dbGetWith(ctx, db, obj, "username", "ILIKE", id, cols...); err != nil {
+		err = dbGetWithPKID(ctx, db, obj, id, cols...)
 	}
 	return
 }

@@ -185,7 +185,7 @@ func (s *contentStore) ListClause(ctx context.Context, spec *ClauseSpec) (data c
 }
 func (s *contentStore) GetClause(ctx context.Context, id string) (obj *cms1.Clause, err error) {
 	obj = new(cms1.Clause)
-	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	err = dbGetWithPKID(ctx, s.w.db, obj, id)
 
 	return
 }
@@ -204,8 +204,8 @@ func (s *contentStore) ListChannel(ctx context.Context, spec *ChannelSpec) (data
 }
 func (s *contentStore) GetChannel(ctx context.Context, id string) (obj *cms1.Channel, err error) {
 	obj = new(cms1.Channel)
-	if err = getModelWith(ctx, s.w.db, obj, "slug", "=", id); err != nil {
-		err = getModelWithPKID(ctx, s.w.db, obj, id)
+	if err = dbGetWith(ctx, s.w.db, obj, "slug", "=", id); err != nil {
+		err = dbGetWithPKID(ctx, s.w.db, obj, id)
 	}
 
 	return
@@ -242,7 +242,7 @@ func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data
 }
 func (s *contentStore) GetArticle(ctx context.Context, id string) (obj *cms1.Article, err error) {
 	obj = new(cms1.Article)
-	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	err = dbGetWithPKID(ctx, s.w.db, obj, id)
 	if err == nil {
 		err = s.afterLoadArticle(ctx, obj)
 	}
@@ -270,7 +270,7 @@ func (s *contentStore) UpdateArticle(ctx context.Context, id string, in cms1.Art
 }
 func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 	obj := new(cms1.Article)
-	if err := getModelWithPKID(ctx, s.w.db, obj, id); err != nil {
+	if err := dbGetWithPKID(ctx, s.w.db, obj, id); err != nil {
 		return err
 	}
 	if err := s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
@@ -291,7 +291,7 @@ func (s *contentStore) ListAttachment(ctx context.Context, spec *AttachmentSpec)
 }
 func (s *contentStore) GetAttachment(ctx context.Context, id string) (obj *cms1.Attachment, err error) {
 	obj = new(cms1.Attachment)
-	err = getModelWithPKID(ctx, s.w.db, obj, id)
+	err = dbGetWithPKID(ctx, s.w.db, obj, id)
 
 	return
 }
@@ -314,7 +314,7 @@ func CreateArticle(ctx context.Context, db ormDB, in cms1.ArticleBasic) (obj *cm
 	if err = dbBeforeSaveArticle(ctx, db, obj); err != nil {
 		return
 	}
-	dbOpModelMeta(ctx, db, obj)
+	dbMetaUp(ctx, db, obj)
 	err = dbInsert(ctx, db, obj)
 	if err == nil {
 		err = dbAfterCreateArticle(ctx, db, obj)
@@ -323,7 +323,7 @@ func CreateArticle(ctx context.Context, db ormDB, in cms1.ArticleBasic) (obj *cm
 }
 func UpdateArticle(ctx context.Context, db ormDB, id string, in cms1.ArticleSet) (exist *cms1.Article, err error) {
 	exist = new(cms1.Article)
-	if err = getModelWithPKID(ctx, db, exist, id); err != nil {
+	if err = dbGetWithPKID(ctx, db, exist, id); err != nil {
 		return
 	}
 	exist.SetWith(in)
@@ -336,7 +336,7 @@ func UpdateArticle(ctx context.Context, db ormDB, id string, in cms1.ArticleSet)
 	if err = dbBeforeSaveArticle(ctx, db, exist); err != nil {
 		return
 	}
-	dbOpModelMeta(ctx, db, exist)
+	dbMetaUp(ctx, db, exist)
 	if err = dbUpdate(ctx, db, exist); err != nil {
 		return
 	}
@@ -345,7 +345,7 @@ func UpdateArticle(ctx context.Context, db ormDB, id string, in cms1.ArticleSet)
 }
 func CreateAttachment(ctx context.Context, db ormDB, in cms1.AttachmentBasic) (obj *cms1.Attachment, err error) {
 	obj = cms1.NewAttachmentWithBasic(in)
-	dbOpModelMeta(ctx, db, obj)
+	dbMetaUp(ctx, db, obj)
 	err = dbInsert(ctx, db, obj)
 	return
 }
