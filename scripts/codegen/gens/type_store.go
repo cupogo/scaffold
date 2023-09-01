@@ -105,6 +105,9 @@ func (s *Store) prepareMethods() {
 	for _, hod := range s.Hods {
 		m := hod.Name
 		s.hodMn[m] = true
+		if len(hod.Value) == 0 {
+			hod.Value = "GLCUD"
+		}
 		for _, c := range hod.Value {
 			if a, ok := hods[c]; ok {
 				k := a + m
