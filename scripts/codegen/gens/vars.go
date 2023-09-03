@@ -13,7 +13,7 @@ var (
 		'C': "mgCreate",
 		'U': "mgUpdate",
 		'D': "s.w.deleteModel",
-		'G': "mgGet",
+		'G': "mgGetWithID",
 	}
 	methodsPGx = map[rune]string{
 		'L': "s.w.db.ListModel",

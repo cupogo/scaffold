@@ -1029,7 +1029,7 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 		g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
 
 		args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj"), jen.Id("id")}
-		if mth.Export {
+		if mth.Export || mth.ColGet {
 			args = append(args, jen.Id("cols").Op("..."))
 		}
 		jload.Id(fnGet).Call(args...)
@@ -1040,14 +1040,14 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 			// ukey := fmt.Sprintf("%s %s ?", uf.Column, uf.Op())
 			if isBson {
 				ukey, _ = uf.BsonName()
-				fnGet2 = fnGet
+				fnGet2 = "mgGetWithKey"
 				args = append(args, jen.Lit(ukey), jen.Id("id"))
 			} else {
 				ukey = uf.Column
 				fnGet2 = "dbGetWith"
 				args = append(args, jen.Lit(ukey), jen.Lit(uf.Op()), jen.Id("id"))
 			}
-			if mth.Export {
+			if mth.Export || mth.ColGet {
 				args = append(args, jen.Id("cols").Op("..."))
 			}
 			g.If(jen.Err().Op("=").Id(fnGet2).Call(args...).
@@ -1074,6 +1074,9 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 			}
 			g.Id("obj").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
 		} else {
+			if mth.ColGet {
+				g.Id("cols").Op(":=").Id("ColumnsFromContext").Call(jen.Id("ctx"))
+			}
 			jaf(g, swdb)
 		}
 		jer := jen.Empty()
