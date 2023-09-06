@@ -176,8 +176,11 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 		} else {
 			code.Op("*").Id(tn)
 		}
-		if s, ok := field.Tags["json"]; ok {
-			tags := Tags{"json": s}
+		tags := field.Tags.Copy()
+		tags.CleanKeys("bson", "bun", "pg")
+		if tags.Has("json") {
+			tags.FillKey("form", "json")
+			// tags := Tags{"json": s}
 			tags.extOrder(idx)
 			code.Tag(tags)
 		}

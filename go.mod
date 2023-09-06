@@ -1,6 +1,6 @@
 module github.com/cupogo/scaffold
 
-go 1.20
+go 1.21
 
 require (
 	github.com/cupogo/andvari v0.0.0-20230814120631-735d5a87741f

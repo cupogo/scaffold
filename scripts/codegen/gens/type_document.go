@@ -7,6 +7,7 @@ import (
 	"go/ast"
 	"go/types"
 	"log"
+	"maps"
 	"os"
 	"os/exec"
 	"path"
@@ -38,11 +39,34 @@ type Tags map[string]string
 
 // Copy ...
 func (m Tags) Copy() (out Tags) {
-	out = Tags{}
-	for k, v := range m {
-		out[k] = v
+	return maps.Clone(m)
+}
+
+func (m Tags) CleanKeys(keys ...string) {
+	maps.DeleteFunc(m, func(k, v string) bool {
+		for _, s := range keys {
+			if s == k {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func (m Tags) GetVal(key string) (val string, ok bool) {
+	if val, ok = m[key]; ok {
+		var a string
+		if a, _, ok = strings.Cut(val, ","); ok {
+			val = a
+		}
 	}
 	return
+}
+
+func (m Tags) FillKey(dst, src string) {
+	if val, ok := m.GetVal(src); ok {
+		m[dst] = val
+	}
 }
 
 func (m Tags) Has(k string) bool {
