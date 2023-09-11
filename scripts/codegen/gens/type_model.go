@@ -179,7 +179,9 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 		tags := field.Tags.Copy()
 		tags.CleanKeys("bson", "bun", "pg", "binding", "validate")
 		if tags.Has("json") {
-			tags.FillKey("form", "json")
+			if field.isScalar() {
+				tags.FillKey("form", "json")
+			}
 			// tags := Tags{"json": s}
 			tags.extOrder(idx)
 			code.Tag(tags)
