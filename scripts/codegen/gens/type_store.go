@@ -52,6 +52,7 @@ type Store struct {
 	SIName   string   `yaml:"siname,omitempty"`
 	Methods  []Method `yaml:"methods"`
 	Embed    string   `yaml:"embed,omitempty"`
+	Embeds   []string `yaml:"embeds,omitempty"`
 	HodBread []string `yaml:"hodBread,omitempty"`
 	HodPrdb  []string `yaml:"hodPrdb,omitempty"`
 	HodGL    []string `yaml:"hodGL,omitempty"` // Get and List 只读（含列表）
@@ -216,7 +217,18 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 	}
 	tcs, mcs, nap, additions, bcs := s.Interfaces(modelpkg)
 	var ics []jen.Code
-	if len(s.Embed) > 0 {
+	if len(s.Embeds) > 0 {
+		var foundX bool
+		for _, em := range s.Embeds {
+			if len(em) > 0 {
+				foundX = true
+				ics = append(ics, jen.Id(em))
+			}
+		}
+		if foundX {
+			ics = append(ics, jen.Line())
+		}
+	} else if len(s.Embed) > 0 {
 		ics = append(ics, jen.Id(s.Embed).Line())
 	}
 	for i := range mcs {
