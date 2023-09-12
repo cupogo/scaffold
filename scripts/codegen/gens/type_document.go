@@ -384,7 +384,7 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 
 func (doc *Document) modelAliasable(name string) bool {
 	for _, m := range doc.Models {
-		if m.Name == name || strings.HasPrefix(name, m.Name) {
+		if m.Name == name || strings.HasPrefix(name, m.Name) && len(name)-len(m.Name) <= 2 {
 			return true
 		}
 	}

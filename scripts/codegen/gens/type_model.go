@@ -162,7 +162,12 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 		if field.isScalar() {
 			jcond.Op("&&").Id("z").Dot(field.Name).Op("!=").Op("*").Id("o").Dot(field.Name)
 		} else if field.Compare == CompareEqualTo {
-			jcond.Op("&&!").Id("z").Dot(field.Name).Dot("EqualTo").Call(jen.Id("o").Dot(field.Name))
+			jarg := jen.Empty()
+			if isptr {
+				jarg.Op("*")
+			}
+			jarg.Id("z").Dot(field.Name)
+			jcond.Op("&&!").Id("o").Dot(field.Name).Dot("EqualTo").Call(jarg)
 		}
 
 		if qn == "oid" && tn == "OID" {
