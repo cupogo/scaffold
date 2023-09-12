@@ -12,22 +12,15 @@ import (
 )
 
 // type Article = cms1.Article
-// type ArticleBasic = cms1.ArticleBasic
-// type ArticleSet = cms1.ArticleSet
 // type Articles = cms1.Articles
 // type Attachment = cms1.Attachment
-// type AttachmentBasic = cms1.AttachmentBasic
-// type AttachmentSet = cms1.AttachmentSet
 // type Attachments = cms1.Attachments
 // type Channel = cms1.Channel
-// type ChannelBasic = cms1.ChannelBasic
-// type ChannelSet = cms1.ChannelSet
 // type Channels = cms1.Channels
 // type Clause = cms1.Clause
-// type ClauseBasic = cms1.ClauseBasic
-// type ClauseSet = cms1.ClauseSet
 // type Clauses = cms1.Clauses
 // type File = cms1.File
+// type Files = cms1.Files
 
 func init() {
 	RegisterModel((*cms1.Channel)(nil), (*cms1.Article)(nil), (*cms1.Attachment)(nil), (*cms1.Clause)(nil))

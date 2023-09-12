@@ -382,16 +382,26 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 	return &Model{}, false
 }
 
-func (doc *Document) modelAliasable(name string) bool {
-	for _, m := range doc.Models {
-		if m.Name == name || strings.HasPrefix(name, m.Name) && len(name)-len(m.Name) <= 2 {
-			return true
-		}
-	}
-	return false
+type Alias struct {
+	Name   string
+	Export bool
 }
 
-func (doc *Document) loadModPkg() (ipath string, aliases []string) {
+type Aliases []Alias
+
+func (doc *Document) allModelAliases() (aa Aliases) {
+	for _, m := range doc.Models {
+		aa = append(aa, Alias{
+			Name: m.Name, Export: m.ExportSingle,
+		}, Alias{
+			Name: m.GetPlural(), Export: m.ExportPlural,
+		})
+
+	}
+	return
+}
+
+func (doc *Document) loadModPkg() (ipath string) {
 	mpkg := loadPackage(doc.dirmod)
 	// log.Printf("loaded mpkg: %s name %q: files %q,%q", mpkg.ID, mpkg.Types.Name(), mpkg.GoFiles, mpkg.CompiledGoFiles)
 	// log.Printf("types: %+v, ", mpkg.Types)
@@ -400,40 +410,35 @@ func (doc *Document) loadModPkg() (ipath string, aliases []string) {
 
 	doc.lock.Lock()
 	doc.Qualified[doc.ModelPkg] = mpkg.ID
-	for i, f := range mpkg.Syntax {
-		// log.Printf("gofile: %s,", mpkg.CompiledGoFiles[i])
-		var ismods bool
-		if path.Base(mpkg.CompiledGoFiles[i]) == doc.gened {
-			ismods = true
-		}
+	for _, f := range mpkg.Syntax {
 		for k, o := range f.Scope.Objects {
 			if o.Kind == ast.Typ {
 				doc.modtypes[k] = empty{}
-				if ismods && doc.modelAliasable(k) {
-					aliases = append(aliases, k)
-				}
 			}
 
 		}
 	}
 	doc.lock.Unlock()
-
-	sort.Strings(aliases)
-
 	return
 }
 
 func (doc *Document) genStores(dropfirst bool) (err error) {
-	ipath, aliases := doc.loadModPkg()
+	ipath := doc.loadModPkg()
 
 	sgf := jen.NewFile(storepkg)
 	sgf.HeaderComment(headerComment)
 
 	sgf.ImportName(ipath, doc.ModelPkg)
 
+	aliases := doc.allModelAliases()
+	sort.SliceStable(aliases, func(i, j int) bool { return aliases[i].Name < aliases[j].Name })
 	for _, k := range aliases {
-		// sgf.Type().Id(k).Op("=").Qual(ipath, k)
-		sgf.Comment(jen.Type().Id(k).Op("=").Qual(ipath, k).GoString())
+		jal := jen.Type().Id(k.Name).Op("=").Qual(ipath, k.Name)
+		if k.Export {
+			sgf.Add(jal)
+		} else {
+			sgf.Comment(jal.GoString())
+		}
 	}
 	sgf.Line()
 

@@ -105,6 +105,7 @@ models:
       beforeUpdating: yes
       afterSaving: yes
       afterLoad: yes
+    exportSingle: true
 
   - name: AccountPasswd
     comment: '账号密码'

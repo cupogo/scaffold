@@ -8,14 +8,10 @@ import (
 	"github.com/cupogo/scaffold/pkg/models/accounts"
 )
 
-// type Account = accounts.Account
-// type AccountBasic = accounts.AccountBasic
+type Account = accounts.Account
+
 // type AccountPasswd = accounts.AccountPasswd
-// type AccountPasswdBasic = accounts.AccountPasswdBasic
-// type AccountPasswdSet = accounts.AccountPasswdSet
 // type AccountPasswds = accounts.AccountPasswds
-// type AccountSet = accounts.AccountSet
-// type AccountStatus = accounts.AccountStatus
 // type Accounts = accounts.Accounts
 
 func init() {

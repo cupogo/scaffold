@@ -37,6 +37,9 @@ type Model struct {
 	DisableLog     bool `yaml:"disableLog,omitempty"` // 不记录model的日志
 	Bsonable       bool `yaml:"bson,omitempty"`       // for mongodb only
 
+	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store
+	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store
+
 	doc *Document
 	pkg string
 }
