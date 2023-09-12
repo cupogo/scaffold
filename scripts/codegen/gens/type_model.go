@@ -171,6 +171,11 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 			}
 			jarg.Id("z").Dot(field.Name)
 			jcond.Op("&&!").Id("o").Dot(field.Name).Dot("EqualTo").Call(jarg)
+		} else if field.Compare == CompareSliceCmp {
+			jcond.Op("&&").Qual("slices", "Compare").Call(
+				jen.Id("z").Dot(field.Name),
+				jen.Id("*o").Dot(field.Name),
+			).Op("!=0")
 		}
 
 		if qn == "oid" && tn == "OID" {

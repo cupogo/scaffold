@@ -78,8 +78,9 @@ const (
 type CompareType string
 
 const (
-	CompareScalar  CompareType = "scalar"
-	CompareEqualTo CompareType = "equalTo"
+	CompareScalar   CompareType = "scalar"
+	CompareEqualTo  CompareType = "equalTo"
+	CompareSliceCmp CompareType = "sliceCmp"
 )
 
 const (
