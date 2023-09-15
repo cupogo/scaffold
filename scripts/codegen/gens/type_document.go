@@ -393,9 +393,13 @@ func (doc *Document) allModelAliases() (aa Aliases) {
 	for _, m := range doc.Models {
 		aa = append(aa, Alias{
 			Name: m.Name, Export: m.ExportSingle,
-		}, Alias{
-			Name: m.GetPlural(), Export: m.ExportPlural,
 		})
+		mns := m.GetPlural()
+		if mns != m.Name {
+			aa = append(aa, Alias{
+				Name: mns, Export: m.ExportPlural,
+			})
+		}
 
 	}
 	return
