@@ -25,6 +25,8 @@ type Model struct {
 	SpecUp     string   `yaml:"specUp,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
+	WithCompare    bool `yaml:"withCompare,omitempty"`    // 允许实现比较
+	WithPlural     bool `yaml:"withPlural,omitempty"`     // 允许复数定义
 	WithForeignKey bool `yaml:"withFK,omitempty"`         // 允许在创建时关联外键
 	WithColumnGet  bool `yaml:"withColumnGet,omitempty"`  // Get时允许定制列
 	WithColumnList bool `yaml:"withColumnList,omitempty"` // List时允许定制列
@@ -319,7 +321,9 @@ func (m *Model) Codes() jen.Code {
 		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + prefix + basicName)).Line().Line()
 	}
 
-	if plurals := m.GetPlural(); plurals != m.Name && (isTable || m.IsBsonable() || len(m.Plural) > 0) {
+	pluralName := m.GetPlural()
+	withPlual := pluralName != m.Name && (isTable || m.IsBsonable() || len(m.Plural) > 0 || m.WithPlural)
+	if withPlual {
 		st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
 	}
 
@@ -358,6 +362,21 @@ func (m *Model) Codes() jen.Code {
 	}
 	if jc := m.metaAddCodes(); jc != nil {
 		st.Add(jc)
+	}
+	if jc := m.codeEqualTo(); jc != nil {
+		st.Add(jc).Line()
+		if withPlual {
+			st.Func().Params(jen.Id("z").Id(pluralName)).Id("EqualTo").
+				Params(jen.Id("o").Id(pluralName)).Bool().BlockFunc(func(g *jen.Group) {
+				g.If(jen.Len(jen.Id("z")).Op("!=").Len(jen.Id("o"))).Block(
+					jen.Return(jen.False()))
+				g.For(jen.Id("i").Op(":=0;").Id("i").Op("<").Len(jen.Id("z")).Op(";").Id("i").Op("++")).Block(
+					jen.If(jen.Op("!").Id("z").Index(jen.Id("i")).Dot("EqualTo").Call(jen.Id("o").Index(jen.Id("i")))).Block(
+						jen.Return(jen.False())),
+				)
+				g.Return(jen.True())
+			})
+		}
 	}
 	return st
 }
@@ -1682,4 +1701,61 @@ func (m *Model) codeMetaUp(g *jen.Group, jdb jen.Code, id string) {
 	if m.hasMeta() && !m.IsBsonable() {
 		g.Id("dbMetaUp").Call(jen.Id("ctx"), jdb, jen.Id(id))
 	}
+}
+
+func (m *Model) canCompare() bool {
+	if !m.WithCompare {
+		return false
+	}
+	for _, field := range m.Fields {
+		typ := field.getType()
+		if strings.HasSuffix(typ, modelDefault) || strings.HasSuffix(typ, modelDunce) || strings.HasSuffix(typ, modelSerial) {
+			return false
+		}
+		if len(typ) > 0 && typ[0] == '*' { // ptr
+			return false
+		}
+		if !field.isScalar() && len(field.Compare) == 0 {
+			return false
+		}
+	}
+
+	return len(m.Fields) > 0
+}
+
+func (m *Model) codeEqualTo() (st *jen.Statement) {
+	if !m.canCompare() {
+		// log.Printf("model %s cannot compare", m.Name)
+		return
+	}
+	var jelems []jen.Code
+	for _, field := range m.Fields {
+		if field.isScalar() || field.Compare == CompareScalar {
+			jelems = append(jelems, jen.Id("z").Dot(field.Name).Op("==").Id("o").Dot(field.Name))
+		} else if field.Compare == CompareEqualTo {
+			jelems = append(jelems, jen.Id("z").Dot(field.Name).Dot("EqualTo").Call(jen.Id("o").Dot(field.Name)))
+		} else if field.Compare == CompareSliceCmp {
+			jelems = append(jelems, jen.Qual("slices", "Compare").Call(
+				jen.Id("z").Dot(field.Name),
+				jen.Id("*o").Dot(field.Name),
+			).Op("==0"))
+		}
+	}
+	count := len(jelems)
+	if count > 0 {
+		rets := jen.Empty()
+		for i, jel := range jelems {
+			if i > 0 && i < count {
+				rets.Op("&&")
+			}
+			rets.Add(jel)
+		}
+		st = new(jen.Statement)
+		st.Func().Params(
+			jen.Id("z").Id(m.Name)).Id("EqualTo").Params(
+			jen.Id("o").Id(m.Name)).Bool().Block(
+			jen.Return(rets),
+		)
+	}
+	return
 }
