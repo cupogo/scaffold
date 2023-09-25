@@ -104,6 +104,9 @@ func (f *Field) bunPatchTags() (out Tags) {
 		v := out["pg"]
 		out["bun"] = replTrimUseZero.Replace(v)
 	}
+	if f.isOID() && !out.Has(TagSwaggerType) {
+		out[TagSwaggerType] = "string"
+	}
 	return out
 }
 
@@ -271,6 +274,7 @@ func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 		if f.isDate {
 			f.Comment += " + during"
 		}
+		// TODO: insert comments of enum
 	}
 	st := f.preCode()
 	if len(f.qtype) > 0 {
@@ -311,7 +315,7 @@ func (z Fields) Codes(basicName string, bsonable bool) (mcs, bcs []jen.Code) {
 	var idx int
 	for _, field := range z {
 		field.bson = bsonable
-		if !field.isEmbed() {
+		if !field.isEmbed() && !field.Tags.Has(TagSwaggerIgnore) {
 			idx++
 		}
 		if field.IsSet || field.IsBasic {
