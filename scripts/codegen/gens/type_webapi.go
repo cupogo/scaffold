@@ -66,6 +66,9 @@ type UriSpot struct {
 	NotNull  bool `yaml:"notnull,omitempty"` // for list
 	Auth     bool `yaml:"auth,omitempty"`    // old
 	Perm     bool `yaml:"perm,omitempty"`    // old
+
+	DocG string `yaml:"docG,omitempty"`
+	DocL string `yaml:"docL,omitempty"`
 }
 
 type WebAPI struct {
@@ -290,6 +293,12 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 
 	if hid := h.GetPermID(); len(hid) > 0 {
 		st.Comment("@ID " + hid).Line()
+	}
+	if h.act == "Get" {
+		jcodeDesc(st, h.DocG)
+	}
+	if h.act == "List" {
+		jcodeDesc(st, h.DocL)
 	}
 	if h.act == "Create" && h.IsBatchCreate() {
 		st.Comment("@Description 本接口支持批量创建，传入数组实体，返回结果也为数组").Line()

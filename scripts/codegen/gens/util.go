@@ -18,6 +18,7 @@ import (
 	"github.com/dave/dst/decorator/resolver/goast"
 	"github.com/dave/dst/decorator/resolver/guess"
 	"github.com/dave/dst/dstutil"
+	"github.com/dave/jennifer/jen"
 	"github.com/jinzhu/inflection"
 	"golang.org/x/tools/go/packages"
 
@@ -390,4 +391,14 @@ func pickExpr(expr string) (out string, err error) {
 	out = buf.String()
 
 	return
+}
+
+func jcodeDesc(st *jen.Statement, txt string) {
+	if len(txt) > 0 {
+		for _, line := range strings.Split(txt, "\n") {
+			if len(line) > 0 {
+				st.Comment("@Description " + line).Line()
+			}
+		}
+	}
 }

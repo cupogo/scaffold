@@ -73,6 +73,8 @@
 
 - `disableLog`: 布尔类型，不记录模型的日志
 
+- `descr`: 文本类型，类型说明，允许多行，用于`swagger`
+
 **注意**：所有必需的定义都需要可导出，也即首字母为大写
 
 - 大多数模型都会以字段的形式嵌入 `comm.DefaultModel` 这个默认模型结构体，由此会自动添加 `id`,`created`,`updated`和 `creator_id` 等字段，如果继续嵌入 `comm.MetaField` 则会添加 `meta` 支持添加更多元信息
@@ -138,7 +140,7 @@
 - `hods`: 集合类型 详细指定每个数据模型的增删改查列等方法，元素定义如下：
 
     - `name` string： 模型名
-    - `type` string： 具体的方法代号，G=取，L=浏览，C=创建，U=更新，D=删除
+    - `type` string： 具体的方法代号，`G`=取，`L`=浏览，`C`=创建，`U`=更新，`D`=删除
     - `export` string： 是否导出上面的方法
 
 - `methods`: 方法列表，如果提供了`hodBread`或`hodPrdb`，此项可省略，not in `hod*` only

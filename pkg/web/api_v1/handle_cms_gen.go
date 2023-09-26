@@ -362,6 +362,10 @@ func (a *api) getContentAttachments(c *gin.Context) {
 }
 
 // @Tags 默认 文档生成
+// @Description 这里是
+// @Description 多行
+// @Description 注释说明
+// @Description 支持基本的`Markdown`语法
 // @Summary 获取附件
 // @Accept json
 // @Produce json

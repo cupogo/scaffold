@@ -158,17 +158,17 @@ type AccountSet struct {
 	// 昵称
 	Nickname *string `extensions:"x-order=B" json:"nickname"`
 	// 头像路径
-	AvatarPath *string `extensions:"x-order=C" json:"avatar,omitempty"`
+	AvatarPath *string `extensions:"x-order=C" form:"avatar" json:"avatar,omitempty"`
 	// 角色类型: 1=普通账号，2=管理员
-	RoleType *RoleType `extensions:"x-order=D" json:"rt"`
+	RoleType *RoleType `extensions:"x-order=D" json:"rt" swaggertype:"integer"`
 	// 状态: 1=激活，2=禁用
-	Status *AccountStatus `extensions:"x-order=E" json:"status"`
+	Status *AccountStatus `extensions:"x-order=E" json:"status" swaggertype:"integer"`
 	// 邮箱
-	Email *string `extensions:"x-order=F" json:"email,omitempty"`
+	Email *string `extensions:"x-order=F" form:"email" json:"email,omitempty"`
 	// 描述
-	Description *string `extensions:"x-order=G" json:"description,omitempty"`
+	Description *string `extensions:"x-order=G" form:"description" json:"description,omitempty"`
 	// 密码 (仅用于参数传递 Only used for parameter passing.)
-	Password *string `extensions:"x-order=H" json:"password,omitempty"`
+	Password *string `extensions:"x-order=H" form:"password" json:"password,omitempty"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
 } // @name accountsAccountSet

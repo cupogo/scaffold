@@ -23,6 +23,7 @@ type Model struct {
 	SpecExtras Fields   `yaml:"specExtras,omitempty"`
 	Sifters    []string `yaml:"sifters,omitempty"`
 	SpecUp     string   `yaml:"specUp,omitempty"`
+	Descr      string   `yaml:"descr,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
 	WithCompare    bool `yaml:"withCompare,omitempty"`    // 允许实现比较
@@ -310,6 +311,7 @@ func (m *Model) Codes() jen.Code {
 	mcs, bcs := m.Fields.Codes(basicName, m.IsBsonable())
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
+	jcodeDesc(st, m.Descr)
 	var prefix string
 	if m.doc != nil {
 		prefix = m.doc.ModelPkg

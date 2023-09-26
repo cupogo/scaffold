@@ -29,7 +29,7 @@ type ChannelBasic struct {
 	// 自定义短ID
 	Slug string `bun:"slug,notnull,type:name,unique" extensions:"x-order=A" form:"slug" json:"key" pg:"slug,notnull,type:name,unique"`
 	// 父级ID
-	ParentID oid.OID `bun:",notnull" extensions:"x-order=B" json:"parentID" pg:",notnull,use_zero"`
+	ParentID oid.OID `bun:",notnull" extensions:"x-order=B" json:"parentID" pg:",notnull,use_zero" swaggertype:"string"`
 	// 名称
 	Name string `bun:",notnull" extensions:"x-order=C" form:"name" json:"name" pg:",notnull"`
 	// 描述
@@ -72,13 +72,13 @@ func (_ *Channel) IdentityAlias() string {
 
 type ChannelSet struct {
 	// 自定义短ID
-	Slug *string `extensions:"x-order=A" json:"key"`
+	Slug *string `extensions:"x-order=A" form:"slug" json:"key"`
 	// 父级ID
 	ParentID *string `extensions:"x-order=B" json:"parentID"`
 	// 名称
 	Name *string `extensions:"x-order=C" json:"name"`
 	// 描述
-	Description *string `extensions:"x-order=D" json:"description,omitempty"`
+	Description *string `extensions:"x-order=D" form:"description" json:"description,omitempty"`
 	// for meta update
 	MetaDiff *comm.MetaDiff `json:"metaUp,omitempty" swaggerignore:"true"`
 } // @name cms1ChannelSet
@@ -123,6 +123,8 @@ const (
 )
 
 // Article 文章
+// @Description 文章示例
+// @Description 有关说明
 type Article struct {
 	comm.BaseModel `bun:"table:cms_article,alias:a" json:"-"`
 
@@ -147,7 +149,7 @@ type ArticleBasic struct {
 	// 状态
 	Status int16 `bun:",notnull" extensions:"x-order=E" form:"status" json:"status" pg:",notnull,use_zero"`
 	// 作者编号
-	AuthorID oid.OID `bun:",notnull" extensions:"x-order=F" json:"authorID" pg:",notnull,use_zero"`
+	AuthorID oid.OID `bun:",notnull" extensions:"x-order=F" json:"authorID" pg:",notnull,use_zero" swaggertype:"string"`
 	// 来源
 	Src string `bun:",notnull" extensions:"x-order=G" form:"src" json:"src" pg:",notnull,use_zero"`
 	// for meta update
@@ -197,7 +199,7 @@ type ArticleSet struct {
 	// 内容
 	Content *string `extensions:"x-order=C" json:"content"`
 	// 新闻时间
-	NewsPublish *comm.DateTime `extensions:"x-order=D" json:"newsPublish,omitempty"`
+	NewsPublish *comm.DateTime `extensions:"x-order=D" form:"newsPublish" json:"newsPublish,omitempty"`
 	// 状态
 	Status *int16 `extensions:"x-order=E" json:"status"`
 	// 作者编号
@@ -272,7 +274,7 @@ type Attachment struct {
 
 type AttachmentBasic struct {
 	// 文章编号
-	ArticleID oid.OID `bun:",notnull" extensions:"x-order=A" json:"articleID" pg:",notnull"`
+	ArticleID oid.OID `bun:",notnull" extensions:"x-order=A" json:"articleID" pg:",notnull" swaggertype:"string"`
 	// 名称
 	Name string `bun:",notnull" extensions:"x-order=B" form:"name" json:"name" pg:",notnull"`
 	// 类型

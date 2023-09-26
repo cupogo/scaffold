@@ -89,6 +89,9 @@ models:
       - type: comm.MetaField
       - type: comm.TextSearchField
     oidcat: article
+    descr: |
+      文章示例
+      有关说明
     hooks:
       beforeSaving: yes
       afterCreating: yes
@@ -173,6 +176,12 @@ webapi:
       batch: CU
     - model: Attachment
       prefix: '/api/v1/cms'
+      docG: |
+        这里是
+        多行
+        注释说明
+        支持基本的`Markdown`语法
+
   handles:
     - name: getCmsClause
       store: Content
