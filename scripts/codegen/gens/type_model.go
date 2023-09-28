@@ -295,20 +295,21 @@ func (m *Model) Codes() jen.Code {
 	if isTable {
 		cs = append(cs, m.TableField())
 	}
+	bsonable := m.IsBsonable()
 
 	st.Comment("consts of " + m.Name + " " + m.shortComment()).Line()
 	st.Const().DefsFunc(func(g *jen.Group) {
 		if isTable {
 			g.Id(m.Name + "Table").Op("=").Lit(m.tableName())
 			g.Id(m.Name + "Alias").Op("=").Lit(m.tableAlias())
-		} else if m.IsBsonable() {
+		} else if bsonable {
 			g.Id(m.Name + "Collection").Op("=").Lit(m.CollectionName())
 		}
 
 		g.Id(m.Name + "Label").Op("=").Lit(m.getLabel())
 	}).Line()
 
-	mcs, bcs := m.Fields.Codes(basicName, m.IsBsonable())
+	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
 	jcodeDesc(st, m.Descr)
@@ -319,12 +320,12 @@ func (m *Model) Codes() jen.Code {
 
 	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + prefix + m.Name)).Line().Line()
 
-	if len(bcs) > 0 {
+	if len(bcs) > 0 && (isTable || bsonable) {
 		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + prefix + basicName)).Line().Line()
 	}
 
 	pluralName := m.GetPlural()
-	withPlual := pluralName != m.Name && (isTable || m.IsBsonable() || len(m.Plural) > 0 || m.WithPlural)
+	withPlual := pluralName != m.Name && (isTable || bsonable || len(m.Plural) > 0 || m.WithPlural)
 	if withPlual {
 		st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
 	}
@@ -338,9 +339,12 @@ func (m *Model) Codes() jen.Code {
 		).Id("DisableLog").Params().Bool().Block(jen.Return(jen.Lit(true)))
 		st.Line()
 	}
-	if jc := m.basicCodes(); jc != nil {
-		st.Add(jc)
+	if isTable || bsonable {
+		if jc := m.basicCodes(); jc != nil {
+			st.Add(jc)
+		}
 	}
+
 	if ic := m.identityCode(); ic != nil {
 		st.Add(ic)
 	}
@@ -1739,7 +1743,7 @@ func (m *Model) codeEqualTo() (st *jen.Statement) {
 		} else if field.Compare == CompareSliceCmp {
 			jelems = append(jelems, jen.Qual("slices", "Compare").Call(
 				jen.Id("z").Dot(field.Name),
-				jen.Id("*o").Dot(field.Name),
+				jen.Id("o").Dot(field.Name),
 			).Op("==0"))
 		}
 	}

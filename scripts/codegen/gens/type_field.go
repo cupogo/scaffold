@@ -309,7 +309,7 @@ func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 type Fields []Field
 
 // Codes return fields code of main and basic
-func (z Fields) Codes(basicName string, bsonable bool) (mcs, bcs []jen.Code) {
+func (z Fields) Codes(basicName string, isTable, bsonable bool) (mcs, bcs []jen.Code) {
 	var hasMeta bool
 	var setBasic bool
 	var idx int
@@ -318,7 +318,7 @@ func (z Fields) Codes(basicName string, bsonable bool) (mcs, bcs []jen.Code) {
 		if !field.isEmbed() && !field.Tags.Has(TagSwaggerIgnore) {
 			idx++
 		}
-		if field.IsSet || field.IsBasic {
+		if (isTable || bsonable) && (field.IsSet || field.IsBasic) {
 			bcs = append(bcs, field.Code(idx))
 			if !setBasic {
 				stb := jen.Id(basicName)
