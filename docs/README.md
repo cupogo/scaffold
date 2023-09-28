@@ -57,6 +57,14 @@
 
 - `discardUnknown`: 布尔类型，忽略未知的列，只`pg`需要，`bun`设定在连接时
 
+- `exportSingle`: 布尔类型，在stores中导出别名
+
+- `exportPlural`: 布尔类型，在stores中导出别名
+
+- `withCompare`: 布尔类型，允许实现比较
+
+- `withPlural`: 布尔类型，允许复数定义
+
 - `withColumnGet`: 布尔类型，Get时允许定制列
 
 - `dbTriggerSave`: 布尔类型，已存在保存时生效的数据表触发器
