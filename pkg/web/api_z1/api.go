@@ -97,7 +97,7 @@ func (a *api) authPerm(permID string) gin.HandlerFunc {
 // @Description API health check
 // @Produce plain
 // @Success 200 {string} pong
-// @Router /api/c/1/ping [get]
+// @Router /api/ping [get]
 func ping(c *gin.Context) {
 	c.String(200, "pong")
 }
