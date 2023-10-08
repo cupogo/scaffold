@@ -25,13 +25,26 @@ type Permission struct {
 type Permissions []Permission
 
 func main() {
-	doc, err := loadDoc("./docs/swagger.yaml")
+
+	data, err := genPermissions("./docs/swagger.yaml")
+	if err != nil {
+		return
+	}
+	dir := "./database/schemas"
+	if !IsDir(dir) {
+		slog.Warn("directory not found", "dir", dir)
+		return
+	}
+
+	genPermissionSql(data, filepath.Join(dir, "pg_10_auth_permissions.sql"))
+}
+
+func genPermissions(fdoc string) (data Permissions, err error) {
+	doc, err := loadDoc(fdoc)
 	if err != nil {
 		slog.Error("failed", "err", err)
 		return
 	}
-	var data Permissions
-	var ids []string
 	for path, methods := range doc.Paths {
 		for method, entry := range methods {
 			if entry.OperationID == "" { // 跳过无ID的
@@ -44,19 +57,11 @@ func main() {
 			obj.Name = "API: " + entry.Summary
 			obj.IsActive = true
 			data = append(data, *obj)
-			ids = append(ids, entry.OperationID)
 		}
 	}
 
 	sort.Slice(data, func(i, j int) bool { return data[i].ID < data[j].ID })
-
-	dir := "./database/schemas"
-	if !IsDir(dir) {
-		slog.Warn("directory not found", "dir", dir)
-		return
-	}
-
-	genPermissionSql(data, filepath.Join(dir, "pg_10_auth_permissions.sql"))
+	return
 }
 
 func genPermissionSql(perms Permissions, path string) error {
