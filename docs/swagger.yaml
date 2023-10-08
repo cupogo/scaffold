@@ -1,0 +1,1531 @@
+definitions:
+  Meta:
+    additionalProperties: {}
+    type: object
+  accountsAccount:
+    properties:
+      avatar:
+        description: 头像路径
+        type: string
+        x-order: C
+      createdAt:
+        description: 创建时间
+        type: string
+        x-order: '['
+      creatorID:
+        description: 创建者ID
+        type: string
+        x-order: _
+      description:
+        description: 描述
+        type: string
+        x-order: G
+      email:
+        description: 邮箱
+        type: string
+        x-order: F
+      id:
+        description: 主键
+        type: string
+        x-order: /
+      meta:
+        allOf:
+        - $ref: '#/definitions/Meta'
+        description: Meta 元信息
+        x-order: '|'
+      nickname:
+        description: 昵称
+        type: string
+        x-order: B
+      password:
+        description: 密码 (仅用于参数传递 Only used for parameter passing.)
+        type: string
+        x-order: H
+      rt:
+        description: '角色类型: 1=普通账号，2=管理员'
+        type: integer
+        x-order: D
+      status:
+        description: '状态: 1=激活，2=禁用'
+        type: integer
+        x-order: E
+      updatedAt:
+        description: 变更时间
+        type: string
+        x-order: ']'
+      username:
+        description: 登录名 唯一
+        type: string
+        x-order: A
+    type: object
+  accountsAccountBasic:
+    properties:
+      avatar:
+        description: 头像路径
+        type: string
+        x-order: C
+      description:
+        description: 描述
+        type: string
+        x-order: G
+      email:
+        description: 邮箱
+        type: string
+        x-order: F
+      nickname:
+        description: 昵称
+        type: string
+        x-order: B
+      password:
+        description: 密码 (仅用于参数传递 Only used for parameter passing.)
+        type: string
+        x-order: H
+      rt:
+        description: '角色类型: 1=普通账号，2=管理员'
+        type: integer
+        x-order: D
+      status:
+        description: '状态: 1=激活，2=禁用'
+        type: integer
+        x-order: E
+      username:
+        description: 登录名 唯一
+        type: string
+        x-order: A
+    type: object
+  accountsAccountSet:
+    properties:
+      avatar:
+        description: 头像路径
+        type: string
+        x-order: C
+      description:
+        description: 描述
+        type: string
+        x-order: G
+      email:
+        description: 邮箱
+        type: string
+        x-order: F
+      nickname:
+        description: 昵称
+        type: string
+        x-order: B
+      password:
+        description: 密码 (仅用于参数传递 Only used for parameter passing.)
+        type: string
+        x-order: H
+      rt:
+        description: '角色类型: 1=普通账号，2=管理员'
+        type: integer
+        x-order: D
+      status:
+        description: '状态: 1=激活，2=禁用'
+        type: integer
+        x-order: E
+      username:
+        description: 登录名 唯一
+        type: string
+        x-order: A
+    type: object
+  apiv1.Done:
+    properties:
+      extra:
+        description: 附加数据,可选
+      result:
+        description: 主体数据,可选
+      status:
+        description: 状态值，0=ok
+        example: 0
+        type: integer
+      t:
+        description: 时间戳
+        type: integer
+    type: object
+  apiv1.Failure:
+    properties:
+      field:
+        description: 错误字段,可选,多用于表单校验
+        example: 错误字段
+        type: string
+      message:
+        description: 错误信息
+        example: 错误信息
+        type: string
+      status:
+        description: 状态值
+        example: 1
+        type: integer
+      t:
+        description: 时间戳
+        type: integer
+    type: object
+  apiv1.ResultData:
+    properties:
+      data:
+        description: 数据集数组
+      total:
+        description: 符合条件的总记录数
+        type: integer
+    type: object
+  apiv1.ResultID:
+    properties:
+      id:
+        description: 主键值，多数时候是字串
+    type: object
+  cms1Article:
+    description: 文章示例 有关说明
+    properties:
+      author:
+        description: 作者
+        type: string
+        x-order: A
+      authorID:
+        description: 作者编号
+        type: string
+        x-order: F
+      content:
+        description: 内容
+        type: string
+        x-order: C
+      createdAt:
+        description: 创建时间
+        type: string
+        x-order: '['
+      creatorID:
+        description: 创建者ID
+        type: string
+        x-order: _
+      id:
+        description: 主键
+        type: string
+        x-order: /
+      meta:
+        allOf:
+        - $ref: '#/definitions/Meta'
+        description: Meta 元信息
+        x-order: '|'
+      newsPublish:
+        description: 新闻时间
+        type: integer
+        x-order: D
+      src:
+        description: 来源
+        type: string
+        x-order: G
+      status:
+        description: 状态
+        type: integer
+        x-order: E
+      title:
+        description: 标题
+        type: string
+        x-order: B
+      updatedAt:
+        description: 变更时间
+        type: string
+        x-order: ']'
+    type: object
+  cms1ArticleBasic:
+    properties:
+      author:
+        description: 作者
+        type: string
+        x-order: A
+      authorID:
+        description: 作者编号
+        type: string
+        x-order: F
+      content:
+        description: 内容
+        type: string
+        x-order: C
+      newsPublish:
+        description: 新闻时间
+        type: integer
+        x-order: D
+      src:
+        description: 来源
+        type: string
+        x-order: G
+      status:
+        description: 状态
+        type: integer
+        x-order: E
+      title:
+        description: 标题
+        type: string
+        x-order: B
+    type: object
+  cms1ArticleSet:
+    properties:
+      author:
+        description: 作者
+        type: string
+        x-order: A
+      authorID:
+        description: 作者编号
+        type: string
+        x-order: F
+      content:
+        description: 内容
+        type: string
+        x-order: C
+      newsPublish:
+        description: 新闻时间
+        type: integer
+        x-order: D
+      src:
+        description: 来源
+        type: string
+        x-order: G
+      status:
+        description: 状态
+        type: integer
+        x-order: E
+      title:
+        description: 标题
+        type: string
+        x-order: B
+    type: object
+  cms1Attachment:
+    properties:
+      articleID:
+        description: 文章编号
+        type: string
+        x-order: A
+      createdAt:
+        description: 创建时间
+        type: string
+        x-order: '['
+      creatorID:
+        description: 创建者ID
+        type: string
+        x-order: _
+      id:
+        description: 主键
+        type: string
+        x-order: /
+      meta:
+        allOf:
+        - $ref: '#/definitions/Meta'
+        description: Meta 元信息
+        x-order: '|'
+      mime:
+        description: 类型
+        type: string
+        x-order: C
+      name:
+        description: 名称
+        type: string
+        x-order: B
+      path:
+        type: string
+        x-order: D
+      updatedAt:
+        description: 变更时间
+        type: string
+        x-order: ']'
+    type: object
+  cms1AttachmentBasic:
+    properties:
+      articleID:
+        description: 文章编号
+        type: string
+        x-order: A
+      mime:
+        description: 类型
+        type: string
+        x-order: C
+      name:
+        description: 名称
+        type: string
+        x-order: B
+      path:
+        type: string
+        x-order: D
+    type: object
+  cms1Clause:
+    properties:
+      createdAt:
+        description: 创建时间
+        type: string
+        x-order: '['
+      creatorID:
+        description: 创建者ID
+        type: string
+        x-order: _
+      id:
+        description: 主键
+        type: string
+        x-order: /
+      text:
+        type: string
+        x-order: A
+      updatedAt:
+        description: 变更时间
+        type: string
+        x-order: ']'
+    type: object
+  cms1ClauseSet:
+    properties:
+      text:
+        type: string
+        x-order: A
+    type: object
+info:
+  contact: {}
+  description: Cupogo 平台接口文档.
+  title: Cupogo Web API
+  version: "1.0"
+paths:
+  /api/ping:
+    get:
+      description: API health check
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: API health check
+  /api/v1/accounts:
+    get:
+      consumes:
+      - application/json
+      operationId: v1-accounts-get
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 主键编号`ids`（以逗号分隔的字串），仅供 Form 或 Query 使用, example:"aaa,bbb,ccc"
+        example: aaa,bbb,ccc
+        in: query
+        name: ids
+        type: string
+        x-order: "0"
+      - description: 创建者ID
+        in: query
+        name: creatorID
+        type: string
+        x-order: "2"
+      - description: 创建时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: created
+        type: string
+        x-order: "3"
+      - description: 更新时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: updated
+        type: string
+        x-order: "4"
+      - description: IsDelete 查询删除的记录
+        in: query
+        name: isDelete
+        type: boolean
+        x-order: "5"
+      - description: 登录名 唯一
+        in: query
+        name: username
+        type: string
+        x-order: A
+      - description: 昵称
+        in: query
+        name: nickname
+        type: string
+        x-order: B
+      - description: '状态: 1=激活，2=禁用'
+        in: query
+        name: status
+        type: integer
+        x-order: C
+      - description: 邮箱
+        in: query
+        name: email
+        type: string
+        x-order: D
+      - description: 全部字段
+        in: query
+        name: all
+        type: boolean
+        x-order: E
+      - description: 第几页
+        example: 1
+        in: query
+        name: page
+        type: integer
+        x-order: '['
+      - description: 跳过多少条记录，如果提供 page 此项跳过
+        in: query
+        name: skip
+        type: integer
+        x-order: ']'
+      - description: 分页大小，默认20
+        in: query
+        name: limit
+        type: integer
+        x-order: _
+      - description: 排序，允许最多两个字段排序 field1 [asc | desc] [,field2 [asc | desc] ...]
+        in: query
+        name: sort
+        type: string
+        x-order: '|'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  allOf:
+                  - $ref: '#/definitions/apiv1.ResultData'
+                  - properties:
+                      data:
+                        items:
+                          $ref: '#/definitions/accountsAccount'
+                        type: array
+                    type: object
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "列出账号 \U0001F511"
+      tags:
+      - Cupola-accounts
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      operationId: v1-accounts-post
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Object
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/accountsAccountBasic'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/apiv1.ResultID'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "录入账号 \U0001F511"
+      tags:
+      - Cupola-accounts
+  /api/v1/accounts/{id}:
+    delete:
+      consumes:
+      - application/json
+      operationId: v1-accounts-id-delete
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apiv1.Done'
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "删除账号 \U0001F511"
+      tags:
+      - Cupola-accounts
+    get:
+      consumes:
+      - application/json
+      operationId: v1-accounts-id-get
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/accountsAccount'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "获取账号 \U0001F511"
+      tags:
+      - Cupola-accounts
+    put:
+      consumes:
+      - application/json
+      - multipart/form-data
+      operationId: v1-accounts-id-put
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Object
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/accountsAccountSet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  type: string
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "更新账号 \U0001F511"
+      tags:
+      - Cupola-accounts
+  /api/v1/cms/articles:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 主键编号`ids`（以逗号分隔的字串），仅供 Form 或 Query 使用, example:"aaa,bbb,ccc"
+        example: aaa,bbb,ccc
+        in: query
+        name: ids
+        type: string
+        x-order: "0"
+      - description: 创建者ID
+        in: query
+        name: creatorID
+        type: string
+        x-order: "2"
+      - description: 创建时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: created
+        type: string
+        x-order: "3"
+      - description: 更新时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: updated
+        type: string
+        x-order: "4"
+      - description: IsDelete 查询删除的记录
+        in: query
+        name: isDelete
+        type: boolean
+        x-order: "5"
+      - description: 关键词搜索
+        in: query
+        name: skw
+        type: string
+        x-order: "8"
+      - description: 匹配风格 `web` `plain` `valid` 或空
+        enum:
+        - ""
+        - web
+        - plain
+        in: query
+        name: sst
+        type: string
+        x-order: "9"
+      - description: 作者
+        in: query
+        name: author
+        type: string
+        x-order: A
+      - description: 标题
+        in: query
+        name: title
+        type: string
+        x-order: B
+      - description: 新闻时间 + during
+        in: query
+        name: newsPublish
+        type: string
+        x-order: C
+      - description: 状态 (多值逗号分隔)
+        in: query
+        name: statuses
+        type: string
+        x-order: D
+      - description: 状态
+        in: query
+        name: status
+        type: integer
+        x-order: E
+      - description: 作者编号
+        in: query
+        name: authorID
+        type: string
+        x-order: F
+      - description: 来源 (多值逗号分隔)
+        in: query
+        name: srcs
+        type: string
+        x-order: G
+      - description: 来源
+        in: query
+        name: src
+        type: string
+        x-order: H
+      - description: include relation column
+        in: query
+        name: rel
+        type: string
+        x-order: I
+      - description: 第几页
+        example: 1
+        in: query
+        name: page
+        type: integer
+        x-order: '['
+      - description: 跳过多少条记录，如果提供 page 此项跳过
+        in: query
+        name: skip
+        type: integer
+        x-order: ']'
+      - description: 分页大小，默认20
+        in: query
+        name: limit
+        type: integer
+        x-order: _
+      - description: 排序，允许最多两个字段排序 field1 [asc | desc] [,field2 [asc | desc] ...]
+        in: query
+        name: sort
+        type: string
+        x-order: '|'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  allOf:
+                  - $ref: '#/definitions/apiv1.ResultData'
+                  - properties:
+                      data:
+                        items:
+                          $ref: '#/definitions/cms1Article'
+                        type: array
+                    type: object
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: 列出文章
+      tags:
+      - 默认 文档生成
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: 本接口支持批量创建，传入数组实体，返回结果也为数组
+      operationId: v1-cms-articles-post
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Object
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/cms1ArticleBasic'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/apiv1.ResultID'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "录入文章 \U0001F511"
+      tags:
+      - 默认 文档生成
+  /api/v1/cms/articles/{id}:
+    delete:
+      consumes:
+      - application/json
+      operationId: v1-cms-articles-id-delete
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apiv1.Done'
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "删除文章 \U0001F511"
+      tags:
+      - 默认 文档生成
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/cms1Article'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: 获取文章
+      tags:
+      - 默认 文档生成
+    put:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: 本接口支持批量更新，路径中传入的主键以逗号分隔，同时使用数组实体，返回结果也为数组
+      operationId: v1-cms-articles-id-put
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Object
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/cms1ArticleSet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  type: string
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "更新文章 \U0001F511"
+      tags:
+      - 默认 文档生成
+  /api/v1/cms/attachments:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 主键编号`ids`（以逗号分隔的字串），仅供 Form 或 Query 使用, example:"aaa,bbb,ccc"
+        example: aaa,bbb,ccc
+        in: query
+        name: ids
+        type: string
+        x-order: "0"
+      - description: 创建者ID
+        in: query
+        name: creatorID
+        type: string
+        x-order: "2"
+      - description: 创建时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: created
+        type: string
+        x-order: "3"
+      - description: 更新时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: updated
+        type: string
+        x-order: "4"
+      - description: IsDelete 查询删除的记录
+        in: query
+        name: isDelete
+        type: boolean
+        x-order: "5"
+      - description: 文章编号
+        in: query
+        name: articleID
+        type: string
+        x-order: A
+      - description: 名称
+        in: query
+        name: name
+        type: string
+        x-order: B
+      - description: 类型
+        in: query
+        name: mime
+        type: string
+        x-order: C
+      - in: query
+        name: path
+        type: string
+        x-order: D
+      - description: 第几页
+        example: 1
+        in: query
+        name: page
+        type: integer
+        x-order: '['
+      - description: 跳过多少条记录，如果提供 page 此项跳过
+        in: query
+        name: skip
+        type: integer
+        x-order: ']'
+      - description: 分页大小，默认20
+        in: query
+        name: limit
+        type: integer
+        x-order: _
+      - description: 排序，允许最多两个字段排序 field1 [asc | desc] [,field2 [asc | desc] ...]
+        in: query
+        name: sort
+        type: string
+        x-order: '|'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  allOf:
+                  - $ref: '#/definitions/apiv1.ResultData'
+                  - properties:
+                      data:
+                        items:
+                          $ref: '#/definitions/cms1Attachment'
+                        type: array
+                    type: object
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: 列出附件
+      tags:
+      - 默认 文档生成
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      operationId: v1-cms-attachments-post
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Object
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/cms1AttachmentBasic'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/apiv1.ResultID'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "录入附件 \U0001F511"
+      tags:
+      - 默认 文档生成
+  /api/v1/cms/attachments/{id}:
+    delete:
+      consumes:
+      - application/json
+      operationId: v1-cms-attachments-id-delete
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apiv1.Done'
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "删除附件 \U0001F511"
+      tags:
+      - 默认 文档生成
+    get:
+      consumes:
+      - application/json
+      description: |-
+        这里是
+        多行
+        注释说明
+        支持基本的`Markdown`语法
+      parameters:
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/cms1Attachment'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: 获取附件
+      tags:
+      - 默认 文档生成
+  /api/v1/cms/clauses:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 主键编号`ids`（以逗号分隔的字串），仅供 Form 或 Query 使用, example:"aaa,bbb,ccc"
+        example: aaa,bbb,ccc
+        in: query
+        name: ids
+        type: string
+        x-order: "0"
+      - description: 创建者ID
+        in: query
+        name: creatorID
+        type: string
+        x-order: "2"
+      - description: 创建时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: created
+        type: string
+        x-order: "3"
+      - description: 更新时间 形式： yyyy-mm-dd, 1_day, 2_weeks, 3_months
+        in: query
+        name: updated
+        type: string
+        x-order: "4"
+      - description: IsDelete 查询删除的记录
+        in: query
+        name: isDelete
+        type: boolean
+        x-order: "5"
+      - in: query
+        name: text
+        type: string
+        x-order: A
+      - description: 第几页
+        example: 1
+        in: query
+        name: page
+        type: integer
+        x-order: '['
+      - description: 跳过多少条记录，如果提供 page 此项跳过
+        in: query
+        name: skip
+        type: integer
+        x-order: ']'
+      - description: 分页大小，默认20
+        in: query
+        name: limit
+        type: integer
+        x-order: _
+      - description: 排序，允许最多两个字段排序 field1 [asc | desc] [,field2 [asc | desc] ...]
+        in: query
+        name: sort
+        type: string
+        x-order: '|'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  allOf:
+                  - $ref: '#/definitions/apiv1.ResultData'
+                  - properties:
+                      data:
+                        items:
+                          $ref: '#/definitions/cms1Clause'
+                        type: array
+                    type: object
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: 列出内容条款
+      tags:
+      - 默认 文档生成
+  /api/v1/cms/clauses/{id}:
+    delete:
+      consumes:
+      - application/json
+      operationId: v1-cms-clauses-id-delete
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apiv1.Done'
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "删除内容条款 \U0001F511"
+      tags:
+      - 默认 文档生成
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/cms1Clause'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "404":
+          description: 目标未找到
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: 获取内容条款
+      tags:
+      - 默认 文档生成
+    put:
+      consumes:
+      - application/json
+      - multipart/form-data
+      operationId: v1-cms-clauses-id-put
+      parameters:
+      - description: 登录票据凭证
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 编号
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Object
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/cms1ClauseSet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiv1.Done'
+            - properties:
+                result:
+                  $ref: '#/definitions/cms1Clause'
+              type: object
+        "400":
+          description: 请求或参数错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "403":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+        "503":
+          description: 服务端错误
+          schema:
+            $ref: '#/definitions/apiv1.Failure'
+      summary: "录入内容条款 \U0001F511"
+      tags:
+      - 默认 文档生成
+  /api/v1/ping:
+    get:
+      description: API health check
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: API health check
+swagger: "2.0"

@@ -68,7 +68,7 @@ func newapi(sto stores.Storage) *api {
 
 func (a *api) Strap(r gin.IRouter) {
 
-	vr := r.Group("/api/c1")
+	vr := r.Group("/api/v1")
 	vr.GET("/ping", ping)
 
 	privater := vr.Group("", a.authSignedIn())
@@ -101,7 +101,7 @@ func (a *api) authPerm(permID string) gin.HandlerFunc {
 // @Description API health check
 // @Produce plain
 // @Success 200 {string} pong
-// @Router /api/c/1/ping [get]
+// @Router /api/v1/ping [get]
 func ping(c *gin.Context) {
 	c.String(200, "pong")
 }
