@@ -382,25 +382,21 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 	return &Model{}, false
 }
 
-type Alias struct {
-	Name   string
-	Export bool
-}
-
-type Aliases []Alias
-
-func (doc *Document) allModelAliases() (aa Aliases) {
+func (doc *Document) allModelAliases() (exports, aliases []string) {
 	for _, m := range doc.Models {
-		aa = append(aa, Alias{
-			Name: m.Name, Export: m.ExportSingle,
-		})
-		mns := m.GetPlural()
-		if mns != m.Name {
-			aa = append(aa, Alias{
-				Name: mns, Export: m.ExportPlural,
-			})
+		if m.ExportSingle {
+			exports = append(exports, m.Name)
+		} else {
+			aliases = append(aliases, m.Name)
 		}
 
+		if mns := m.GetPlural(); mns != m.Name {
+			if m.ExportPlural {
+				exports = append(exports, mns)
+			} else {
+				aliases = append(aliases, mns)
+			}
+		}
 	}
 	return
 }
@@ -434,15 +430,15 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 
 	sgf.ImportName(ipath, doc.ModelPkg)
 
-	aliases := doc.allModelAliases()
-	sort.SliceStable(aliases, func(i, j int) bool { return aliases[i].Name < aliases[j].Name })
+	exports, aliases := doc.allModelAliases()
+	sort.Strings(aliases)
+	sort.Strings(exports)
+	for _, k := range exports {
+		sgf.Type().Id(k).Op("=").Qual(ipath, k)
+	}
 	for _, k := range aliases {
-		jal := jen.Type().Id(k.Name).Op("=").Qual(ipath, k.Name)
-		if k.Export {
-			sgf.Add(jal)
-		} else {
-			sgf.Comment(jal.GoString())
-		}
+		jal := jen.Type().Id(k).Op("=").Qual(ipath, k)
+		sgf.Comment(jal.GoString())
 	}
 	sgf.Line()
 
