@@ -390,7 +390,7 @@ func (doc *Document) allModelAliases() (exports, aliases []string) {
 			aliases = append(aliases, m.Name)
 		}
 
-		if mns := m.GetPlural(); mns != m.Name {
+		if mns := m.GetPlural(); mns != m.Name && (len(m.Plural) > 0 || m.WithPlural) {
 			if m.ExportPlural {
 				exports = append(exports, mns)
 			} else {
