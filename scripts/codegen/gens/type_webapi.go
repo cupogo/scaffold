@@ -66,6 +66,7 @@ type UriSpot struct {
 	NotNull  bool `yaml:"notnull,omitempty"` // for list
 	Auth     bool `yaml:"auth,omitempty"`    // old
 	Perm     bool `yaml:"perm,omitempty"`    // old
+	CalcPage bool `yaml:"calcpage,omitempty"`
 
 	DocG string `yaml:"docG,omitempty"`
 	DocL string `yaml:"docL,omitempty"`
@@ -540,7 +541,11 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	if len(mod.SpecUp) > 0 {
 		g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mod.Name))
 	}
-	g.Id("data").Op(",").Id("total").Op(",").Err().Op(":=").Add(h.jcall()).Call(
+	var r2 = "total"
+	if h.CalcPage {
+		r2 = "_"
+	}
+	g.Id("data").Op(",").Id(r2).Op(",").Err().Op(":=").Add(h.jcall()).Call(
 		jen.Id("ctx"), jen.Op("&").Id("spec"),
 	)
 	g.If(jen.Err().Op("!=").Nil()).Block(
@@ -551,7 +556,11 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 			jen.Id("data").Op("=").Id(h.mth.Rets[0].Type).Block(),
 		)
 	}
-	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("data"), jen.Id("total")))
+	args := []jen.Code{jen.Id("data"), jen.Id("total")}
+	if h.CalcPage {
+		args[1] = jen.Op("&").Id("spec")
+	}
+	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(args...))
 }
 
 func (h *Handle) jstombc() jen.Code {
