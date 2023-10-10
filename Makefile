@@ -81,5 +81,5 @@ touch-web-api:
 
 gen-apidoc: touch-web-api docs/swagger.yaml
 
-gen-permsql:
+gen-permsql: docs/swagger.yaml
 	GO111MODULE=on $(GO) run ./scripts/sqlgen perm
