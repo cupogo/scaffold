@@ -1719,7 +1719,7 @@ func (m *Model) canCompare() bool {
 		if len(typ) > 0 && typ[0] == '*' { // ptr
 			return false
 		}
-		if !field.isScalar() && len(field.Compare) == 0 {
+		if !field.isScalar() && !field.isOID() && len(field.Compare) == 0 {
 			return false
 		}
 	}
@@ -1734,7 +1734,7 @@ func (m *Model) codeEqualTo() (st *jen.Statement) {
 	}
 	var jelems []jen.Code
 	for _, field := range m.Fields {
-		if field.isScalar() || field.Compare == CompareScalar {
+		if field.isScalar() || field.isOID() || field.Compare == CompareScalar {
 			jelems = append(jelems, jen.Id("z").Dot(field.Name).Op("==").Id("o").Dot(field.Name))
 		} else if field.Compare == CompareEqualTo {
 			jelems = append(jelems, jen.Id("z").Dot(field.Name).Dot("EqualTo").Call(jen.Id("o").Dot(field.Name)))
