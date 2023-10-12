@@ -154,11 +154,9 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 			continue
 		}
 		idx++
-		var code *jen.Statement
-		if len(field.Comment) > 0 {
-			code = jen.Comment(field.Comment).Line()
-		} else {
-			code = jen.Empty()
+		code := jen.Empty()
+		if jc := field.commentCode(); jc != nil {
+			code.Add(jc)
 		}
 		code.Id(field.Name)
 		cn, isInDb, _ := field.ColName()
@@ -1764,4 +1762,18 @@ func (m *Model) codeEqualTo() (st *jen.Statement) {
 		)
 	}
 	return
+}
+
+func (m *Model) init(doc *Document) {
+	m.doc = doc
+	m.pkg = doc.ModelPkg
+	for j := range m.Fields {
+		m.Fields[j].mod = m
+		f := m.Fields[j]
+		if k, _, _ := f.cutType(); len(k) > 0 && len(f.Qual) == 0 {
+			if p, ok := doc.Qualified[k]; ok {
+				m.Fields[j].Qual = p
+			}
+		}
+	}
 }

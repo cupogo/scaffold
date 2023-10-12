@@ -72,11 +72,14 @@ func (e *Enum) Code() jen.Code {
 		}
 		for i, ev := range vals {
 			val := e.Start + i
+			var cmt string
 			if e.Multiple {
 				val = e.Start << i
+				cmt = fmt.Sprintf("%3d %s", val, ev.Label)
+			} else {
+				cmt = fmt.Sprintf("%2d %s", val, ev.Label)
 			}
 			name := e.Name + ev.Suffix
-			cmt := fmt.Sprintf("%2d %s", val, ev.Label)
 			if i == 0 {
 				g.Id(name).Id(e.Name).Op("=").Lit(e.Start).Op(op).Id("iota").Comment(cmt)
 			} else if ev.Value > 0 && i == len(vals)-1 {
@@ -165,4 +168,49 @@ func (e *Enum) Code() jen.Code {
 	}
 
 	return st
+}
+
+type EnumDoc struct {
+	Lines    []string
+	Codes    []string
+	SwaggerT string
+}
+
+func (e *Enum) docComments() (ed EnumDoc, ok bool) {
+	vals := e.Values
+	if e.Multiple && e.Start < 1 {
+		e.Start = 1
+		vals = vals[1:]
+	}
+	for i, ev := range vals {
+		val := e.Start + i
+		if e.Multiple {
+			val = e.Start << i
+		} else if ev.Value > 0 && i == len(vals)-1 {
+			val = ev.Value
+		}
+		code := ev.getCode(e.Shorted)
+		label := ev.Label
+		if a, _, ok := strings.Cut(label, " "); ok && len(a) > 0 {
+			label = a
+		}
+		var suf string
+		if code != label && ev.Suffix != label {
+			suf = " - " + label
+		}
+		var cs string
+		if e.TextMarshaler {
+			cs = fmt.Sprintf("`%s`%s", code, suf)
+			ed.SwaggerT = "string"
+			ed.Codes = append(ed.Codes, code)
+		} else {
+			cs = fmt.Sprintf("%d=`%s`%s", val, code, suf)
+			ed.Codes = append(ed.Codes, fmt.Sprintf("%d", val))
+		}
+
+		ed.Lines = append(ed.Lines, cs)
+	}
+	ok = len(ed.Lines) > 0
+
+	return
 }

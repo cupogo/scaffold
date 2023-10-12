@@ -135,8 +135,8 @@ func (doc *Document) Check() error {
 		return errors.New("empty modelpkg")
 	}
 
-	if 0 == len(doc.Models) {
-		return errors.New("empty models")
+	if 0 == len(doc.Models) && 0 == len(doc.Enums) {
+		return errors.New("empty models and enums")
 	}
 
 	for i := 0; i < len(doc.Models); i++ {
@@ -230,16 +230,7 @@ func NewDoc(docfile string) (*Document, error) {
 
 func (doc *Document) Init() {
 	for i := range doc.Models {
-		doc.Models[i].doc = doc
-		doc.Models[i].pkg = doc.ModelPkg
-		for j := range doc.Models[i].Fields {
-			f := doc.Models[i].Fields[j]
-			if k, _, _ := f.cutType(); len(k) > 0 && len(f.Qual) == 0 {
-				if p, ok := doc.Qualified[k]; ok {
-					doc.Models[i].Fields[j].Qual = p
-				}
-			}
-		}
+		doc.Models[i].init(doc)
 	}
 	for i := range doc.Stores {
 		doc.Stores[i].doc = doc
@@ -344,7 +335,9 @@ func (doc *Document) genModels(dropfirst bool) error {
 		mgf.Add(model.Codes())
 	}
 	log.Printf("found models %v", mods)
-	mgf.Line()
+	if len(mods) > 0 {
+		mgf.Line()
+	}
 
 	if !IsDir(doc.dirmod) {
 		if err := os.Mkdir(doc.dirmod, 0755); err != nil {
@@ -754,4 +747,13 @@ func goImports(path string) (err error) {
 		log.Printf("cmd.Run() failed with %s\n", err)
 	}
 	return err
+}
+
+func (doc *Document) getEnumDoc(name string) (ed EnumDoc, ok bool) {
+	for _, e := range doc.Enums {
+		if e.Name == name {
+			return e.docComments()
+		}
+	}
+	return
 }

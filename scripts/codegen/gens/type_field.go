@@ -33,6 +33,8 @@ type Field struct {
 	qtype    string
 	colname  string
 	bson     bool
+
+	mod *Model
 }
 
 func (f *Field) isMeta() bool {
@@ -73,27 +75,29 @@ func (f *Field) isOID() bool {
 }
 
 func (f *Field) isScalar() bool {
-	if f.Type == "string" || f.Type == "bool" {
-		return true
-	}
-
-	if strings.HasPrefix(f.Type, "int") || strings.HasPrefix(f.Type, "uint") {
-		return true
-	}
-
-	if strings.Contains(f.Type, "Money") {
-		return true
-	}
-
-	if strings.HasSuffix(f.Type, "Status") || strings.HasSuffix(f.Type, "Type") {
-		return true
-	}
-
-	if strings.HasSuffix(f.Type, "DateTime") {
+	if f.Type == "string" || f.Type == "bool" ||
+		strings.HasPrefix(f.Type, "int") || strings.HasPrefix(f.Type, "uint") ||
+		strings.Contains(f.Type, "Money") || strings.HasSuffix(f.Type, "DateTime") ||
+		strings.HasSuffix(f.Type, "Status") || strings.HasSuffix(f.Type, "Type") ||
+		f.Type == "OID" || f.Type == "oid.OID" {
 		return true
 	}
 
 	return f.Compare == CompareScalar
+}
+
+func (f *Field) maybeEnum() bool {
+	if f.Type == "string" || f.Type == "bool" {
+		return false
+	}
+
+	if strings.HasPrefix(f.Type, "*") || strings.HasPrefix(f.Type, "[]") ||
+		strings.HasPrefix(f.Type, "int") || strings.HasPrefix(f.Type, "uint") ||
+		strings.HasSuffix(f.Type, "DateTime") || strings.Contains(f.Type, "Money") {
+		return false
+	}
+
+	return true
 }
 
 var replTrimUseZero = strings.NewReplacer(",use_zero", "")
@@ -132,15 +136,39 @@ func (f *Field) isEmbed() bool {
 	return len(f.Name) == 0 || len(f.Type) == 0
 }
 
+func (f *Field) commentCode() (st *jen.Statement) {
+	if len(f.Comment) > 0 {
+		st = jen.Empty()
+		st.Comment(f.Comment).Line()
+		if f.mod != nil && f.maybeEnum() {
+			if ed, ok := f.mod.doc.getEnumDoc(f.Type); ok {
+				// log.Printf("field %s.%s has enums %v", f.Name, f.Type, ed)
+				for _, line := range ed.Lines {
+					st.Comment(" * " + line).Line()
+				}
+				if !f.Tags.Has("enums") {
+					f.Tags["enums"] = strings.Join(ed.Codes, ",")
+				}
+				if len(ed.SwaggerT) > 0 && !f.Tags.Has(TagSwaggerType) {
+					f.Tags[TagSwaggerType] = ed.SwaggerT
+				}
+			}
+		}
+	}
+	return
+}
+
 func (f *Field) preCode() (st *jen.Statement) {
 	isEmbed := f.isEmbed()
 	st = jen.Empty()
 	if isEmbed {
 		st.Line()
 	}
-	if len(f.Comment) > 0 {
-		st.Comment(f.Comment).Line()
+
+	if c := f.commentCode(); c != nil {
+		st.Add(c)
 	}
+
 	if !isEmbed {
 		st.Id(f.Name)
 	}
