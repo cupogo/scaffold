@@ -13,6 +13,7 @@ type Model struct {
 	Comment    string   `yaml:"comment,omitempty"`
 	Name       string   `yaml:"name"`
 	Label      string   `yaml:"label"`
+	Identy     string   `yaml:"identy"`
 	CollName   string   `yaml:"collName,omitempty"` // for mongodb only
 	TableTag   string   `yaml:"tableTag,omitempty"` // uptrace/bun & go-pg
 	Fields     Fields   `yaml:"fields"`
@@ -91,6 +92,13 @@ func (m *Model) getLabel() string {
 		return LcFirst(m.Label)
 	}
 	return LcFirst(m.Name)
+}
+
+func (m *Model) getIdenty(pre string) string {
+	if len(m.Identy) > 0 {
+		return LcFirst(pre + m.Identy)
+	}
+	return LcFirst(pre + m.Name)
 }
 
 func (m *Model) TableField() jen.Code {
@@ -295,6 +303,11 @@ func (m *Model) Codes() jen.Code {
 	}
 	bsonable := m.IsBsonable()
 
+	label := m.getLabel()
+	var prefix string
+	if m.doc != nil && m.doc.ModelPkg != label {
+		prefix = m.doc.ModelPkg
+	}
 	st.Comment("consts of " + m.Name + " " + m.shortComment()).Line()
 	st.Const().DefsFunc(func(g *jen.Group) {
 		if isTable {
@@ -304,22 +317,19 @@ func (m *Model) Codes() jen.Code {
 			g.Id(m.Name + "Collection").Op("=").Lit(m.CollectionName())
 		}
 
-		g.Id(m.Name + "Label").Op("=").Lit(m.getLabel())
+		g.Id(m.Name + "Label").Op("=").Lit(label)
+		g.Id(m.Name + "Model").Op("=").Lit(m.getIdenty(prefix))
 	}).Line()
 
 	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
 	jcodeDesc(st, m.Descr)
-	var prefix string
-	if m.doc != nil {
-		prefix = m.doc.ModelPkg
-	}
 
-	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + prefix + m.Name)).Line().Line()
+	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + LcFirst(prefix+m.Name))).Line().Line()
 
 	if len(bcs) > 0 && (isTable || bsonable) {
-		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + prefix + basicName)).Line().Line()
+		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + LcFirst(prefix+basicName))).Line().Line()
 	}
 
 	pluralName := m.GetPlural()
@@ -356,7 +366,7 @@ func (m *Model) Codes() jen.Code {
 
 	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 {
 		changeSetName := m.Name + "Set"
-		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + prefix + changeSetName)).Line().Line()
+		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + LcFirst(prefix+changeSetName))).Line().Line()
 		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
@@ -1658,21 +1668,18 @@ func (m *Model) identityCode() (st *jen.Statement) {
 		st = new(jen.Statement)
 		st.Func().Params(
 			jen.Id("_").Op("*").Id(m.Name),
-		).Id("IdentityLabel").Params().String().Block(
-			jen.Return(jen.Id(m.Name + "Label")),
-		).Line()
+		).Id("IdentityLabel").Params().String().Op("{").Return(jen.Id(m.Name + "Label")).Op("}").Line()
+		st.Func().Params(
+			jen.Id("_").Op("*").Id(m.Name),
+		).Id("IdentityModel").Params().String().Op("{").Return(jen.Id(m.Name + "Model")).Op("}").Line()
 
 		st.Func().Params(
 			jen.Id("_").Op("*").Id(m.Name),
-		).Id("IdentityTable").Params().String().Block(
-			jen.Return(jen.Id(m.Name + "Table")),
-		).Line()
+		).Id("IdentityTable").Params().String().Op("{").Return(jen.Id(m.Name + "Table")).Op("}").Line()
 
 		st.Func().Params(
 			jen.Id("_").Op("*").Id(m.Name),
-		).Id("IdentityAlias").Params().String().Block(
-			jen.Return(jen.Id(m.Name + "Alias")),
-		).Line()
+		).Id("IdentityAlias").Params().String().Op("{").Return(jen.Id(m.Name + "Alias")).Op("}").Line()
 	} else if m.IsBsonable() {
 		st = new(jen.Statement)
 		st.Func().Params(
