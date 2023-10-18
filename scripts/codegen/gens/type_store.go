@@ -457,6 +457,8 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	bodyst := &dst.BlockStmt{List: make([]dst.Stmt, 0)}
 
 	pars := []*dst.Field{newField("ctx", ctxIdent, false)}
+	rets := []*dst.Field{}
+	bsts := []dst.Expr{}
 	if strings.HasSuffix(sh.k, "ing") {
 		pars = append(pars, newField("db", "ormDB", false), newField("obj", objIdent, true))
 	} else if sh.k == beforeList {
@@ -465,6 +467,11 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 		dataIdent := dst.NewIdent(sh.m.GetPlural())
 		dataIdent.Path = modipath
 		pars = append(pars, newField("spec", sh.ObjName+"Spec", true), newField("data", dataIdent, false))
+		if strings.HasSuffix(sh.FunName, "T") {
+			pars = append(pars, newField("total", "int", false))
+			rets = append(rets, &dst.Field{Type: dst.NewIdent("int")})
+			bsts = append(bsts, dst.NewIdent("0"))
+		}
 	} else if sh.k == upsertES || sh.k == deleteES {
 		pars = append(pars, newField("obj", objIdent, true))
 		bodyst.List = append(bodyst.List, sh.esMainStmt(sh.k)...)
@@ -473,10 +480,10 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	} else {
 		pars = append(pars, newField("obj", objIdent, true))
 	}
+	rets = append(rets, &dst.Field{Type: dst.NewIdent("error")})
+	bsts = append(bsts, dst.NewIdent("nil"))
 
-	bretst := &dst.ReturnStmt{Results: []dst.Expr{
-		dst.NewIdent("nil"),
-	}}
+	bretst := &dst.ReturnStmt{Results: bsts}
 	bretst.Decs.Before = dst.NewLine
 	if sh.k != deleteES && sh.k != upsertES {
 		bretst.Decs.Start.Append("// TODO: need implement")
@@ -486,10 +493,9 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	f := &dst.FuncDecl{
 		Name: dst.NewIdent(sh.FunName),
 		Type: &dst.FuncType{
-			Params: &dst.FieldList{List: pars},
-			Results: &dst.FieldList{List: []*dst.Field{
-				{Type: dst.NewIdent("error")},
-			}}},
+			Params:  &dst.FieldList{List: pars},
+			Results: &dst.FieldList{List: rets},
+		},
 		Body: bodyst,
 	}
 	if !sh.IsDB() {

@@ -217,11 +217,11 @@ func (w *vdst) overwrite() error {
 	res := decorator.NewRestorerWithImports(w.pkgn, guess.New())
 	var buf bytes.Buffer
 	if err := res.Fprint(&buf, w.file); err != nil {
-		log.Printf("format fali: %s", err)
+		log.Printf("format fail: %s", err)
 		return err
 	}
 	if err := os.WriteFile(w.name, buf.Bytes(), 0644); err != nil {
-		log.Printf("write file %q fali: %s", w.name, err)
+		log.Printf("write file %q fail: %s", w.name, err)
 		return err
 	}
 	log.Printf("write file %q ok", w.name)
@@ -319,10 +319,11 @@ func HookMethod(model string, k, v string) (string, bool) {
 		if strings.HasSuffix(k, "ing") {
 			return "db" + ToExported(k[0:len(k)-3]+"e") + model, true
 		}
+		v = k + model
 	}
 	switch k {
 	case afterLoad, afterList, beforeList, afterCreated, afterUpdated, afterDeleted, upsertES, deleteES:
-		return k + model, true
+		return v, strings.HasPrefix(v, k+model)
 	case errorLoad:
 		return "on" + ToExported(k) + model, true
 	}

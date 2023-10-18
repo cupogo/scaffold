@@ -781,7 +781,7 @@ func (m *Model) getSpecCodes() jen.Code {
 			// 	g.Var().Id("qd").Id("BD")
 			// }
 			if len(relFields) > 0 && !okAL {
-				log.Printf("%s belongsTo Names %+v", m.Name, relFields)
+				// log.Printf("%s belongsTo Names %+v", m.Name, relFields)
 				// g.Var().Id("pre").String()
 				var jcond jen.Code
 				if wrTyp == "bool" {
@@ -1059,9 +1059,15 @@ func (m *Model) codeStoreList(mth Method) ([]jen.Code, []jen.Code, *jen.Statemen
 			}
 
 			if hkAL, okAL := m.hasStoreHook(afterList); okAL {
-				g.If(jen.Err().Op("==").Nil().Op("&&").Len(jen.Id("data")).Op(">0")).Block(
-					jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("spec"), jen.Id("data")),
-				)
+				jb := new(jen.Statement)
+				args := []jen.Code{jen.Id("ctx"), jen.Id("spec"), jen.Id("data")}
+				isT := strings.HasSuffix(hkAL, "T")
+				if isT {
+					jb.Id("total").Op(",")
+					args = append(args, jen.Id("total"))
+				}
+				jb.Err().Op("=").Id("s").Dot(hkAL).Call(args...)
+				g.If(jen.Err().Op("==").Nil()).Block(jb)
 			}
 			g.Return()
 		})
