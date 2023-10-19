@@ -44,8 +44,9 @@ type Model struct {
 	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store
 	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store
 
-	doc *Document
-	pkg string
+	doc    *Document
+	pkg    string
+	prefix string
 }
 
 func (m *Model) String() string {
@@ -87,18 +88,18 @@ func (m *Model) tableAlias() string {
 	return tt
 }
 
+func (m *Model) getIdenty() string {
+	if len(m.Identy) > 0 {
+		return LcFirst(m.Identy)
+	}
+	return LcFirst(m.prefix + m.Name)
+}
+
 func (m *Model) getLabel() string {
 	if len(m.Label) > 0 {
 		return LcFirst(m.Label)
 	}
 	return LcFirst(m.Name)
-}
-
-func (m *Model) getIdenty(pre string) string {
-	if len(m.Identy) > 0 {
-		return LcFirst(pre + m.Identy)
-	}
-	return LcFirst(pre + m.Name)
 }
 
 func (m *Model) TableField() jen.Code {
@@ -303,11 +304,6 @@ func (m *Model) Codes() jen.Code {
 	}
 	bsonable := m.IsBsonable()
 
-	label := m.getLabel()
-	var prefix string
-	if m.doc != nil && m.doc.ModelPkg != label {
-		prefix = m.doc.ModelPkg
-	}
 	st.Comment("consts of " + m.Name + " " + m.shortComment()).Line()
 	st.Const().DefsFunc(func(g *jen.Group) {
 		if isTable {
@@ -317,8 +313,8 @@ func (m *Model) Codes() jen.Code {
 			g.Id(m.Name + "Collection").Op("=").Lit(m.CollectionName())
 		}
 
-		g.Id(m.Name + "Label").Op("=").Lit(label)
-		g.Id(m.Name + "Model").Op("=").Lit(m.getIdenty(prefix))
+		g.Id(m.Name + "Label").Op("=").Lit(m.getLabel())
+		g.Id(m.Name + "Model").Op("=").Lit(m.getIdenty())
 	}).Line()
 
 	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
@@ -326,10 +322,10 @@ func (m *Model) Codes() jen.Code {
 	st.Comment(m.Name + " " + m.Comment).Line()
 	jcodeDesc(st, m.Descr)
 
-	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + LcFirst(prefix+m.Name))).Line().Line()
+	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + LcFirst(m.prefix+m.Name))).Line().Line()
 
 	if len(bcs) > 0 && (isTable || bsonable) {
-		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + LcFirst(prefix+basicName))).Line().Line()
+		st.Type().Id(basicName).Struct(bcs...).Add(jen.Comment("@name " + LcFirst(m.prefix+basicName))).Line().Line()
 	}
 
 	pluralName := m.GetPlural()
@@ -366,7 +362,7 @@ func (m *Model) Codes() jen.Code {
 
 	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 {
 		changeSetName := m.Name + "Set"
-		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + LcFirst(prefix+changeSetName))).Line().Line()
+		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + LcFirst(m.prefix+changeSetName))).Line().Line()
 		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
 		st.Func().Params(
 			jen.Id("z").Op("*").Id(m.Name),
@@ -1780,6 +1776,9 @@ func (m *Model) codeEqualTo() (st *jen.Statement) {
 func (m *Model) init(doc *Document) {
 	m.doc = doc
 	m.pkg = doc.ModelPkg
+	if m.pkg != m.getLabel() {
+		m.prefix = m.pkg
+	}
 	for j := range m.Fields {
 		m.Fields[j].mod = m
 		f := m.Fields[j]
