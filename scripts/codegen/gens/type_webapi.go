@@ -447,7 +447,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 	op := ":="
 	needDef := strings.ContainsAny(h.Ignore, "CU")
-	if needDef {
+	if needDef { // Explicit import is required for API document generation.
 		op = "="
 		g.Var().Id("obj").Op("*").Add(jarg)
 		g.Var().Err().Error()
