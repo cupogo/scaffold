@@ -421,27 +421,30 @@ func (m *Model) hasAudit() bool {
 func (m *Model) hasModHook() (ok bool, idf string, dtf string) {
 	for _, field := range m.Fields {
 		typ := field.getType()
-		if strings.HasSuffix(typ, modelDefault) {
+		if _, b, ok := strings.Cut(typ, "."); ok && len(b) > 0 {
+			typ = b
+		}
+		if typ == modelDefault {
 			return true, modelDefault, modelDefault
 		}
-		if strings.HasSuffix(typ, modelDunce) {
+		if typ == modelDunce {
 			return true, modelDunce, modelDunce
 		}
-		if strings.HasSuffix(typ, modelSerial) {
+		if typ == modelSerial {
 			return false, modelSerial, modelSerial
 		}
 
-		if strings.Contains(typ, "IDField") { // .IDField, .IDFieldStr
-			idf = "IDField"
-		} else if strings.HasSuffix(typ, "SerialField") {
+		if strings.HasPrefix(typ, "IDField") { // .IDField, .IDFieldStr
+			idf = typ
+		} else if typ == "SerialField" {
 			idf = "SerialField"
-		} else if strings.HasSuffix(typ, "DateFields") {
+		} else if typ == "DateFields" {
 			dtf = "DateFields"
 		}
 	}
 
 	if len(idf) > 0 && len(dtf) > 0 {
-		ok = idf == "IDField"
+		ok = (idf == "IDField" || idf == "IDFieldStr")
 	}
 	return
 }
