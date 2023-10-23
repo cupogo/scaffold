@@ -592,12 +592,22 @@ func (m *Model) specFields() (out Fields) {
 
 			out = append(out, f)
 		} else if f.isOwner() && f.Query != "ignore" {
+			sfn := "siftOIDs"
+			cmt := "所有者编号 (多值使用逗号分隔)"
+			if f.Query == "x" {
+				sfn = ""
+				if len(f.Comment) > 0 {
+					cmt = f.Comment
+				} else {
+					cmt = "所有者编号"
+				}
+			}
 			f0 := Field{
-				Comment: "所有者编号 (多值使用逗号分隔)",
+				Comment: cmt,
 				Type:    "string",
 				Name:    "OwnerID",
 				Tags:    Tags{"form": "owner", "json": "owner,omitempty"},
-				siftFn:  "siftOIDs",
+				siftFn:  sfn,
 				colname: "owner_id",
 				bson:    m.IsBsonable(),
 			}
