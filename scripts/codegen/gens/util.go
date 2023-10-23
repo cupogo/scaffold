@@ -394,11 +394,11 @@ func pickExpr(expr string) (out string, err error) {
 	return
 }
 
-func jcodeDesc(st *jen.Statement, txt string) {
+func jcodeDesc(st *jen.Statement, txt, pre string) {
 	if len(txt) > 0 {
 		for _, line := range strings.Split(txt, "\n") {
 			if len(line) > 0 {
-				st.Comment("@Description " + line).Line()
+				st.Comment(pre + line).Line()
 			}
 		}
 	}

@@ -296,10 +296,10 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 		st.Comment("@ID " + hid).Line()
 	}
 	if h.act == "Get" {
-		jcodeDesc(st, h.DocG)
+		jcodeDesc(st, h.DocG, "@Description ")
 	}
 	if h.act == "List" {
-		jcodeDesc(st, h.DocL)
+		jcodeDesc(st, h.DocL, "@Description ")
 	}
 	if h.act == "Create" && h.IsBatchCreate() {
 		st.Comment("@Description 本接口支持批量创建，传入数组实体，返回结果也为数组").Line()

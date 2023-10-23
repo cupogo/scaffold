@@ -16,6 +16,7 @@ type Field struct {
 	IsSet    bool   `yaml:"isset,omitempty"`
 	Sortable bool   `yaml:"sortable,omitempty"`
 	Comment  string `yaml:"comment,omitempty"`
+	Descr    string `yaml:"descr,omitempty"`
 	Query    string `yaml:"query,omitempty"` // '', 'equal', 'wildcard'
 
 	Compare CompareType `yaml:"compare,omitempty"` // scalar, equalTo
@@ -152,6 +153,8 @@ func (f *Field) commentCode() (st *jen.Statement) {
 					f.Tags[TagSwaggerType] = ed.SwaggerT
 				}
 			}
+		} else {
+			jcodeDesc(st, f.Descr, "")
 		}
 	}
 	return

@@ -320,7 +320,7 @@ func (m *Model) Codes() jen.Code {
 	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
-	jcodeDesc(st, m.Descr)
+	jcodeDesc(st, m.Descr, "@Description ")
 
 	st.Type().Id(m.Name).Struct(cs...).Add(jen.Comment("@name " + LcFirst(m.prefix+m.Name))).Line().Line()
 
@@ -591,7 +591,7 @@ func (m *Model) specFields() (out Fields) {
 			}
 
 			out = append(out, f)
-		} else if f.isOwner() {
+		} else if f.isOwner() && f.Query != "ignore" {
 			f0 := Field{
 				Comment: "所有者编号 (多值使用逗号分隔)",
 				Type:    "string",
@@ -1787,5 +1787,8 @@ func (m *Model) init(doc *Document) {
 				m.Fields[j].Qual = p
 			}
 		}
+	}
+	for j := range m.SpecExtras {
+		m.SpecExtras[j].mod = m
 	}
 }
