@@ -142,6 +142,9 @@ func (f *Field) commentCode() (st *jen.Statement) {
 		st.Comment(f.Comment).Line()
 		if f.mod != nil && f.maybeEnum() {
 			if ed, ok := f.mod.doc.getEnumDoc(f.Type); ok {
+				if _, b, ok := strings.Cut(f.Query, ","); ok && b == "decode" {
+					f.qtype = "string"
+				}
 				// log.Printf("field %s.%s has enums %v", f.Name, f.Type, ed)
 				for _, line := range ed.Lines {
 					st.Comment(" * " + line).Line()
