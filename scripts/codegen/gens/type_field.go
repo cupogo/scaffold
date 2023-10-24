@@ -422,6 +422,8 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 		fn, ok = "siftGreat", true
 	case "less":
 		fn, ok = "siftLess", true
+	default:
+		ok = len(a) > 0 && len(ext) > 0
 	}
 	return
 }

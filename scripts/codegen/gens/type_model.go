@@ -667,6 +667,9 @@ func (m *Model) jSpecBasic() (name, parent string, args []jen.Code, rets []jen.C
 }
 
 func (m *Model) genSiftCode(field, fieldM Field, isPG10, withRel bool) jen.Code {
+	if field.siftExt == "skip" {
+		return nil
+	}
 	utilsQual, _ := m.doc.getQual("utils")
 	cn, indb, _ := field.ColName()
 	if !indb && len(field.siftFn) == 0 {
