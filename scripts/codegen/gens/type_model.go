@@ -40,6 +40,7 @@ type Model struct {
 	PostSet        bool `yaml:"postSet,omitempty"`
 	DisableLog     bool `yaml:"disableLog,omitempty"` // 不记录model的日志
 	Bsonable       bool `yaml:"bson,omitempty"`       // for mongodb only
+	RegLoader      bool `yaml:"regLoader,omitempty"`  // 允许注册加载器
 
 	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store
 	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store
@@ -1000,6 +1001,24 @@ func (m *Model) getIPath() string {
 
 func (m *Model) codeNilInstance() jen.Code {
 	return jen.Call(jen.Op("*").Qual(m.getIPath(), m.Name)).Call(jen.Nil())
+}
+
+type jPair struct {
+	p1 jen.Code
+	p2 jen.Code
+}
+
+func (m *Model) codeRegSto() (ctable jen.Code, cload jPair) {
+	if m.IsTable() {
+		ctable = m.codeNilInstance()
+		if m.RegLoader {
+			cload = jPair{
+				jen.Qual(m.getIPath(), m.Name+"Model"),
+				jen.Op("*").Qual(m.getIPath(), m.Name),
+			}
+		}
+	}
+	return
 }
 
 func (m *Model) dbTxFn() string {

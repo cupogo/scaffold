@@ -67,7 +67,9 @@ var (
 	ContextWithRelation = pgx.ContextWithRelation
 	RelationFromContext = pgx.RelationFromContext
 
-	RegisterModel = pgx.RegisterModel
+	dbLoadModel    = pgx.LoadModel
+	RegisterLoader = pgx.RegisterLoader
+	RegisterModel  = pgx.RegisterModel
 )
 
 func logger() zlog.Logger {

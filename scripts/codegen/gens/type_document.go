@@ -436,15 +436,25 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 	sgf.Line()
 
 	var tables []jen.Code
+	var cloads []jPair
 	for _, model := range doc.Models {
-		if model.IsTable() {
-			// name, _ := doc.getModQual(model.Name)
-			tables = append(tables, model.codeNilInstance())
+		ctable, cload := model.codeRegSto()
+		if ctable != nil {
+			tables = append(tables, ctable)
+		}
+		if cload.p1 != nil {
+			cloads = append(cloads, cload)
 		}
 	}
-	if len(tables) > 0 {
+	if len(tables) > 0 || len(cloads) > 0 {
 		sgf.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
-			g.Id("RegisterModel").Call(tables...)
+			if len(tables) > 0 {
+				g.Id("RegisterModel").Call(tables...)
+			}
+			pgxQual, _ := doc.getQual("pgx")
+			for _, cload := range cloads {
+				g.Id("RegisterLoader").Call(cload.p1, jen.Qual(pgxQual, "GetModelByID").Index(cload.p2))
+			}
 		})
 	}
 
