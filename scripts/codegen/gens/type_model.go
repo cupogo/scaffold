@@ -639,7 +639,11 @@ func (m *Model) sortableColumns() (cs []string) {
 }
 
 func (m *Model) getSpecName() string {
-	return ToExported(m.SpecNs + m.Name + "Spec")
+	ns := ToExported(m.SpecNs)
+	if ns == m.Name {
+		ns = ""
+	}
+	return ns + m.Name + "Spec"
 }
 
 func (m *Model) jSpecBasic() (name, parent string, args []jen.Code, rets []jen.Code,
