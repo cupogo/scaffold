@@ -592,7 +592,7 @@ func (sh *storeHook) dstMEFuncDecl(modipath string) *dst.FuncDecl {
 			Specs: []dst.Spec{
 				&dst.ValueSpec{
 					Names: []*dst.Ident{dst.NewIdent("spec")},
-					Type:  dst.NewIdent(sh.m.Name + "Spec"),
+					Type:  dst.NewIdent(sh.m.getSpecName()),
 				},
 			},
 		},

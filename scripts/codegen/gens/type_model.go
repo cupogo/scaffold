@@ -23,7 +23,8 @@ type Model struct {
 	StoHooks   Tags     `yaml:"hooks,omitempty"`
 	SpecExtras Fields   `yaml:"specExtras,omitempty"`
 	Sifters    []string `yaml:"sifters,omitempty"`
-	SpecUp     string   `yaml:"specUp,omitempty"`
+	SpecNs     string   `yaml:"specNs,omitempty"` // prefix of model in stores, default empty
+	SpecUp     string   `yaml:"specUp,omitempty"` // spec.{specUp}(ctx,obj) // deprecated
 	Descr      string   `yaml:"descr,omitempty"`
 
 	DiscardUnknown bool `yaml:"discardUnknown,omitempty"` // 忽略未知的列
@@ -637,9 +638,13 @@ func (m *Model) sortableColumns() (cs []string) {
 	return
 }
 
+func (m *Model) getSpecName() string {
+	return ToExported(m.SpecNs + m.Name + "Spec")
+}
+
 func (m *Model) jSpecBasic() (name, parent string, args []jen.Code, rets []jen.Code,
 	jfsc func(on string) jen.Code) {
-	name = m.Name + "Spec"
+	name = m.getSpecName()
 	if m.IsBsonable() || m.doc.IsMongo() {
 		parent = "base.ModelSpec"
 		args = append(args, jen.Id("q").Id("BD"))
@@ -1055,7 +1060,7 @@ func (m *Model) codeStoreList(mth Method) ([]jen.Code, []jen.Code, *jen.Statemen
 	} else {
 		jargs = append(jargs, jspec, jdataptr)
 	}
-	return []jen.Code{jen.Id("spec").Op("*").Id(m.Name + "Spec")},
+	return []jen.Code{jen.Id("spec").Op("*").Id(m.getSpecName())},
 		[]jen.Code{jen.Id("data").Qual(m.getIPath(), m.GetPlural()),
 			jen.Id("total").Int(), jen.Err().Error()},
 		jen.BlockFunc(func(g *jen.Group) {
