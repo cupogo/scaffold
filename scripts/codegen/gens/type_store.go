@@ -462,11 +462,11 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	if strings.HasSuffix(sh.k, "ing") {
 		pars = append(pars, newField("db", "ormDB", false), newField("obj", objIdent, true))
 	} else if sh.k == beforeList {
-		pars = append(pars, newField("spec", sh.ObjName+"Spec", true), newField("q", "ormQuery", true))
+		pars = append(pars, newField("spec", sh.m.getSpecName(), true), newField("q", "ormQuery", true))
 	} else if sh.k == afterList {
 		dataIdent := dst.NewIdent(sh.m.GetPlural())
 		dataIdent.Path = modipath
-		pars = append(pars, newField("spec", sh.ObjName+"Spec", true), newField("data", dataIdent, false))
+		pars = append(pars, newField("spec", sh.m.getSpecName(), true), newField("data", dataIdent, false))
 		if strings.HasSuffix(sh.FunName, "T") {
 			pars = append(pars, newField("total", "int", false))
 			rets = append(rets, &dst.Field{Type: dst.NewIdent("int")})

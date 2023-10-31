@@ -403,3 +403,11 @@ func jcodeDesc(st *jen.Statement, txt, pre string) {
 		}
 	}
 }
+
+func highlights(a []string) []string {
+	o := make([]string, len(a))
+	for i := range a {
+		o[i] = "`" + a[i] + "`"
+	}
+	return o
+}

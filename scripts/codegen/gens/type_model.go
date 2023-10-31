@@ -785,7 +785,10 @@ func (m *Model) getSpecCodes() jen.Code {
 		field := &Field{
 			Name: withRel,
 			Type: wrTyp, Tags: Tags{"json": jtag},
-			Comment: "include relation column"}
+			Comment: "include relation name"}
+		if len(relations) > 0 {
+			field.Comment += "s: " + strings.Join(highlights(relations), ",") + ",..."
+		}
 		fcs = append(fcs, jen.Empty(), field.queryCode(idx))
 		idx++
 	}
