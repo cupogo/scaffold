@@ -775,7 +775,7 @@ func (m *Model) getSpecCodes() jen.Code {
 	_, okAL := m.hasStoreHook(afterList)
 	relFields := m.Fields.relHasOne()
 	relations := m.Fields.Relations()
-	if len(relFields) > 0 || len(relations) > 0 || okAL {
+	if len(relFields) > 0 || len(relations) > 0 {
 		wrTyp = "bool"
 		if okAL || len(relations) > 1 {
 			wrTyp = "string"
@@ -1473,7 +1473,11 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		jbf := func(g2 *jen.Group, jdb jen.Code, inTx bool) {
 			if mth.Export {
 				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("id"), jen.Id("in")}
-				g2.Id("exist").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
+				if hookTxDone {
+					g2.Id("exist").Op(",").Err().Op(":=").Id(mth.Name).Call(args...)
+				} else {
+					g2.Id("_").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
+				}
 			} else {
 				jaf(g2, jdb, inTx)
 			}
