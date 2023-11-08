@@ -362,7 +362,7 @@ func (m *Model) Codes() jen.Code {
 		st.Line()
 	}
 
-	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 {
+	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 && (isTable || bsonable) {
 		changeSetName := m.Name + "Set"
 		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + LcFirst(m.prefix+changeSetName))).Line().Line()
 		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
@@ -372,8 +372,10 @@ func (m *Model) Codes() jen.Code {
 			stmts...,
 		).Line()
 	}
-	if jc := m.metaAddCodes(); jc != nil {
-		st.Add(jc)
+	if isTable || bsonable {
+		if jc := m.metaAddCodes(); jc != nil {
+			st.Add(jc)
+		}
 	}
 	if jc := m.codeEqualTo(); jc != nil {
 		st.Add(jc).Line()
