@@ -1649,10 +1649,10 @@ func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 								jen.Id("obj")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
 						}
 
-						g2.Err().Op("=").Id("dbDeleteT").Call(jen.Id("ctx"), jen.Id("tx"),
+						g2.Err().Op("=").Id("dbDeleteM").Call(jen.Id("ctx"), jen.Id("tx"),
 							jen.Add(swdb).Dot("Schema").Call(),
 							jen.Add(swdb).Dot("SchemaCrap").Call(),
-							jtabl, jen.Id("obj").Dot("ID"))
+							jen.Id("obj"))
 						if okAD {
 							g2.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
 							g2.Return(jen.Id(hkAD).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
