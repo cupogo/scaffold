@@ -5,6 +5,13 @@ import (
 
 	"{{ .ModelIPath }}"
 )
+{{ range .Stores }}
+{{ if .Embed }}
+type {{ .Embed }} interface {
+	// TODO:
+}
+{{ end }}{{ end }}
+
 {{ $modpkg := .ModelPkg }}{{ range .Models }}{{ range .StoreHooks }}{{ if .IsDB }}
 func {{.FunName}}(ctx context.Context, db ormDB, obj *{{$modpkg}}.{{.ObjName}}) error {
 	// TODO:

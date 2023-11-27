@@ -210,6 +210,13 @@ func (s *Store) ShortIName() string {
 	return strings.TrimSuffix(in, "Store")
 }
 
+func (s *Store) hasEmbed() bool {
+	if len(s.Embeds) > 0 {
+		return len(s.Embeds[0]) > 0
+	}
+	return len(s.Embed) > 0
+}
+
 func (s *Store) Codes(modelpkg string) jen.Code {
 	modpkg, ok := s.doc.getQual(modelpkg)
 	if !ok {

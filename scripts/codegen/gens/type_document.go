@@ -259,6 +259,15 @@ func (doc *Document) IsMongo() bool {
 	return doc != nil && doc.DbCode == DbMgm
 }
 
+func (doc *Document) hasStoreEmbed() bool {
+	for _, sto := range doc.Stores {
+		if sto.hasEmbed() {
+			return true
+		}
+	}
+	return false
+}
+
 func (doc *Document) hasStoreHooks() bool {
 	for _, m := range doc.Models {
 		if len(m.StoHooks) > 0 {
@@ -509,7 +518,7 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 
 	_ = goImports(outname)
 
-	if doc.hasStoreHooks() {
+	if doc.hasStoreEmbed() || doc.hasStoreHooks() {
 		ensureGoFile(gfile, "stores/doc_x", doc)
 		if svd == nil {
 			svd, err = newDST(gfile, storepkg)
