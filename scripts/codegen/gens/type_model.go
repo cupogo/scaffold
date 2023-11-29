@@ -1255,7 +1255,6 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	hookTxing := okBC || okAC || okBS || okAS
 
 	isPG10 := mod.doc.IsPG10()
-	unfd, isuniq := mod.UniqueOne()
 
 	swdb, fnCreate, _ := mod.jvdbcall('C')
 
@@ -1266,20 +1265,24 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		g.Id("obj").Op("=").Qual(mod.getIPath(), nname).Call(jen.Id("in"))
 
 		targs := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
-		if isuniq && !mod.IsBsonable() {
-			var jcond jen.Code
-			if unfd.isOID() {
-				jcond = jen.Id("obj").Dot(unfd.Name).Dot("IsZero").Call()
-			} else {
-				jcond = jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")
+		jfCheck := func() {
+			unfd, isuniq := mod.UniqueOne()
+			if isuniq && !mod.IsBsonable() {
+				var jcond jen.Code
+				if unfd.isOID() {
+					jcond = jen.Id("obj").Dot(unfd.Name).Dot("IsZero").Call()
+				} else {
+					jcond = jen.Id("obj").Dot(unfd.Name).Op("==").Lit("")
+				}
+				g.If(jcond).Block(
+					jen.Err().Op("=").Id("ErrEmptyKey"),
+					jen.Return())
+				targs = append(targs, jen.Lit(unfd.Column))
+			} else if mod.ForceCreate {
+				targs = append(targs, jen.Lit(true))
 			}
-			g.If(jcond).Block(
-				jen.Err().Op("=").Id("ErrEmptyKey"),
-				jen.Return())
-			targs = append(targs, jen.Lit(unfd.Column))
-		} else if mod.ForceCreate {
-			targs = append(targs, jen.Lit(true))
 		}
+
 		if jt, ok := mod.textSearchCodes("obj"); ok {
 			g.Add(jt)
 		}
@@ -1293,6 +1296,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 					jen.Return(),
 				)
 			}
+			jfCheck()
 			mod.codeMetaUp(g, jdb, "obj")
 
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
@@ -1307,6 +1311,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			}
 
 		} else {
+			jfCheck()
 			mod.codeMetaUp(g, jdb, "obj")
 
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
