@@ -640,12 +640,19 @@ func (m *Model) sortableColumns() (cs []string) {
 	return
 }
 
-func (m *Model) getSpecName() string {
+func (m *Model) getExportName(ss ...string) string {
 	ns := ToExported(m.SpecNs)
 	if ns == m.Name {
 		ns = ""
 	}
-	return ns + m.Name + "Spec"
+	if len(ss) > 0 && len(ss[0]) > 0 {
+		return ns + m.Name + ss[0]
+	}
+	return ns + m.Name
+}
+
+func (m *Model) getSpecName() string {
+	return m.getExportName("Spec")
 }
 
 func (m *Model) jSpecBasic() (name, parent string, args []jen.Code, rets []jen.Code,
@@ -1305,10 +1312,11 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
 		}
 	}
+	efname := mth.action + mod.getExportName()
 	if mth.Export {
 		args := []jen.Code{jactx, jadbO}
 		args = append(args, arg...)
-		addition = jen.Func().Id(mth.Name).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
+		addition = jen.Func().Id(efname).Params(args...).Params(ret...).BlockFunc(func(g *jen.Group) {
 			jaf(g, jen.Id("db"))
 			g.Return()
 		}).Line()
@@ -1318,7 +1326,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		jbf := func(g2 *jen.Group, jdb jen.Code) {
 			if mth.Export {
 				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("in")}
-				g2.Id("obj").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
+				g2.Id("obj").Op(",").Err().Op("=").Id(efname).Call(args...)
 			} else {
 				jaf(g2, jdb)
 			}
@@ -1462,11 +1470,12 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 		}
 	}
+	efname := mth.action + mod.getExportName()
 	if mth.Export {
 		args := []jen.Code{jactx, jadbO}
 		args = append(args, arg...)
 		rets := []jen.Code{jen.Id("exist").Op("*").Qual(mod.getIPath(), mod.Name), jen.Err().Error()}
-		addition = jen.Func().Id(mth.Name).Params(args...).Params(rets...).BlockFunc(func(g *jen.Group) {
+		addition = jen.Func().Id(efname).Params(args...).Params(rets...).BlockFunc(func(g *jen.Group) {
 			jaf(g, jen.Id("db"), false)
 		}).Line()
 	}
@@ -1476,9 +1485,9 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			if mth.Export {
 				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("id"), jen.Id("in")}
 				if hookTxDone {
-					g2.Id("exist").Op(",").Err().Op(":=").Id(mth.Name).Call(args...)
+					g2.Id("exist").Op(",").Err().Op(":=").Id(efname).Call(args...)
 				} else {
-					g2.Id("_").Op(",").Err().Op("=").Id(mth.Name).Call(args...)
+					g2.Id("_").Op(",").Err().Op("=").Id(efname).Call(args...)
 				}
 			} else {
 				jaf(g2, jdb, inTx)
