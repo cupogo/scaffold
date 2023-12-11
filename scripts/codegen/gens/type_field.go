@@ -156,9 +156,8 @@ func (f *Field) commentCode() (st *jen.Statement) {
 					f.Tags[TagSwaggerType] = ed.SwaggerT
 				}
 			}
-		} else {
-			jcodeDesc(st, f.Descr, "")
 		}
+		jcodeDesc(st, f.Descr, "")
 	}
 	return
 }
