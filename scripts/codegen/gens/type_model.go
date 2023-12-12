@@ -988,7 +988,7 @@ func (m *Model) HasTextSearch() (cols []string, ok bool) {
 	return
 }
 
-func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
+func (mod *Model) textSearchCodes(id string, isup bool) (jen.Code, bool) {
 	st := jen.Empty()
 	if cols, ok := mod.HasTextSearch(); ok {
 		st.If(jen.Id("tscfg").Op(",").Id("ok").Op(":=").Id("DbTsCheck").Call().Op(";").Id("ok")).BlockFunc(func(g *jen.Group) {
@@ -1000,7 +1000,9 @@ func (mod *Model) textSearchCodes(id string) (jen.Code, bool) {
 					}
 				}))
 			}
-			g.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
+			if isup {
+				g.Id(id).Dot("SetChange").Call(jen.Lit("ts_cfg"))
+			}
 		})
 		// if id == "exist" {
 		// 	// st.Else().Block(jen.Id(id).Dot("TsCfgName").Op("=").Lit(""))
@@ -1283,7 +1285,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			}
 		}
 
-		if jt, ok := mod.textSearchCodes("obj"); ok {
+		if jt, ok := mod.textSearchCodes("obj", false); ok {
 			g.Add(jt)
 		}
 		if hookTxing {
@@ -1426,7 +1428,7 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
 		}
 
-		if jt, ok := mod.textSearchCodes("exist"); ok {
+		if jt, ok := mod.textSearchCodes("exist", true); ok {
 			g.Add(jt)
 		}
 
