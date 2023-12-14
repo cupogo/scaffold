@@ -12,15 +12,10 @@ import (
 )
 
 // type Article = cms1.Article
-// type Articles = cms1.Articles
 // type Attachment = cms1.Attachment
-// type Attachments = cms1.Attachments
 // type Channel = cms1.Channel
-// type Channels = cms1.Channels
 // type Clause = cms1.Clause
-// type Clauses = cms1.Clauses
 // type File = cms1.File
-// type Files = cms1.Files
 
 func init() {
 	RegisterModel((*cms1.Channel)(nil), (*cms1.Article)(nil), (*cms1.Attachment)(nil), (*cms1.Clause)(nil))
@@ -105,9 +100,6 @@ type ArticleSpec struct {
 	Srcs string `extensions:"x-order=G" form:"srcs" json:"srcs,omitempty"`
 	// 来源
 	Src string `extensions:"x-order=H" form:"src" json:"src"`
-
-	// include relation column
-	WithRel string `extensions:"x-order=I" form:"rel" json:"rel"`
 }
 
 func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
@@ -228,7 +220,7 @@ func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data
 		return
 	}
 	total, err = queryPager(ctx, spec, q)
-	if err == nil && len(data) > 0 {
+	if err == nil {
 		err = s.afterListArticle(ctx, spec, data)
 	}
 	return
@@ -267,7 +259,7 @@ func (s *contentStore) DeleteArticle(ctx context.Context, id string) error {
 		return err
 	}
 	if err := s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
-		err = dbDeleteT(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), cms1.ArticleTable, obj.ID)
+		err = dbDeleteM(ctx, tx, s.w.db.Schema(), s.w.db.SchemaCrap(), obj)
 		if err != nil {
 			return
 		}
@@ -302,7 +294,6 @@ func CreateArticle(ctx context.Context, db ormDB, in cms1.ArticleBasic) (obj *cm
 	if tscfg, ok := DbTsCheck(); ok {
 		obj.TsCfgName = tscfg
 		obj.SetTsColumns("title", "content")
-		obj.SetChange("ts_cfg")
 	}
 	if err = dbBeforeSaveArticle(ctx, db, obj); err != nil {
 		return

@@ -13,8 +13,8 @@ import (
 type RoleType int8
 
 const (
-	RoleTypeNormal RoleType = 1 << iota //  1 普通用户
-	RoleTypeAdmin                       //  2 管理员
+	RoleTypeNormal RoleType = 1 << iota //   1 普通用户
+	RoleTypeAdmin                       //   2 管理员
 
 	RoleTypeNone RoleType = 0 // none
 )
@@ -49,8 +49,8 @@ func (z RoleType) String() string {
 type AccountStatus int8
 
 const (
-	AccountStatusActive AccountStatus = 1 << iota //  1 active
-	AccountStatusForbid                           //  2 forbid
+	AccountStatusActive AccountStatus = 1 << iota //   1 active
+	AccountStatusForbid                           //   2 forbid
 
 	AccountStatusNone AccountStatus = 0 // none
 )
@@ -86,6 +86,7 @@ const (
 	AccountTable = "auth_account"
 	AccountAlias = "aa"
 	AccountLabel = "account"
+	AccountModel = "accountsAccount"
 )
 
 // Account 账号
@@ -107,9 +108,13 @@ type AccountBasic struct {
 	// 头像路径
 	AvatarPath string `bun:"avatar,notnull,type:varchar(97)" extensions:"x-order=C" form:"avatar" json:"avatar,omitempty" pg:"avatar,notnull,use_zero,type:varchar(97)"`
 	// 角色类型: 1=普通账号，2=管理员
-	RoleType RoleType `bun:"role_type,notnull,type:smallint" extensions:"x-order=D" form:"rt" json:"rt" pg:"role_type,notnull,type:smallint,use_zero" swaggertype:"integer"`
+	//  * 1=`nor` - 普通用户
+	//  * 2=`adm` - 管理员
+	RoleType RoleType `bun:"role_type,notnull,type:smallint" enums:"1,2" extensions:"x-order=D" form:"rt" json:"rt" pg:"role_type,notnull,type:smallint,use_zero" swaggertype:"integer"`
 	// 状态: 1=激活，2=禁用
-	Status AccountStatus `bun:"status,notnull,type:smallint" extensions:"x-order=E" form:"status" json:"status" pg:"status,notnull,type:smallint,use_zero" swaggertype:"integer"`
+	//  * 1=`active`
+	//  * 2=`forbid`
+	Status AccountStatus `bun:"status,notnull,type:smallint" enums:"1,2" extensions:"x-order=E" form:"status" json:"status" pg:"status,notnull,type:smallint,use_zero" swaggertype:"integer"`
 	// 邮箱
 	Email string `bun:"email,notnull,type:varchar(43)" extensions:"x-order=F" form:"email" json:"email,omitempty" pg:"email,notnull,use_zero,type:varchar(43)"`
 	// 描述
@@ -142,15 +147,10 @@ func NewAccountWithID(id any) *Account {
 	_ = obj.SetID(id)
 	return obj
 }
-func (_ *Account) IdentityLabel() string {
-	return AccountLabel
-}
-func (_ *Account) IdentityTable() string {
-	return AccountTable
-}
-func (_ *Account) IdentityAlias() string {
-	return AccountAlias
-}
+func (_ *Account) IdentityLabel() string { return AccountLabel }
+func (_ *Account) IdentityModel() string { return AccountModel }
+func (_ *Account) IdentityTable() string { return AccountTable }
+func (_ *Account) IdentityAlias() string { return AccountAlias }
 
 type AccountSet struct {
 	// 登录名 唯一
@@ -160,9 +160,13 @@ type AccountSet struct {
 	// 头像路径
 	AvatarPath *string `extensions:"x-order=C" form:"avatar" json:"avatar,omitempty"`
 	// 角色类型: 1=普通账号，2=管理员
-	RoleType *RoleType `extensions:"x-order=D" json:"rt" swaggertype:"integer"`
+	//  * 1=`nor` - 普通用户
+	//  * 2=`adm` - 管理员
+	RoleType *RoleType `enums:"1,2" extensions:"x-order=D" json:"rt" swaggertype:"integer"`
 	// 状态: 1=激活，2=禁用
-	Status *AccountStatus `extensions:"x-order=E" json:"status" swaggertype:"integer"`
+	//  * 1=`active`
+	//  * 2=`forbid`
+	Status *AccountStatus `enums:"1,2" extensions:"x-order=E" json:"status" swaggertype:"integer"`
 	// 邮箱
 	Email *string `extensions:"x-order=F" form:"email" json:"email,omitempty"`
 	// 描述
@@ -223,6 +227,7 @@ const (
 	AccountPasswdTable = "auth_account_passwd"
 	AccountPasswdAlias = "aap"
 	AccountPasswdLabel = "accountPasswd"
+	AccountPasswdModel = "accountsAccountPasswd"
 )
 
 // AccountPasswd 账号密码
@@ -265,15 +270,10 @@ func NewAccountPasswdWithID(id any) *AccountPasswd {
 	_ = obj.SetID(id)
 	return obj
 }
-func (_ *AccountPasswd) IdentityLabel() string {
-	return AccountPasswdLabel
-}
-func (_ *AccountPasswd) IdentityTable() string {
-	return AccountPasswdTable
-}
-func (_ *AccountPasswd) IdentityAlias() string {
-	return AccountPasswdAlias
-}
+func (_ *AccountPasswd) IdentityLabel() string { return AccountPasswdLabel }
+func (_ *AccountPasswd) IdentityModel() string { return AccountPasswdModel }
+func (_ *AccountPasswd) IdentityTable() string { return AccountPasswdTable }
+func (_ *AccountPasswd) IdentityAlias() string { return AccountPasswdAlias }
 
 type AccountPasswdSet struct {
 	// 密码

@@ -11,8 +11,6 @@ import (
 type Account = accounts.Account
 
 // type AccountPasswd = accounts.AccountPasswd
-// type AccountPasswds = accounts.AccountPasswds
-// type Accounts = accounts.Accounts
 
 func init() {
 	RegisterModel((*accounts.Account)(nil), (*accounts.AccountPasswd)(nil))
@@ -37,6 +35,8 @@ type AccountSpec struct {
 	// 昵称
 	Nickname string `extensions:"x-order=B" form:"nickname" json:"nickname"`
 	// 状态: 1=激活，2=禁用
+	//  * 1=`active`
+	//  * 2=`forbid`
 	Status accounts.AccountStatus `extensions:"x-order=C" form:"status" json:"status" swaggertype:"integer"`
 	// 邮箱
 	Email string `extensions:"x-order=D" form:"email" json:"email,omitempty"`
@@ -72,11 +72,11 @@ func (s *accountStore) GetAccount(ctx context.Context, id string) (obj *accounts
 func (s *accountStore) CreateAccount(ctx context.Context, in accounts.AccountBasic) (obj *accounts.Account, err error) {
 	err = s.w.db.RunInTx(ctx, nil, func(ctx context.Context, tx pgTx) (err error) {
 		obj = accounts.NewAccountWithBasic(in)
-		if obj.Username == "" {
-			err = ErrEmptyKey
+		if err = dbBeforeCreateAccount(ctx, tx, obj); err != nil {
 			return
 		}
-		if err = dbBeforeCreateAccount(ctx, tx, obj); err != nil {
+		if obj.Username == "" {
+			err = ErrEmptyKey
 			return
 		}
 		dbMetaUp(ctx, tx, obj)
