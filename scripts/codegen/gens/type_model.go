@@ -1490,14 +1490,14 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 	blkc = jen.BlockFunc(func(g *jen.Group) {
 		jbf := func(g2 *jen.Group, jdb jen.Code, inTx bool) {
 			if mth.Export {
+				op := ":="
+				if inTx {
+					op = "="
+				}
 				args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("id"), jen.Id("in")}
 				if hookTxDone {
-					g2.Id("exist").Op(",").Err().Op(":=").Id(efname).Call(args...)
+					g2.Id("exist").Op(",").Err().Op(op).Id(efname).Call(args...)
 				} else {
-					op := ":="
-					if hookTxing {
-						op = "="
-					}
 					g2.Id("_").Op(",").Err().Op(op).Id(efname).Call(args...)
 				}
 			} else {
