@@ -1494,7 +1494,11 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 				if hookTxDone {
 					g2.Id("exist").Op(",").Err().Op(":=").Id(efname).Call(args...)
 				} else {
-					g2.Id("_").Op(",").Err().Op("=").Id(efname).Call(args...)
+					op := ":="
+					if hookTxing {
+						op = "="
+					}
+					g2.Id("_").Op(",").Err().Op(op).Id(efname).Call(args...)
 				}
 			} else {
 				jaf(g2, jdb, inTx)
@@ -1545,6 +1549,8 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		} else if okue {
 			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
+		} else if mth.Export && !hookTxing {
+			g.Return(jen.Err())
 		}
 	})
 	return
