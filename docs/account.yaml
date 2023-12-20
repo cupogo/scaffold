@@ -19,6 +19,7 @@ enums:
     decodable: true
     multiple: true
     shorted: true
+    funcAll: yes,skipzero
 
   - comment: 账号状态
     name: AccountStatus

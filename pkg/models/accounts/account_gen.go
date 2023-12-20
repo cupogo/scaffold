@@ -44,6 +44,12 @@ func (z RoleType) String() string {
 		return fmt.Sprintf("roleType %d", int8(z))
 	}
 }
+func AllRoleType() []RoleType {
+	return []RoleType{
+		RoleTypeNormal,
+		RoleTypeAdmin,
+	}
+}
 
 // 账号状态
 type AccountStatus int8

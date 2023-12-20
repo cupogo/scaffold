@@ -19,13 +19,15 @@ type Enum struct {
 	Start   int       `yaml:"start,omitempty"`
 	Values  []EnumVal `yaml:"values,omitempty"`
 
-	Decodable       bool `yaml:"decodable,omitempty"`
-	Stringer        bool `yaml:"stringer,omitempty"`
-	TextMarshaler   bool `yaml:"textMarshaler,omitempty"`
-	TextUnmarshaler bool `yaml:"textUnmarshaler,omitempty"`
-	Multiple        bool `yaml:"multiple,omitempty"`
-	Shorted         bool `yaml:"shorted,omitempty"`
-	ValStr          bool `yaml:"valstr,omitempty"` // return a value as string
+	Decodable       bool   `yaml:"decodable,omitempty"`
+	Stringer        bool   `yaml:"stringer,omitempty"`
+	TextMarshaler   bool   `yaml:"textMarshaler,omitempty"`
+	TextUnmarshaler bool   `yaml:"textUnmarshaler,omitempty"`
+	Multiple        bool   `yaml:"multiple,omitempty"`
+	Shorted         bool   `yaml:"shorted,omitempty"`
+	ValStr          bool   `yaml:"valstr,omitempty"` // return a value as string
+	Labeled         string `yaml:"labeled,omitempty"`
+	FuncAll         string `yaml:"funcAll,omitempty"`
 }
 
 type EnumVal struct {
@@ -33,6 +35,7 @@ type EnumVal struct {
 	Suffix string `yaml:"suffix"`
 	Value  int    `yaml:"value,omitempty"`
 	Lower  bool   `yaml:"lower,omitempty"`
+	Descr  string `yaml:"descr,omitempty"`
 }
 
 func (ev EnumVal) getCode(shorted bool) (s string) {
@@ -165,6 +168,22 @@ func (e *Enum) Code() jen.Code {
 		st.Line()
 		st.Func().Params(jen.Id("z").Id(e.Name)).Id("ValStr").Params().String()
 		st.Block(jen.Return().Qual("strconv", "Itoa").Call(jen.Int().Call(jen.Id("z"))))
+	}
+
+	if a, b, _ := strings.Cut(e.FuncAll, ","); len(a) > 0 && a == "yes" {
+		st.Line()
+		st.Func().Id("All" + e.Name).Params().Params(jen.Index().Id(e.Name))
+		st.BlockFunc(func(g *jen.Group) {
+			g.Return().Index().Id(e.Name).Op("{")
+			if len(b) == 0 && zeroValue != nil {
+				g.Id(e.Name + zeroValue.Suffix).Op(",")
+			}
+			for _, ev := range vals {
+				name := e.Name + ev.Suffix
+				g.Id(name).Op(",")
+			}
+			g.Op("}")
+		})
 	}
 
 	return st
