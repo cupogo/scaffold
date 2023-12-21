@@ -7,6 +7,7 @@ import (
 
 	comm "github.com/cupogo/andvari/models/comm"
 	oid "github.com/cupogo/andvari/models/oid"
+	core "github.com/cupogo/scaffold/pkg/models/core"
 )
 
 // 角色类型
@@ -46,8 +47,16 @@ func (z RoleType) String() string {
 }
 func AllRoleType() []RoleType {
 	return []RoleType{
+		RoleTypeNone,
 		RoleTypeNormal,
 		RoleTypeAdmin,
+	}
+}
+func AllRoleTypeOptions() []core.EnumItem {
+	return []core.EnumItem{
+		{ID: 0, Code: "non", Name: "none"},
+		{ID: 1, Code: "nor", Name: "普通用户"},
+		{ID: 2, Code: "adm", Name: "管理员"},
 	}
 }
 

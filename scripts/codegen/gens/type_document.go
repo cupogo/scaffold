@@ -118,6 +118,8 @@ type Document struct {
 
 	DbCode    DbCode  `yaml:"dbcode"` //  default:"bun"
 	Enums     []Enum  `yaml:"enums"`
+	EnumCore  string  `yaml:"enumcore"`
+	EnumItem  string  `yaml:"enumitem"` // default:"EnumItem"
 	ModelPkg  string  `yaml:"modelpkg"`
 	Models    []Model `yaml:"models"`
 	Qualified Tags    `yaml:"depends"` // imports name
@@ -229,6 +231,9 @@ func NewDoc(docfile string) (*Document, error) {
 }
 
 func (doc *Document) Init() {
+	for i := range doc.Enums {
+		doc.Enums[i].doc = doc
+	}
 	for i := range doc.Models {
 		doc.Models[i].init(doc)
 	}

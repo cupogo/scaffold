@@ -4,6 +4,7 @@ depends:
   oid: 'github.com/cupogo/andvari/models/oid'
 
 
+enumcore: 'github.com/cupogo/scaffold/pkg/models/core'
 enums:
   - comment: 角色类型
     name: RoleType
@@ -19,7 +20,7 @@ enums:
     decodable: true
     multiple: true
     shorted: true
-    funcAll: yes,skipzero
+    funcAll: value,option
 
   - comment: 账号状态
     name: AccountStatus

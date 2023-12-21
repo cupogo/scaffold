@@ -28,6 +28,8 @@ type Enum struct {
 	ValStr          bool   `yaml:"valstr,omitempty"` // return a value as string
 	Labeled         string `yaml:"labeled,omitempty"`
 	FuncAll         string `yaml:"funcAll,omitempty"`
+
+	doc *Document
 }
 
 type EnumVal struct {
@@ -36,6 +38,8 @@ type EnumVal struct {
 	Value  int    `yaml:"value,omitempty"`
 	Lower  bool   `yaml:"lower,omitempty"`
 	Descr  string `yaml:"descr,omitempty"`
+
+	realVal int
 }
 
 func (ev EnumVal) getCode(shorted bool) (s string) {
@@ -51,6 +55,27 @@ func (ev EnumVal) getCode(shorted bool) (s string) {
 	return s
 }
 
+func (e *Enum) prepare() (vals []EnumVal, zv *EnumVal) {
+	zeroStart := e.Start < 1
+	vals = e.Values
+	if e.Multiple && zeroStart {
+		e.Start = 1
+		zv = &vals[0]
+		vals = vals[1:]
+	}
+	for i, ev := range vals {
+		val := e.Start + i
+		if e.Multiple {
+			val = e.Start << i
+		} else if ev.Value > 0 && i == len(vals)-1 {
+			val = ev.Value
+		}
+		vals[i].realVal = val
+	}
+
+	return vals, zv
+}
+
 func (e *Enum) Code() jen.Code {
 	st := jen.Comment(e.Comment).Line()
 	st.Type().Id(e.Name).Id(e.Type).Line()
@@ -59,42 +84,33 @@ func (e *Enum) Code() jen.Code {
 		return st
 	}
 
-	zeroStart := e.Start < 1
-	var zeroValue *EnumVal
-	vals := e.Values
-	if e.Multiple && zeroStart {
-		e.Start = 1
-		zeroValue = &vals[0]
-		vals = vals[1:]
+	vals, zv := e.prepare()
 
-	}
 	st.Const().DefsFunc(func(g *jen.Group) {
 		op := "+"
 		if e.Multiple {
 			op = "<<"
 		}
 		for i, ev := range vals {
-			val := e.Start + i
 			var cmt string
 			if e.Multiple {
-				val = e.Start << i
-				cmt = fmt.Sprintf("%3d %s", val, ev.Label)
+				cmt = fmt.Sprintf("%3d %s", ev.realVal, ev.Label)
 			} else {
-				cmt = fmt.Sprintf("%2d %s", val, ev.Label)
+				cmt = fmt.Sprintf("%2d %s", ev.realVal, ev.Label)
 			}
 			name := e.Name + ev.Suffix
 			if i == 0 {
 				g.Id(name).Id(e.Name).Op("=").Lit(e.Start).Op(op).Id("iota").Comment(cmt)
-			} else if ev.Value > 0 && i == len(vals)-1 {
+			} else if ev.Value > 0 && i == len(e.Values)-1 {
 				g.Id(name).Id(e.Name).Op("=").Lit(ev.Value).Comment(cmt)
 			} else {
 				g.Id(name).Comment(cmt)
 			}
 		}
 
-		if zeroValue != nil {
+		if zv != nil {
 			g.Line()
-			g.Id(e.Name + zeroValue.Suffix).Id(e.Name).Op("=0").Comment(zeroValue.Label)
+			g.Id(e.Name + zv.Suffix).Id(e.Name).Op("=0").Comment(zv.Label)
 		}
 	})
 
@@ -102,24 +118,18 @@ func (e *Enum) Code() jen.Code {
 		st.Line()
 		st.Func().Params(jen.Id("z").Op("*").Id(e.Name)).Id("Decode").Params(jen.Id("s").String()).Error()
 		st.Block(jen.Switch(jen.Id("s")).BlockFunc(func(g *jen.Group) {
-			if zeroValue != nil {
-				code := zeroValue.getCode(e.Shorted)
+			if zv != nil {
+				code := zv.getCode(e.Shorted)
 				cases := []jen.Code{jen.Lit("0"), jen.Lit(code)}
-				if ss := zeroValue.getCode(false); ss != code && e.Shorted {
+				if ss := zv.getCode(false); ss != code && e.Shorted {
 					cases = append(cases, jen.Lit(ss))
 				}
 				g.Case(cases...)
-				g.Op("*").Id("z").Op("=").Id(e.Name + zeroValue.Suffix)
+				g.Op("*").Id("z").Op("=").Id(e.Name + zv.Suffix)
 			}
-			for i, ev := range vals {
-				val := e.Start + i
-				if e.Multiple {
-					val = e.Start << i
-				} else if ev.Value > 0 && i == len(vals)-1 {
-					val = ev.Value
-				}
+			for _, ev := range vals {
 				name := e.Name + ev.Suffix
-				id := fmt.Sprint(val)
+				id := fmt.Sprint(ev.realVal)
 				code := ev.getCode(e.Shorted)
 				cases := []jen.Code{jen.Lit(id), jen.Lit(code)}
 				if ss := ev.getCode(false); ss != code && e.Shorted {
@@ -170,22 +180,72 @@ func (e *Enum) Code() jen.Code {
 		st.Block(jen.Return().Qual("strconv", "Itoa").Call(jen.Int().Call(jen.Id("z"))))
 	}
 
-	if a, b, _ := strings.Cut(e.FuncAll, ","); len(a) > 0 && a == "yes" {
-		st.Line()
-		st.Func().Id("All" + e.Name).Params().Params(jen.Index().Id(e.Name))
-		st.BlockFunc(func(g *jen.Group) {
-			g.Return().Index().Id(e.Name).Op("{")
-			if len(b) == 0 && zeroValue != nil {
-				g.Id(e.Name + zeroValue.Suffix).Op(",")
-			}
-			for _, ev := range vals {
-				name := e.Name + ev.Suffix
-				g.Id(name).Op(",")
-			}
-			g.Op("}")
-		})
+	if len(e.FuncAll) > 0 {
+		genValueF := strings.Contains(e.FuncAll, "value")
+		genOptionsF := strings.Contains(e.FuncAll, "option")
+		wizhZero := strings.Contains(e.FuncAll, "zero")
+
+		if genValueF {
+			st.Line()
+			st.Func().Id("All" + e.Name).Params().Params(jen.Index().Id(e.Name))
+			st.BlockFunc(func(g *jen.Group) {
+				g.Return().Index().Id(e.Name).Op("{")
+				if wizhZero && zv != nil {
+					g.Id(e.Name + zv.Suffix).Op(",")
+				}
+				for _, ev := range e.Values {
+					name := e.Name + ev.Suffix
+					g.Id(name).Op(",")
+				}
+				g.Op("}")
+			})
+		}
+		if genOptionsF {
+			st.Line()
+			jitem := e.jQualItem()
+			st.Func().Id("All" + e.Name + "Options").Params().Params(jen.Index().Add(jitem))
+			st.BlockFunc(func(g *jen.Group) {
+				g.Return().Index().Add(jitem).Op("{")
+				if wizhZero && zv != nil {
+					g.Add(zv.jItem(e)).Op(",")
+				}
+				for _, ev := range e.Values {
+					g.Add(ev.jItem(e)).Op(",")
+				}
+				g.Op("}")
+			})
+
+		}
+
 	}
 
+	return st
+}
+
+func (e *Enum) getItemName() string {
+	if e.doc != nil {
+		if e.doc.EnumItem != "" {
+			return e.doc.EnumItem
+		}
+	}
+	return "EnumItem"
+}
+
+func (e *Enum) jQualItem() jen.Code {
+	if e.doc != nil && e.doc.EnumCore != "" {
+		return jen.Qual(e.doc.EnumCore, e.getItemName())
+	}
+	return jen.Id(e.getItemName())
+}
+
+func (ev EnumVal) jItem(e *Enum) jen.Code {
+	st := new(jen.Statement)
+	st.Op("{")
+	st.Id("ID:").Lit(ev.realVal).Op(",")
+	st.Id("Code:").Lit(ev.getCode(e.Shorted)).Op(",")
+	name, _, _ := strings.Cut(ev.Label, " ")
+	st.Id("Name:").Lit(name).Op(",")
+	st.Op("}")
 	return st
 }
 
