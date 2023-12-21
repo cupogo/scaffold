@@ -243,8 +243,11 @@ func (ev EnumVal) jItem(e *Enum) jen.Code {
 	st.Op("{")
 	st.Id("ID:").Lit(ev.realVal).Op(",")
 	st.Id("Code:").Lit(ev.getCode(e.Shorted)).Op(",")
-	name, _, _ := strings.Cut(ev.Label, " ")
+	name, descr, _ := strings.Cut(ev.Label, " ")
 	st.Id("Name:").Lit(name).Op(",")
+	if len(descr) > 1 {
+		st.Id("Descr:").Lit(descr).Op(",")
+	}
 	st.Op("}")
 	return st
 }
