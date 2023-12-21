@@ -2,7 +2,7 @@ package core
 
 // EnumItem 枚举的条目
 type EnumItem struct {
-	ID     int    `extensions:"x-order=A" json:"id" `
+	ID     int    `extensions:"x-order=A" json:"id,omitempty" `
 	Code   string `extensions:"x-order=B" json:"code"`
 	Name   string `extensions:"x-order=C" json:"name"`
 	Descr  string `extensions:"x-order=D" json:"descr,omitempty"`

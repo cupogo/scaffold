@@ -241,7 +241,9 @@ func (e *Enum) jQualItem() jen.Code {
 func (ev EnumVal) jItem(e *Enum) jen.Code {
 	st := new(jen.Statement)
 	st.Op("{")
-	st.Id("ID:").Lit(ev.realVal).Op(",")
+	if !e.TextMarshaler {
+		st.Id("ID:").Lit(ev.realVal).Op(",")
+	}
 	st.Id("Code:").Lit(ev.getCode(e.Shorted)).Op(",")
 	name, descr, _ := strings.Cut(ev.Label, " ")
 	st.Id("Name:").Lit(name).Op(",")
@@ -259,18 +261,9 @@ type EnumDoc struct {
 }
 
 func (e *Enum) docComments() (ed EnumDoc, ok bool) {
-	vals := e.Values
-	if e.Multiple && e.Start < 1 {
-		e.Start = 1
-		vals = vals[1:]
-	}
-	for i, ev := range vals {
-		val := e.Start + i
-		if e.Multiple {
-			val = e.Start << i
-		} else if ev.Value > 0 && i == len(vals)-1 {
-			val = ev.Value
-		}
+	vals, _ := e.prepare()
+
+	for _, ev := range vals {
 		code := ev.getCode(e.Shorted)
 		label := ev.Label
 		if a, _, ok := strings.Cut(label, " "); ok && len(a) > 0 {
@@ -286,8 +279,8 @@ func (e *Enum) docComments() (ed EnumDoc, ok bool) {
 			ed.SwaggerT = "string"
 			ed.Codes = append(ed.Codes, code)
 		} else {
-			cs = fmt.Sprintf("%d=`%s`%s", val, code, suf)
-			ed.Codes = append(ed.Codes, fmt.Sprintf("%d", val))
+			cs = fmt.Sprintf("%d=`%s`%s", ev.realVal, code, suf)
+			ed.Codes = append(ed.Codes, fmt.Sprintf("%d", ev.realVal))
 		}
 
 		ed.Lines = append(ed.Lines, cs)
