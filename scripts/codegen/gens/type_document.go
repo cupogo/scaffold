@@ -391,14 +391,14 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 
 func (doc *Document) allModelAliases() (exports, aliases []string) {
 	for _, m := range doc.Models {
-		if m.ExportSingle {
+		if m.ExportOne || m.ExportSingle {
 			exports = append(exports, m.Name)
 		} else {
 			aliases = append(aliases, m.Name)
 		}
 
 		if mns := m.GetPlural(); mns != m.Name && (len(m.Plural) > 0 || m.WithPlural) {
-			if m.ExportPlural {
+			if m.ExportMore || m.ExportPlural {
 				exports = append(exports, mns)
 			} else {
 				aliases = append(aliases, mns)

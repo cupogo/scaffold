@@ -43,8 +43,10 @@ type Model struct {
 	Bsonable       bool `yaml:"bson,omitempty"`       // for mongodb only
 	RegLoader      bool `yaml:"regLoader,omitempty"`  // 允许注册加载器
 
-	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store
-	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store
+	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store, deprecated by export1
+	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store, deprecated by export2
+	ExportOne    bool `yaml:"export1,omitempty"`      // for alias in store
+	ExportMore   bool `yaml:"export2,omitempty"`      // for alias in store
 
 	doc    *Document
 	pkg    string
