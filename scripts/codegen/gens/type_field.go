@@ -408,7 +408,7 @@ func (f *Field) parseQuery() (fn, ext string, ok bool) {
 	a, ext, _ = strings.Cut(f.Query, ",")
 	switch a {
 	case "oids":
-		fn, ok = "siftOIDs", f.Type == "oid.OID"
+		fn, ok = "siftOIDs", f.Type == "oid.OID" || f.Type == "oid.OIDs"
 	case "equal":
 		fn, ok = "siftEqual", true
 	case "ice", "ilike":
