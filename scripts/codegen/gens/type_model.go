@@ -44,10 +44,8 @@ type Model struct {
 	RegLoader      bool `yaml:"regLoader,omitempty"`  // 允许注册加载器
 	WithSet        bool `yaml:"withSet,omitempty"`
 
-	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store, deprecated by export1
-	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store, deprecated by export2
-	ExportOne    bool `yaml:"export1,omitempty"`      // for alias in store
-	ExportMore   bool `yaml:"export2,omitempty"`      // for alias in store
+	ExportOne  bool `yaml:"export1,omitempty"` // for alias in store
+	ExportMore bool `yaml:"export2,omitempty"` // for alias in store
 
 	doc    *Document
 	pkg    string
