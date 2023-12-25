@@ -42,6 +42,7 @@ type Model struct {
 	DisableLog     bool `yaml:"disableLog,omitempty"` // 不记录model的日志
 	Bsonable       bool `yaml:"bson,omitempty"`       // for mongodb only
 	RegLoader      bool `yaml:"regLoader,omitempty"`  // 允许注册加载器
+	WithSet        bool `yaml:"withSet,omitempty"`
 
 	ExportSingle bool `yaml:"exportSingle,omitempty"` // for alias in store, deprecated by export1
 	ExportPlural bool `yaml:"exportPlural,omitempty"` // for alias in store, deprecated by export2
@@ -364,7 +365,7 @@ func (m *Model) Codes() jen.Code {
 		st.Line()
 	}
 
-	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 && (isTable || bsonable) {
+	if fields, stmts, rets := m.ChangablCodes(); len(fields) > 0 && (isTable || bsonable || m.WithSet) {
 		changeSetName := m.Name + "Set"
 		st.Type().Id(changeSetName).Struct(fields...).Add(jen.Comment("@name " + LcFirst(m.prefix+changeSetName))).Line().Line()
 		// scs = append(scs, jen.Return(jen.Id("z").Dot("CountChange").Call().Op(">0")))
