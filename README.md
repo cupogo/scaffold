@@ -1,8 +1,8 @@
 # scaffold
 
-Go 项目脚手架, 包含代码生成器和示例
+Go 项目脚手架, 专门用于快速实现 RESTful 接口, 包含代码生成器和示例
 
-Go project scaffolding, including a code generator and examples
+Go project scaffolding for RESTful API, including a code generator and examples
 
 ## Features
 
