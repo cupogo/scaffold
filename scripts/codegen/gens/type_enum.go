@@ -181,13 +181,11 @@ func (e *Enum) Code() jen.Code {
 	}
 
 	if len(e.FuncAll) > 0 {
-		genValueF := strings.Contains(e.FuncAll, "value")
-		genOptionsF := strings.Contains(e.FuncAll, "option")
-		wizhZero := strings.Contains(e.FuncAll, "zero")
+		wizhZero := e.isFuncWithZero()
 
-		if genValueF {
+		if e.isFuncValues() {
 			st.Line()
-			st.Func().Id("All" + e.Name).Params().Params(jen.Index().Id(e.Name))
+			st.Func().Id(e.funcAllName()).Params().Params(jen.Index().Id(e.Name))
 			st.BlockFunc(func(g *jen.Group) {
 				g.Return().Index().Id(e.Name).Op("{")
 				if wizhZero && zv != nil {
@@ -200,10 +198,10 @@ func (e *Enum) Code() jen.Code {
 				g.Op("}")
 			})
 		}
-		if genOptionsF {
+		if e.isFuncOptions() {
 			st.Line()
 			jitem := e.jQualItem()
-			st.Func().Id("All" + e.Name + "Options").Params().Params(jen.Index().Add(jitem))
+			st.Func().Id(e.funcAllOptionsName()).Params().Params(jen.Index().Add(jitem))
 			st.BlockFunc(func(g *jen.Group) {
 				g.Return().Index().Add(jitem).Op("{")
 				if wizhZero && zv != nil {
@@ -220,6 +218,30 @@ func (e *Enum) Code() jen.Code {
 	}
 
 	return st
+}
+
+func (e *Enum) funcAllName(ss ...string) string {
+	out := "All" + e.Name
+	if len(ss) > 0 && len(ss[0]) > 0 {
+		out += ss[0]
+	}
+	return out
+}
+
+func (e *Enum) funcAllOptionsName() string {
+	return e.funcAllName("Options")
+}
+
+func (e *Enum) isFuncValues() bool {
+	return strings.Contains(e.FuncAll, "value")
+}
+
+func (e *Enum) isFuncOptions() bool {
+	return strings.Contains(e.FuncAll, "option")
+}
+
+func (e *Enum) isFuncWithZero() bool {
+	return strings.Contains(e.FuncAll, "zero")
 }
 
 func (e *Enum) getItemName() string {
