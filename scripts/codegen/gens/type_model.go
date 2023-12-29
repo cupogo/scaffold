@@ -642,14 +642,18 @@ func (m *Model) sortableColumns() (cs []string) {
 }
 
 func (m *Model) getExportName(ss ...string) string {
-	ns := ToExported(m.SpecNs)
-	if ns == m.Name {
+	return getExportName(m.Name, m.SpecNs, ss...)
+}
+
+func getExportName(name, specNs string, ss ...string) string {
+	ns := ToExported(specNs)
+	if ns == name {
 		ns = ""
 	}
 	if len(ss) > 0 && len(ss[0]) > 0 {
-		return ns + m.Name + ss[0]
+		return ns + name + ss[0]
 	}
-	return ns + m.Name
+	return ns + name
 }
 
 func (m *Model) getSpecName() string {
