@@ -26,7 +26,7 @@ type Enum struct {
 	Multiple        bool   `yaml:"multiple,omitempty"`
 	Shorted         bool   `yaml:"shorted,omitempty"`
 	ValStr          bool   `yaml:"valstr,omitempty"` // return a value as string
-	Labeled         string `yaml:"labeled,omitempty"`
+	Labeled         bool   `yaml:"labeled,omitempty"`
 	FuncAll         string `yaml:"funcAll,omitempty"`
 
 	doc *Document
@@ -178,6 +178,20 @@ func (e *Enum) Code() jen.Code {
 		st.Line()
 		st.Func().Params(jen.Id("z").Id(e.Name)).Id("ValStr").Params().String()
 		st.Block(jen.Return().Qual("strconv", "Itoa").Call(jen.Int().Call(jen.Id("z"))))
+	}
+
+	if e.Labeled {
+		st.Line()
+		st.Func().Params(jen.Id("z").Id(e.Name)).Id("Label").Params().String()
+		st.Block(jen.Switch(jen.Id("z")).BlockFunc(func(g *jen.Group) {
+			for _, ev := range e.Values {
+				name := e.Name + ev.Suffix
+				g.Case(jen.Id(name))
+				label, _, _ := strings.Cut(ev.Label, " ")
+				g.Return(jen.Lit(label))
+			}
+			g.Default().Return(jen.Qual("fmt", "Sprintf").Call(jen.Lit(LcFirst(e.Name)+"#%d"), jen.Id(e.Type).Call(jen.Id("z"))))
+		}))
 	}
 
 	if len(e.FuncAll) > 0 {
