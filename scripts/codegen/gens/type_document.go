@@ -116,6 +116,7 @@ type Document struct {
 
 	Module string `yaml:"-"`
 
+	Gename    string  `yaml:"gename"`
 	DbCode    DbCode  `yaml:"dbcode"` //  default:"bun"
 	Enums     []Enum  `yaml:"enums"`
 	EnumCore  string  `yaml:"enumcore"`
@@ -212,7 +213,7 @@ func NewDoc(docfile string) (*Document, error) {
 	if doc.ModelPkg == "" {
 		return nil, fmt.Errorf("modelpkg is empty")
 	}
-	doc.gened, doc.extern = getOutName(docfile)
+	doc.gened, doc.extern = doc.getOutName(docfile)
 	doc.dirmod = path.Join("pkg", "models", doc.ModelPkg)
 	doc.dirsto = path.Join("pkg", "services", storepkg)
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
@@ -245,11 +246,19 @@ func (doc *Document) Init() {
 	doc.WebAPI.prepareHandles()
 }
 
-func getOutName(docfile string) (gened string, extern string) {
+func (doc *Document) getGename(docfile string) string {
+	if len(doc.Gename) > 0 {
+		return doc.Gename
+	}
 	name := path.Base(docfile)
 	if pos := strings.LastIndex(name, "."); pos > 1 {
 		name = name[0:pos]
 	}
+	return name
+}
+
+func (doc *Document) getOutName(docfile string) (gened string, extern string) {
+	name := doc.getGename(docfile)
 	gened = name + "_gen.go"
 	extern = name + "_x.go"
 
