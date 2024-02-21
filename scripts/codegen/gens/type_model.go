@@ -334,7 +334,8 @@ func (m *Model) Codes() jen.Code {
 	pluralName := m.GetPlural()
 	withPlual := pluralName != m.Name && (isTable || bsonable || len(m.Plural) > 0 || m.WithPlural)
 	if withPlual {
-		st.Type().Id(m.GetPlural()).Index().Id(m.Name).Line().Line()
+		pname := m.GetPlural()
+		st.Type().Id(pname).Index().Id(m.Name).Comment("@name " + LcFirst(m.prefix+pname)).Line().Line()
 	}
 
 	if jhk := m.hookModelCodes(); jhk != nil {
