@@ -1445,11 +1445,14 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 		jup := jen.Id(fnUpdate).Call(jupArgs...)
 
+		if !mod.IsBsonable() {
+			g.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
+		}
+
 		if hookTxing {
 			jcondf := func(eop string, jnbc jen.Code) jen.Code {
 				return jen.If(jen.Err().Op(eop).Add(jnbc).Op(";").Err().Op("!=")).Nil().Block(jretf())
 			}
-			g.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
 			if okBU {
 				g.Add(jcondf(eop, jen.Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
 			} else if okBS {
