@@ -1431,6 +1431,7 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		if mod.IsBsonable() {
 			g.Id("up").Op(eop).Id("exist").Dot("SetWith").Call(jen.Id("in"))
 		} else {
+			g.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
 			g.Id("exist").Dot("SetWith").Call(jen.Id("in"))
 		}
 
@@ -1444,10 +1445,6 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		}
 
 		jup := jen.Id(fnUpdate).Call(jupArgs...)
-
-		if !mod.IsBsonable() {
-			g.Id("exist").Dot("SetIsUpdate").Call(jen.Lit(true))
-		}
 
 		if hookTxing {
 			jcondf := func(eop string, jnbc jen.Code) jen.Code {
