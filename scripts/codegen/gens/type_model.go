@@ -1198,7 +1198,7 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 		}
 		jer := jen.Empty()
 		if mod.doc.hasQualErrors() {
-			jer.If(jen.Err().Op("==").Id("ErrNotFound")).Block(
+			jer.If(jen.Id("errorIs").Call(jen.Err(), jen.Id("ErrNotFound"))).Block(
 				jen.Err().Op("=").Add(mod.doc.qual("errors.NewErrNotFound")).
 					Call(jen.Lit(mod.getLabel()), jen.Id("id")),
 			)

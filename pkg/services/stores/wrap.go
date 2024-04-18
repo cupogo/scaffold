@@ -2,6 +2,7 @@ package stores
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -33,6 +34,7 @@ var (
 	pgIn    = pgx.In
 	pgArray = pgdialect.Array
 
+	errorIs     = errors.Is
 	ErrNoRows   = pgx.ErrNoRows
 	ErrNotFound = pgx.ErrNotFound
 	ErrEmptyKey = pgx.ErrEmptyKey
