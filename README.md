@@ -16,6 +16,12 @@ Go project scaffolding for RESTful API, including a code generator and examples
 
 详见 [源文档结构说明](docs/) 和[示例](docs/cms.yaml)
 
+### 生成初始文档
+
+```bash
+go run ./scripts/beafup -name mytask
+```
+
 ### 生成指令
 
 ```bash
@@ -42,6 +48,8 @@ test -d pkg/web/resp || cp -r ../scaffold/pkg/web/resp pkg/web/
 test -d pkg/web/routes || cp -r ../scaffold/pkg/web/routes pkg/web/
 
 code docs/cms.yaml
+# or
+go run ../scaffold/scripts/beafup -name cms
 
 go run -tags=codegen ../scaffold/scripts/codegen docs/cms.yaml
 
