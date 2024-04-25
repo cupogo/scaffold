@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/cupogo/scaffold/templates"
@@ -23,6 +25,12 @@ func main() {
 
 	src := "docs/demo.yaml"
 	dst := "docs/" + name + ".yaml"
+
+	_, err := os.Stat(dst)
+	if err == nil || !os.IsNotExist(err) {
+		log.Printf("already exist: %s", dst)
+		return
+	}
 
 	templates.Render(src, dst, &Data{
 		Name: name,
