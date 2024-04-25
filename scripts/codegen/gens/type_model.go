@@ -1073,7 +1073,7 @@ func (m *Model) jvdbcall(c rune) (db jen.Code, cn string, isBson bool) {
 	return
 }
 
-func (m *Model) codeStoreList(mth Method) ([]jen.Code, []jen.Code, *jen.Statement) {
+func (m *Model) codeStoreList(_ Method) ([]jen.Code, []jen.Code, *jen.Statement) {
 	// TODO: export
 	jdataptr := jen.Op("&").Id("data")
 	jspec := jen.Id("spec")
@@ -1325,7 +1325,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
 		}
 	}
-	efname := mth.action + mod.getExportName()
+	efname := mth.getExportAction() + mod.getExportName()
 	if mth.Export {
 		args := []jen.Code{jactx, jadbO}
 		args = append(args, arg...)

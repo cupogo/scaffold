@@ -37,6 +37,7 @@ type Method struct {
 	Rets   []Var  `yaml:"rets,omitempty"`
 	Export bool   `yaml:"export,omitempty"` // export for db ops
 	ColGet bool   `yaml:"colget,omitempty"` // get with column select
+	Protec bool   `yaml:"protec,omitempty"` // internal export
 
 	action string
 	model  string
@@ -44,6 +45,13 @@ type Method struct {
 
 func newMethod(act, mod string, ex bool) Method {
 	return Method{Name: act + mod, action: act, model: mod, Export: ex}
+}
+
+func (m *Method) getExportAction() string {
+	if m.Protec {
+		return strings.ToLower(m.action)
+	}
+	return m.action
 }
 
 type Store struct {
@@ -114,8 +122,10 @@ func (s *Store) prepareMethods() {
 				k := a + m
 				if _, ok := s.allMM[k]; !ok {
 					export := strings.ContainsRune(hod.Export, c)
-					mth := newMethod(a, m, export)
+					protec := strings.ContainsRune(hod.Export, c+32)
+					mth := newMethod(a, m, export || protec)
 					mth.ColGet = hod.ColGet
+					mth.Protec = protec
 					s.Methods = append(s.Methods, mth)
 					s.allMM[k] = true
 				}
