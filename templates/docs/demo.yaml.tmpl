@@ -1,0 +1,86 @@
+
+depends:
+  comm: 'github.com/cupogo/andvari/models/comm'
+  oid: 'github.com/cupogo/andvari/models/oid'
+
+enums:
+
+  - comment: 状态
+    name: Status
+    start: 1 # 起始值，默认为 0
+    type: int8
+    values:
+      - label: 运行中
+        suffix: Running
+      - label: 已停止
+        suffix: Stopped
+    stringer: false # 生成 `String() string` 接口实现
+    decodable: false # 生成 `Decode(s string) error` 接口实现
+    multiple: false # 允许允许多选，使用bit位实现
+    shorted: false # 允许短标识
+    textMarshaler: false # 影响 JSON 输出
+    textUnmarshaler: false # 影响 JSON 解析
+
+dbcode: bun
+modelpkg: models/{{.Name}}
+
+models:
+
+  - name: Task
+    comment: '任务'
+    tableTag: 'demo_task,alias:t'
+    fields:
+      # 主键类型：DefaultModel=使用OID, DunceModel=使用字串, SerialModel=使用整形自增
+      - type: comm.DefaultModel
+      - comment: 名称
+        name: Name
+        type: string
+        tags: {bson: 'name', json: 'name', pg: ',notnull', binding: 'required'}
+        isset: true # 允许更新
+        query: 'match' # 查询方法
+      - comment: '状态'
+        name: Status
+        type: Status
+        tags: {bson: 'status', json: 'status', pg: ',notnull,type:smallint'}
+        isset: true
+        query: 'equal'
+      - type: comm.MetaField
+    # 主键前缀分类：忽略时会报错；可新增
+    # account company department article team token event people form goods file image
+    oidcat: event
+    # 长且多行注释
+    # descr: |
+    #   示范任务
+    #   有关说明
+    # hooks: # 生成钩子函数选项，`yes` 可改为自定义函数名
+    #   beforCreating: yes # 记录创建之前
+    #   beforUpdating: yes # 记录更新之前
+    #   beforDeleting: yes # 记录删除之前
+    #   afterCreating: yes # 记录创建之后
+    #   afterUpdating: yes # 记录更新之后
+    #   afterDeleting: yes # 记录删除之后
+    #   beforeList: yes # 列表加载之前
+    #   afterList: yes # 列表加载之后
+    #   afterLoad: yes # 单体加载之后
+
+stores:
+  - name: {{.Name}}Store
+    hods:
+      - { name: Task, type: LGCUD }
+
+webapi:
+  pkg: api_v1
+  uris:
+    - model: Task
+      prefix: '/api/v1/demo'
+      # ignore: CU # 跳过创建和或更新接口的生成
+      # docG: |
+      #   这里是Get单体时的
+      #   多行
+      #   注释说明
+      #   支持基本的`Markdown`语法
+      # docL: |
+      #   这里是分页列表时的
+      #   多行
+      #   注释说明
+      #   支持基本的`Markdown`语法

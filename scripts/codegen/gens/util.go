@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"text/template"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
@@ -332,26 +331,11 @@ func HookMethod(model string, k, v string) (string, bool) {
 
 func ensureGoFile(gfile, tplname string, data any) {
 	if !CheckFile(gfile) {
-		if err := renderTmpl(tplname, gfile, data); err != nil {
+		if err := templates.Render(tplname+".go", gfile, data); err != nil {
 			panic(err)
 		}
 		log.Printf("write go file ok, %s", gfile)
 	}
-}
-
-func renderTmpl(src, dest string, data any) error {
-	tplf := src + ".go.tmpl"
-	t := template.Must(template.ParseFS(templates.FS(), tplf))
-	wr, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(wr, data)
-	if err != nil {
-		log.Printf("render fail: %s", err)
-		os.Remove(dest)
-	}
-	return err
 }
 
 func matchs(patt string, names ...string) bool {
