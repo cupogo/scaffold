@@ -1,3 +1,4 @@
+# 建议将不用的内容整行删除
 
 depends:
   comm: 'github.com/cupogo/andvari/models/comm'
@@ -62,6 +63,8 @@ models:
     #   beforeList: yes # 列表加载之前
     #   afterList: yes # 列表加载之后
     #   afterLoad: yes # 单体加载之后
+    withCompare: false # 允许生成比较 EqualTo 方法
+    withPlural: false # 允许生成复数定义 落表时自动为true
 
 stores:
   - name: {{.Name}}Store
