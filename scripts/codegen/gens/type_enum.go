@@ -67,7 +67,7 @@ func (e *Enum) prepare() (vals []EnumVal, zv *EnumVal) {
 		val := e.Start + i
 		if e.Multiple {
 			val = e.Start << i
-		} else if ev.Value > 0 && i == len(vals)-1 {
+		} else if ev.Value > 0 {
 			val = ev.Value
 		}
 		vals[i].realVal = val
@@ -99,9 +99,9 @@ func (e *Enum) Code() jen.Code {
 				cmt = fmt.Sprintf("%2d %s", ev.realVal, ev.Label)
 			}
 			name := e.Name + ev.Suffix
-			if i == 0 {
+			if i == 0 && (ev.Value == 0 || ev.Value == e.Start) {
 				g.Id(name).Id(e.Name).Op("=").Lit(e.Start).Op(op).Id("iota").Comment(cmt)
-			} else if ev.Value > 0 && i == len(e.Values)-1 {
+			} else if ev.Value > 0 {
 				g.Id(name).Id(e.Name).Op("=").Lit(ev.Value).Comment(cmt)
 			} else {
 				g.Id(name).Comment(cmt)
