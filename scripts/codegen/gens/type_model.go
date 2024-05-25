@@ -890,9 +890,10 @@ func (m *Model) getSpecCodes() jen.Code {
 	return st
 }
 
-func (m *Model) hasStoreHook(k string) (v string, ok bool) {
+func (m *Model) hasStoreHook(k string) (sh storeHook, ok bool) {
+	var v string
 	if v, ok = m.StoHooks[k]; ok {
-		v, ok = m.storeHookName(k, v)
+		sh, ok = ParseHook(m.Name, k, v)
 	}
 	return
 }
@@ -907,7 +908,8 @@ func (m *Model) hasAnyStoreHook(a ...string) bool {
 }
 
 func (m *Model) storeHookName(k, v string) (string, bool) {
-	return HookMethod(m.Name, k, v)
+	sh, ok := ParseHook(m.Name, k, v)
+	return sh.FunName, ok
 }
 
 func (m *Model) StoreHooks() (out []storeHook) {
@@ -915,17 +917,13 @@ func (m *Model) StoreHooks() (out []storeHook) {
 		if len(v) == 0 {
 			continue
 		}
-		fn, ok := m.storeHookName(k, v)
+		sh, ok := ParseHook(m.Name, k, v)
 		if !ok {
 			continue
 		}
+		sh.m = m
 
-		out = append(out, storeHook{
-			FunName: fn,
-			ObjName: m.Name,
-			k:       k,
-			m:       m,
-		})
+		out = append(out, sh)
 	}
 
 	sort.Slice(out, func(i, j int) bool {
@@ -1110,7 +1108,7 @@ func (m *Model) codeStoreList(_ Method) ([]jen.Code, []jen.Code, *jen.Statement)
 					jcall = jen.Dot("NewSelect").Call().Dot("Model").Call(jdataptr)
 				}
 				g.Id("q").Op(":=").Add(swdb, jcall) //.Dot("Apply").Call(jen.Id("spec").Dot("Sift"))
-				g.If(jen.Err().Op("=").Id("s").Dot(hkBL).Call(jen.Id("ctx"), jspec, jen.Id("q")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
+				g.If(jen.Err().Op("=").Id("s").Dot(hkBL.FunName).Call(jen.Id("ctx"), jspec, jen.Id("q")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
 				g.Id("total").Op(",").Err().Op("=").Id("queryPager").Call(jen.Id("ctx"), jspec, jen.Id("q"))
 			} else {
 				g.Id("total").Op(",").Id("err").Op("=").Id(mList).Call(
@@ -1120,13 +1118,18 @@ func (m *Model) codeStoreList(_ Method) ([]jen.Code, []jen.Code, *jen.Statement)
 
 			if hkAL, okAL := m.hasStoreHook(afterList); okAL {
 				jb := new(jen.Statement)
-				args := []jen.Code{jen.Id("ctx"), jen.Id("spec"), jen.Id("data")}
-				isT := strings.HasSuffix(hkAL, "T")
+				args := []jen.Code{jen.Id("ctx"), jen.Id("spec")}
+				if hkAL.isPtr {
+					args = append(args, jen.Id("&data"))
+				} else {
+					args = append(args, jen.Id("data"))
+				}
+				isT := hkAL.isTot || strings.HasSuffix(hkAL.FunName, "T")
 				if isT {
 					jb.Id("total").Op(",")
 					args = append(args, jen.Id("total"))
 				}
-				jb.Err().Op("=").Id("s").Dot(hkAL).Call(args...)
+				jb.Err().Op("=").Id("s").Dot(hkAL.FunName).Call(args...)
 				g.If(jen.Err().Op("==").Nil()).Block(jb)
 			}
 			g.Return()
@@ -1206,13 +1209,13 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 
 		if hkEL, okEL := mod.hasStoreHook(errorLoad); okEL {
 			g.If(jen.Err().Op("!=").Nil()).Block(
-				jen.Err().Op("=").Id("s").Dot(hkEL).Call(jen.Id("ctx"), jen.Id("id"), jen.Err(), jen.Id("obj")),
+				jen.Err().Op("=").Id("s").Dot(hkEL.FunName).Call(jen.Id("ctx"), jen.Id("id"), jen.Err(), jen.Id("obj")),
 			)
 		}
 
 		if hkAL, okAL := mod.hasStoreHook(afterLoad); okAL {
 			g.If(jen.Err().Op("==").Nil()).Block(
-				jen.Err().Op("=").Id("s").Dot(hkAL).Call(jen.Id("ctx"), jen.Id("obj")),
+				jen.Err().Op("=").Id("s").Dot(hkAL.FunName).Call(jen.Id("ctx"), jen.Id("obj")),
 			)
 			if mod.doc.hasQualErrors() {
 				g.Add(jer)
@@ -1296,11 +1299,11 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		}
 		if hookTxing {
 			if okBC {
-				g.If(jen.Err().Op("=").Id(hkBC).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+				g.If(jen.Err().Op("=").Id(hkBC.FunName).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 					jen.Return(),
 				)
 			} else if okBS {
-				g.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+				g.If(jen.Err().Op("=").Id(hkBS.FunName).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 					jen.Return(),
 				)
 			}
@@ -1310,11 +1313,11 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			g.Err().Op("=").Id(fnCreate).Call(targs...)
 			if okAC {
 				g.If(jen.Err().Op("==")).Nil().Block(
-					jen.Err().Op("=").Id(hkAC).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+					jen.Err().Op("=").Id(hkAC.FunName).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
 				)
 			} else if okAS {
 				g.If(jen.Err().Op("==")).Nil().Block(
-					jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+					jen.Err().Op("=").Id(hkAS.FunName).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
 				)
 			}
 
@@ -1366,13 +1369,13 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 		if hk, ok := mod.hasStoreHook(afterCreated); ok {
 			g.If(jen.Err().Op("==").Nil()).Block(
-				jen.Err().Op("=").Id("s").Dot(hk).Call(jen.Id("ctx"), jen.Id("obj")),
+				jen.Err().Op("=").Id("s").Dot(hk.FunName).Call(jen.Id("ctx"), jen.Id("obj")),
 			)
 		}
 
 		if fc, ok := mod.hasStoreHook(upsertES); ok {
 			g.If(jen.Err().Op("==").Nil()).Block(
-				jen.Err().Op("=").Id("s").Dot(fc).Call(jen.Id("ctx"), jen.Id("obj")),
+				jen.Err().Op("=").Id("s").Dot(fc.FunName).Call(jen.Id("ctx"), jen.Id("obj")),
 			)
 		}
 
@@ -1451,19 +1454,19 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 				return jen.If(jen.Err().Op(eop).Add(jnbc).Op(";").Err().Op("!=")).Nil().Block(jretf())
 			}
 			if okBU {
-				g.Add(jcondf(eop, jen.Id(hkBU).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+				g.Add(jcondf(eop, jen.Id(hkBU.FunName).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
 			} else if okBS {
-				g.Add(jcondf(eop, jen.Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+				g.Add(jcondf(eop, jen.Id(hkBS.FunName).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
 			}
 
 			mod.codeMetaUp(g, jdb, "exist")
 
 			if okAU {
 				g.Add(jcondf(eop, jup))
-				g.Add(jretf(jen.Id(hkAU).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+				g.Add(jretf(jen.Id(hkAU.FunName).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
 			} else if okAS {
 				g.Add(jcondf(eop, jup))
-				g.Add(jretf(jen.Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
+				g.Add(jretf(jen.Id(hkAS.FunName).Call(jen.Id("ctx"), jdb, jen.Id("exist"))))
 			} else if mth.Export {
 				g.Err().Op("=").Add(jup)
 				g.Return()
@@ -1543,17 +1546,17 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 		}
 
 		if okAX && okue {
-			callau := jen.Id("s").Dot(hkAX).Call(jen.Id("ctx"), jen.Id("exist"))
+			callau := jen.Id("s").Dot(hkAX.FunName).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.If(jen.Err().Op(":=").Add(callau).Op(";").Err().Op("!=").Nil()).Block(
 				jen.Return(jen.Err()),
 			)
-			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
+			callke := jen.Id("s").Dot(hkue.FunName).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
 		} else if okAX {
-			callau := jen.Id("s").Dot(hkAX).Call(jen.Id("ctx"), jen.Id("exist"))
+			callau := jen.Id("s").Dot(hkAX.FunName).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callau)
 		} else if okue {
-			callke := jen.Id("s").Dot(hkue).Call(jen.Id("ctx"), jen.Id("exist"))
+			callke := jen.Id("s").Dot(hkue.FunName).Call(jen.Id("ctx"), jen.Id("exist"))
 			g.Return(callke)
 		} else if mth.Export && !hookTxing {
 			g.Return(jen.Err())
@@ -1615,7 +1618,7 @@ func (mod *Model) codeStorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 							g2.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
 							g2.Id("obj").Id("SetID").Call(jen.Id("id"))
 							g2.Id("obj").Id("SetWith").Call(jen.Id("in"))
-							g2.If(jen.Err().Op("=").Id(hkBS).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
+							g2.If(jen.Err().Op("=").Id(hkBS.FunName).Call(jen.Id("ctx"), jdb, jen.Id("obj")).Op(";").Err().Op("!=")).Nil().Block(
 								jen.Return(jen.Err()),
 							)
 						}
@@ -1628,7 +1631,7 @@ func (mod *Model) codeStorePut(isSimp bool) ([]jen.Code, []jen.Code, *jen.Statem
 
 						if okAS {
 							g2.If(jen.Err().Op("==")).Nil().Block(
-								jen.Err().Op("=").Id(hkAS).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
+								jen.Err().Op("=").Id(hkAS.FunName).Call(jen.Id("ctx"), jdb, jen.Id("obj")),
 							)
 						}
 
@@ -1673,7 +1676,7 @@ func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					g1.Id("ctx")
 					jbf := func(g2 *jen.Group) {
 						if okBD {
-							g2.If(jen.Err().Op("=").Id(hkBD).Call(jen.Id("ctx"), jen.Id("tx"),
+							g2.If(jen.Err().Op("=").Id(hkBD.FunName).Call(jen.Id("ctx"), jen.Id("tx"),
 								jen.Id("obj")).Op(";").Err().Op("!=").Nil()).Block(jen.Return())
 						}
 
@@ -1683,7 +1686,7 @@ func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 							jen.Id("obj"))
 						if okAD {
 							g2.If(jen.Err().Op("!=").Nil()).Block(jen.Return())
-							g2.Return(jen.Id(hkAD).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
+							g2.Return(jen.Id(hkAD.FunName).Call(jen.Id("ctx"), jen.Id("tx"), jen.Id("obj")))
 						} else {
 							g2.Return()
 						}
@@ -1720,25 +1723,25 @@ func (mod *Model) codeStoreDelete() ([]jen.Code, []jen.Code, *jen.Statement) {
 					jen.Return(jen.Err()),
 				)
 
-				callad := jen.Id("s").Dot(hkad).Call(jen.Id("ctx"), jen.Id("obj"))
+				callad := jen.Id("s").Dot(hkad.FunName).Call(jen.Id("ctx"), jen.Id("obj"))
 				g.If(jen.Err().Op(":=").Add(callad).Op(";").Err().Op("!=").Nil()).Block(
 					jen.Return(jen.Err()),
 				)
 
-				callde := jen.Id("s").Dot(hkde).Call(jen.Id("ctx"), jen.Id("obj"))
+				callde := jen.Id("s").Dot(hkde.FunName).Call(jen.Id("ctx"), jen.Id("obj"))
 				g.Return(callde)
 
 			} else if okad {
 				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
 					jen.Return(jen.Err()),
 				)
-				callad := jen.Id("s").Dot(hkad).Call(jen.Id("ctx"), jen.Id("obj"))
+				callad := jen.Id("s").Dot(hkad.FunName).Call(jen.Id("ctx"), jen.Id("obj"))
 				g.Return(callad)
 			} else if okde {
 				g.If(jen.Err().Op(":=").Add(jfbd).Op(";").Err().Op("!=").Nil()).Block(
 					jen.Return(jen.Err()),
 				)
-				callde := jen.Id("s").Dot(hkde).Call(jen.Id("ctx"), jen.Id("obj"))
+				callde := jen.Id("s").Dot(hkde.FunName).Call(jen.Id("ctx"), jen.Id("obj"))
 				g.Return(callde)
 			} else {
 				g.Return(jfbd)

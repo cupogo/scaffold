@@ -362,6 +362,9 @@ type storeHook struct {
 	FunName string
 	ObjName string
 
+	isPtr bool
+	isTot bool
+
 	k string
 	m *Model
 	s *Store
@@ -369,6 +372,14 @@ type storeHook struct {
 
 func (sh *storeHook) IsDB() bool {
 	return len(sh.FunName) > 2 && sh.FunName[0:2] == "db"
+}
+
+func isPtrFN(name string) bool {
+	return strings.HasSuffix(name, "P")
+}
+
+func (sh *storeHook) IsPtrFN() bool {
+	return isPtrFN(sh.FunName)
 }
 
 func (sh *storeHook) esMainStmt(typ string) []dst.Stmt {
@@ -483,7 +494,9 @@ func (sh *storeHook) dstFuncDecl(modipath string) *dst.FuncDecl {
 	} else if sh.k == afterList {
 		dataIdent := dst.NewIdent(sh.m.GetPlural())
 		dataIdent.Path = modipath
-		pars = append(pars, newField("spec", sh.m.getSpecName(), true), newField("data", dataIdent, false))
+		pars = append(pars,
+			newField("spec", sh.m.getSpecName(), true),
+			newField("data", dataIdent, sh.IsPtrFN()))
 		if strings.HasSuffix(sh.FunName, "T") {
 			pars = append(pars, newField("total", "int", false))
 			rets = append(rets, &dst.Field{Type: dst.NewIdent("int")})

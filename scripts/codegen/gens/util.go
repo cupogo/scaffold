@@ -307,26 +307,40 @@ func Plural(str string) string {
 	return inflection.Plural(str)
 }
 
-func HookMethod(model string, k, v string) (string, bool) {
+func ParseHook(model string, k, v string) (sh storeHook, ok bool) {
+	sh.k = k
+	sh.ObjName = model
 	if strings.HasPrefix(v, "db") {
-		return v, true
+		sh.FunName = v
+		return sh, true
 	}
 	if v == "afterCreate"+model { // deprecated
-		return v, true
+		sh.FunName = v
+		return sh, true
 	}
+	var deco string
+	v, deco, _ = strings.Cut(v, ",")
+	sh.isPtr = strings.Contains(deco, "ptr")
+	sh.isTot = strings.Contains(deco, "tot")
 	if v == "true" || v == "yes" { // true, yes
 		if strings.HasSuffix(k, "ing") {
-			return "db" + ToExported(k[0:len(k)-3]+"e") + model, true
+			sh.FunName = "db" + ToExported(k[0:len(k)-3]+"e") + model
+			return sh, true
 		}
 		v = k + model
 	}
 	switch k {
-	case afterLoad, afterList, beforeList, afterCreated, afterUpdated, afterDeleted, upsertES, deleteES:
-		return v, strings.HasPrefix(v, k+model)
+	case afterLoad, beforeList, afterCreated, afterUpdated, afterDeleted, upsertES, deleteES:
+		sh.FunName = v
+		return sh, strings.HasPrefix(v, k+model)
+	case afterList:
+		sh.FunName = v
+		return sh, strings.HasPrefix(v, k+model)
 	case errorLoad:
-		return "on" + ToExported(k) + model, true
+		sh.FunName = "on" + ToExported(k) + model
+		return sh, true
 	}
-	return "", false
+	return
 }
 
 func ensureGoFile(gfile, tplname string, data any) {
