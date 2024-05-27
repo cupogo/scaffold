@@ -36,6 +36,7 @@ type Field struct {
 	bson     bool
 
 	mod *Model
+	qer *Query
 }
 
 func (f *Field) isMeta() bool {
@@ -403,26 +404,39 @@ func (z Fields) withName(name string) (*Field, bool) {
 	return nil, false
 }
 
-func (f *Field) parseQuery() (fn, ext string, ok bool) {
+type Query struct {
+	sift string
+	ext  string
+	add  bool
+	both bool
+}
+
+func (f *Field) parseQuery() (q Query, ok bool) {
 	var a string
-	a, ext, _ = strings.Cut(f.Query, ",")
+	a, q.ext, _ = strings.Cut(f.Query, ",")
 	switch a {
 	case "oids":
-		fn, ok = "siftOIDs", f.Type == "oid.OID" || f.Type == "oid.OIDs"
+		q.sift, ok = "siftOIDs", f.Type == "oid.OID" || f.Type == "oid.OIDs"
 	case "equal":
-		fn, ok = "siftEqual", true
-	case "ice", "ilike":
-		fn, ok = "siftICE", true
-	case "match":
-		fn, ok = "siftMatch", true
+		q.sift, ok = "siftEqual", true
+	case "ice", "ilike", "ice2":
+		q.sift, ok = "siftICE", true
+		q.both = a == "ice2"
+	case "match", "match2":
+		q.sift, ok = "siftMatch", true
+		q.both = a == "match2"
 	case "date":
-		fn, ok = "siftDate", true
+		q.sift, ok = "siftDate", true
 	case "great":
-		fn, ok = "siftGreat", true
+		q.sift, ok = "siftGreat", true
 	case "less":
-		fn, ok = "siftLess", true
+		q.sift, ok = "siftLess", true
 	default:
-		ok = len(a) > 0 && len(ext) > 0
+		ok = len(a) > 0 && len(q.ext) > 0
+	}
+	q.add = q.ext == "ints" || q.ext == "strs" || q.ext == "oids"
+	if ok {
+		f.qer = &q
 	}
 	return
 }
@@ -450,5 +464,8 @@ func (f Field) siftCode(ismg bool) jen.Code {
 		params = append(params, jen.True())
 	}
 	params = append(params, jen.False())
+	if f.qer != nil && f.qer.both {
+		params = append(params, jen.True())
+	}
 	return jen.Id("q").Op(",").Id("_").Op("=").Id(cfn).Call(params...)
 }

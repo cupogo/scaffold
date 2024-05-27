@@ -544,12 +544,12 @@ func (m *Model) basicCodes() (st *jen.Statement) {
 
 func (m *Model) specFields() (out Fields) {
 	for _, f := range m.Fields {
-		if sfn, ext, ok := f.parseQuery(); ok {
+		if q, ok := f.parseQuery(); ok {
 			// log.Printf("name: %s, sfn: %q, ext: %q", f.Name, sfn, ext)
-			f.siftExt = ext
-			if ext == "ints" || ext == "strs" || ext == "oids" {
+			f.siftExt = q.ext
+			if q.add {
 				ftyp := "string"
-				if ext == "oids" {
+				if q.ext == "oids" {
 					ftyp = "oid.OIDsStr"
 				}
 				argTag := Plural(f.getArgTag())
@@ -558,22 +558,22 @@ func (m *Model) specFields() (out Fields) {
 					Type:     ftyp,
 					Name:     Plural(f.Name),
 					Tags:     Tags{"form": argTag, "json": argTag + ",omitempty"},
-					siftExt:  ext,
+					siftExt:  q.ext,
 					multable: true,
 				}
 				// log.Printf("f0: %+v", f0)
 				out = append(out, f0)
-			} else if ext == "decode" {
+			} else if q.ext == "decode" {
 				f.qtype = "string"
 				f.Comment += " (支持混合解码)"
-			} else if ext == "hasVals" {
+			} else if q.ext == "hasVals" {
 				f.Comment += " (多值数字相加)"
 			}
 			if f.Type == "oid.OID" {
 				f.Type = "string"
 				f.isOid = true
-				if sfn == "siftOIDs" {
-					f.siftFn = sfn
+				if q.sift == "siftOIDs" {
+					f.siftFn = q.sift
 				} else {
 					f.siftFn = "siftOID"
 				}
@@ -592,11 +592,11 @@ func (m *Model) specFields() (out Fields) {
 				f.Type = "string"
 				f.isDate = true
 				f.siftFn = "siftDate"
-			} else if f.Type == "bool" || ext == "str" {
+			} else if f.Type == "bool" || q.ext == "str" {
 				f.Type = "string"
-				f.siftFn = sfn
+				f.siftFn = q.sift
 			} else {
-				f.siftFn = sfn
+				f.siftFn = q.sift
 			}
 
 			out = append(out, f)

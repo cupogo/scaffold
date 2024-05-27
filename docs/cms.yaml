@@ -27,7 +27,7 @@ models:
         type: string
         tags: {json: 'name', pg: ',notnull'}
         isset: true
-        query: 'equal'
+        query: 'match2'
       - comment: 描述
         name: Description
         type: string

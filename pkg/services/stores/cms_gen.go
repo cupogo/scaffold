@@ -74,7 +74,7 @@ func (spec *ChannelSpec) Sift(q *ormQuery) *ormQuery {
 	q = spec.ModelSpec.Sift(q)
 	q, _ = siftEqual(q, "slug", spec.Slug, false)
 	q, _ = siftOID(q, "parent_id", spec.ParentID, false)
-	q, _ = siftEqual(q, "name", spec.Name, false)
+	q, _ = siftMatch(q, "name", spec.Name, false, true)
 
 	return q
 }
@@ -310,13 +310,13 @@ func UpdateArticle(ctx context.Context, db ormDB, id string, in cms1.ArticleSet)
 	if err = dbGetWithPKID(ctx, db, exist, id); err != nil {
 		return
 	}
+	exist.SetIsUpdate(true)
 	exist.SetWith(in)
 	if tscfg, ok := DbTsCheck(); ok {
 		exist.TsCfgName = tscfg
 		exist.SetTsColumns("title", "content")
 		exist.SetChange("ts_cfg")
 	}
-	exist.SetIsUpdate(true)
 	if err = dbBeforeSaveArticle(ctx, db, exist); err != nil {
 		return
 	}
