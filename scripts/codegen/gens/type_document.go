@@ -11,7 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 
@@ -398,22 +398,44 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 	return &Model{}, false
 }
 
-func (doc *Document) allModelAliases() (exports, aliases []string) {
+func (doc *Document) enumWithName(name string) (*Enum, bool) {
+	for _, m := range doc.Enums {
+		if m.Name == name {
+			return &m, true
+		}
+	}
+	return &Enum{}, false
+}
+
+type ema struct {
+	ns   string
+	name string
+}
+
+func (doc *Document) allModelAliases() (exports, aliases []ema) {
 	for _, m := range doc.Models {
+		ei := ema{name: m.Name, ns: m.SpecNs}
 		if m.ExportOne {
-			exports = append(exports, m.Name)
+			exports = append(exports, ei)
 		} else {
-			aliases = append(aliases, m.Name)
+			aliases = append(aliases, ei)
 		}
 
 		if mns := m.GetPlural(); mns != m.Name && (len(m.Plural) > 0 || m.WithPlural) {
+			ei := ema{name: mns, ns: m.SpecNs}
 			if m.ExportMore {
-				exports = append(exports, mns)
+				exports = append(exports, ei)
 			} else {
-				aliases = append(aliases, mns)
+				aliases = append(aliases, ei)
 			}
 		}
 	}
+	slices.SortFunc(exports, func(a, b ema) int {
+		return strings.Compare(a.name, b.name)
+	})
+	slices.SortFunc(aliases, func(a, b ema) int {
+		return strings.Compare(a.name, b.name)
+	})
 	return
 }
 
@@ -447,13 +469,13 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 	sgf.ImportName(ipath, doc.ModelPkg)
 
 	exports, aliases := doc.allModelAliases()
-	sort.Strings(aliases)
-	sort.Strings(exports)
 	for _, k := range exports {
-		sgf.Type().Id(k).Op("=").Qual(ipath, k)
+		nn := getExportName(k.name, k.ns)
+		sgf.Type().Id(nn).Op("=").Qual(ipath, k.name)
 	}
 	for _, k := range aliases {
-		jal := jen.Type().Id(k).Op("=").Qual(ipath, k)
+		nn := getExportName(k.name, k.ns)
+		jal := jen.Type().Id(nn).Op("=").Qual(ipath, k.name)
 		sgf.Comment(jal.GoString())
 	}
 	sgf.Line()
