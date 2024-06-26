@@ -1,8 +1,6 @@
 package apiv1
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/cupogo/scaffold/pkg/services/stores"
@@ -36,16 +34,7 @@ func regHI(auth bool, method string, path string, rid string, hafn haFunc) {
 
 // nolint
 func route(r gin.IRoutes, method, path string, hs ...HandlerFunc) {
-	switch method {
-	case http.MethodPost:
-		r.Handle(http.MethodPost, path, hs...)
-	case http.MethodPut:
-		r.Handle(http.MethodPut, path, hs...)
-	case http.MethodDelete:
-		r.Handle(http.MethodDelete, path, hs...)
-	default:
-		r.Handle(http.MethodGet, path, hs...)
-	}
+	r.Handle(method, path, hs...)
 }
 
 // nolint
@@ -92,7 +81,7 @@ func (a *api) authSignedIn() gin.HandlerFunc {
 	return func(c *gin.Context) {}
 }
 
-func (a *api) authPerm(permID string) gin.HandlerFunc {
+func (a *api) authPerm(_ string) gin.HandlerFunc {
 	// TODO:
 	return func(c *gin.Context) {}
 }
