@@ -68,6 +68,9 @@ type Store struct {
 
 	PostNew bool `yaml:"postNew,omitempty"`
 
+	CustomStruct bool `yaml:"customStruct,omitempty"`
+
+	extType  bool
 	extInit  bool
 	extStrap bool
 
@@ -280,7 +283,9 @@ func (s *Store) Codes(modelpkg string) jen.Code {
 		}).Line()
 	}
 
+	if !s.CustomStruct && !s.extType {
 	st.Type().Id(s.Name).Struct(jw).Line()
+	}
 
 	for i := range mcs {
 		st.Func().Params(jen.Id("s").Op("*").Id(s.Name)).Add(mcs[i], bcs[i]).Line()

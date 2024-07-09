@@ -175,6 +175,19 @@ func (v *vdst) ensureFunc(name string, fd *dst.FuncDecl) {
 	}
 }
 
+func (v *vdst) existType(name string) bool {
+	for _, decl := range v.file.Decls {
+		if gd, ok := decl.(*dst.GenDecl); ok && gd.Tok == token.TYPE {
+			for _, sp := range gd.Specs {
+				if tsp, ok := sp.(*dst.TypeSpec); ok && tsp.Name.Name == name {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // nolint
 func (v *vdst) existMethod(name, recv string) (int, bool) {
 	for idx, decl := range v.file.Decls {

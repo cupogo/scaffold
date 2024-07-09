@@ -533,6 +533,9 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 
 	for _, store := range doc.Stores {
 		if svd != nil {
+			if svd.existType(store.Name) {
+				store.extType = true
+			}
 			if svd.existFunc("new" + store.GetIName()) {
 				store.extInit = true
 			}
