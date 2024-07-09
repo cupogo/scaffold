@@ -308,7 +308,7 @@ func (s *Store) dstWrapField() *dst.Field {
 func (s *Store) dstWrapVarAsstmt() *dst.AssignStmt {
 	name := s.Name
 	var ue dst.Expr
-	if s.HasPostNew() {
+	if s.extInit || s.HasPostNew() {
 		ue = &dst.CallExpr{Fun: dst.NewIdent("new" + s.GetIName()),
 			Args: []dst.Expr{dst.NewIdent("w")},
 		}

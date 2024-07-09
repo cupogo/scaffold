@@ -532,16 +532,19 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 		}
 	}
 
-	for _, store := range doc.Stores {
+	for i, store := range doc.Stores {
 		if svd != nil {
 			if svd.existType(store.Name) {
 				store.extType = true
+				doc.Stores[i].extType = true
 			}
 			if svd.existFunc("new" + store.GetIName()) {
 				store.extInit = true
+				doc.Stores[i].extInit = true
 			}
 			if _, ok := svd.existMethod("strap", store.Name); ok {
 				store.extStrap = true
+				doc.Stores[i].extStrap = true
 			}
 		}
 
