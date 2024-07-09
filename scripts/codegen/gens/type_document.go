@@ -398,6 +398,7 @@ func (doc *Document) modelWithName(name string) (*Model, bool) {
 	return &Model{}, false
 }
 
+// nolint
 func (doc *Document) enumWithName(name string) (*Enum, bool) {
 	for _, m := range doc.Enums {
 		if m.Name == name {

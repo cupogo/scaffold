@@ -32,7 +32,7 @@ func main() {
 		return
 	}
 
-	templates.Render(src, dst, &Data{
+	_ = templates.Render(src, dst, &Data{
 		Name: name,
 	})
 }

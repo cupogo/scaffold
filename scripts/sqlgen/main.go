@@ -36,7 +36,7 @@ func main() {
 		return
 	}
 
-	genPermissionSql(data, filepath.Join(dir, "pg_10_auth_permissions.sql"))
+	_ = genPermissionSql(data, filepath.Join(dir, "pg_10_auth_permissions.sql"))
 }
 
 func genPermissions(fdoc string) (data Permissions, err error) {
