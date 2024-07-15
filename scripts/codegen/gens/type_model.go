@@ -859,7 +859,9 @@ func (m *Model) getSpecCodes() jen.Code {
 
 			}
 			if okTS || len(colTS) > 0 {
-				g.Add(jfSiftCall("TextSearchSpec"))
+				// g.Add(jfSiftCall("TextSearchSpec"))
+				g.Id("q").Op("=").Id("spec").Dot("TextSearchSpec").Dot("SiftTS").Call(
+					jen.Id("q"), jen.Op("!spec").Dot("HasColumn").Call())
 			}
 			g.Line()
 
