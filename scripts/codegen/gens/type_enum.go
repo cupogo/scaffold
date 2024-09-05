@@ -28,6 +28,7 @@ type Enum struct {
 	ValStr          bool   `yaml:"valstr,omitempty"` // return a value as string
 	Labeled         bool   `yaml:"labeled,omitempty"`
 	FuncAll         string `yaml:"funcAll,omitempty"`
+	SpecNs          string `yaml:"specNs,omitempty"` // prefix of Enum in api
 
 	doc *Document
 }
@@ -196,7 +197,6 @@ func (e *Enum) Code() jen.Code {
 
 	if len(e.FuncAll) > 0 {
 		wizhZero := e.isFuncWithZero()
-
 		if e.isFuncValues() {
 			st.Line()
 			st.Func().Id(e.funcAllName()).Params().Params(jen.Index().Id(e.Name))
@@ -213,8 +213,9 @@ func (e *Enum) Code() jen.Code {
 			})
 		}
 		if e.isFuncOptions() {
-			st.Line()
 			jitem := e.jQualItem()
+			st.Line()
+			st.Type().Id(e.Name + "Item").Op("=").Add(jitem).Line()
 			st.Func().Id(e.funcAllOptionsName()).Params().Params(jen.Index().Add(jitem))
 			st.BlockFunc(func(g *jen.Group) {
 				g.Return().Index().Add(jitem).Op("{")
@@ -274,6 +275,11 @@ func (e *Enum) jQualItem() jen.Code {
 	return jen.Id(e.getItemName())
 }
 
+func (e *Enum) Label() string {
+	a, _, _ := strings.Cut(e.Comment, " ")
+	return a
+}
+
 func (ev EnumVal) jItem(e *Enum) jen.Code {
 	st := new(jen.Statement)
 	st.Op("{")
@@ -281,7 +287,16 @@ func (ev EnumVal) jItem(e *Enum) jen.Code {
 		st.Id("ID:").Lit(ev.realVal).Op(",")
 	}
 	st.Id("Code:").Lit(ev.getCode(e.Shorted)).Op(",")
-	name, descr, _ := strings.Cut(ev.Label, " ")
+	name := strings.TrimSpace(ev.Label)
+	descr := strings.TrimSpace(ev.Descr)
+	if len(descr) == 0 {
+		a, b, ok := strings.Cut(name, "  ")
+		if !ok || len(b) == 0 {
+			a, b, ok = strings.Cut(name, "\n")
+		}
+		name = a
+		descr = b
+	}
 	st.Id("Name:").Lit(name).Op(",")
 	if len(descr) > 1 {
 		st.Id("Descr:").Lit(descr).Op(",")

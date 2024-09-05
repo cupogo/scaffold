@@ -53,6 +53,7 @@ func GenRouteID(s string) string {
 }
 
 type UriSpot struct {
+	Enum   string `yaml:"enum,omitempty"`
 	Model  string `yaml:"model"`
 	Prefix string `yaml:"prefix,omitempty"`
 	URI    string `yaml:"uri,omitempty"`
@@ -98,6 +99,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	var mod *Model
 	mod, match = wa.doc.modelWithName(us.Model)
 	if !match {
+		log.Printf("model %q not found", us.Model)
 		return
 	}
 	plural := mod.GetPlural()
@@ -148,6 +150,46 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 	return
 }
 
+func (wa *WebAPI) getEnumHandle(us UriSpot) (hdl Handle, match bool) {
+	if len(us.Enum) == 0 {
+		return
+	}
+	var em *Enum
+	em, match = wa.doc.enumWithName(us.Enum)
+	if !match {
+		log.Printf("enum %q not found", us.Enum)
+		return
+	}
+	mth := Method{
+		Name: em.funcAllOptionsName(),
+		Rets: []Var{{Type: fmt.Sprintf("[]%s.%sItem", wa.doc.ModelPkg, em.Name)}},
+	}
+	plural := Plural(em.Name)
+	uri := us.URI
+	if len(uri) == 0 {
+		prefix := us.Prefix
+		if len(prefix) == 0 {
+			prefix = wa.UriPrefix
+		}
+		uri = prefix + "/" + strings.ToLower(plural)
+	}
+	name := "list" + getExportName(plural, em.SpecNs)
+	hdl = Handle{
+		mth:     mth,
+		Method:  mth.Name,
+		UriSpot: us,
+		Name:    name,
+		Route:   fmt.Sprintf("%s [%s]", uri, "get"),
+		Summary: "列出枚举" + em.Label(),
+		wa:      wa,
+	}
+	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth || us.NeedPerm || us.NeedAuth || us.Perm || us.Auth
+	if len(wa.TagLabel) > 0 {
+		hdl.Tags = wa.TagLabel
+	}
+	return
+}
+
 func (wa *WebAPI) GetPkgName() string {
 	return replPkg.Replace(wa.Pkg)
 }
@@ -163,6 +205,12 @@ func (wa *WebAPI) prepareHandles() {
 		}
 	}
 	for _, u := range wa.URIs {
+		if len(u.Enum) > 0 {
+			if hdl, ok := wa.getEnumHandle(u); ok {
+				wa.Handles = append(wa.Handles, hdl)
+			}
+			continue
+		}
 		for _, sto := range wa.doc.Stores {
 			iname := sto.ShortIName()
 			for _, mth := range sto.Methods {
@@ -266,6 +314,9 @@ func (h *Handle) GetTags() string {
 }
 
 func (h *Handle) GetFails(act string) []int {
+	if len(h.Enum) > 0 {
+		return []int{200, 401}
+	}
 	if h.Failures == nil {
 		return getDftFails(act)
 	}
@@ -324,28 +375,28 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 			st.Comment("@Param  " + param).Line()
 		}
 	}
+	mth := h.mth
+
 	if !paramed {
-		if mth, ok := doc.getMethod(h.Method); ok {
-			for _, arg := range mth.Args {
-				if arg.Name == "ctx" {
-					continue
+		for _, arg := range mth.Args {
+			if arg.Name == "ctx" {
+				continue
+			}
+			if arg.Name == "id" {
+				st.Comment("@Param   id    path   string  true   \"编号\"").Line()
+			} else if arg.Type == "string" && strings.Contains(h.Route, "{"+arg.Name+"}") {
+				st.Comment("@Param   " + arg.Name + "  path  " + arg.Type + "  true  \"\"").Line()
+			} else if strings.Contains(arg.Type, ".") {
+				ppos := "formData"
+				switch h.act {
+				case "List":
+					ppos = "query"
+				case "Create", "Update", "Put":
+					ppos = "body"
 				}
-				if arg.Name == "id" {
-					st.Comment("@Param   id    path   string  true   \"编号\"").Line()
-				} else if arg.Type == "string" && strings.Contains(h.Route, "{"+arg.Name+"}") {
-					st.Comment("@Param   " + arg.Name + "  path  " + arg.Type + "  true  \"\"").Line()
-				} else if strings.Contains(arg.Type, ".") {
-					ppos := "formData"
-					switch h.act {
-					case "List":
-						ppos = "query"
-					case "Create", "Update", "Put":
-						ppos = "body"
-					}
-					st.Comment("@Param   query  " + ppos + "   " + arg.Type + "  true   \"Object\"").Line()
-				} else {
-					log.Printf("unknown arg: %s(%s)", arg.Name, arg.Type)
-				}
+				st.Comment("@Param   query  " + ppos + "   " + arg.Type + "  true   \"Object\"").Line()
+			} else {
+				log.Printf("unknown arg: %s(%s)", arg.Name, arg.Type)
 			}
 		}
 	}
@@ -353,7 +404,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if len(h.Success) > 0 {
 		success = true
 		st.Comment("@Success " + h.Success).Line()
-	} else if mth, ok := doc.getMethod(h.Method); ok {
+	} else {
 		if len(mth.Rets) > 0 && mth.Rets[0].Type != "error" {
 			success = true
 			if h.act == "List" {
@@ -388,7 +439,20 @@ func (h *Handle) jcall() jen.Code {
 	return jen.Id("a").Dot("sto").Dot(h.Store).Call().Dot(h.Method)
 }
 
+func (h *Handle) codeEnumList(doc *Document) jen.Code {
+	// em, _ := doc.enumWithName(h.Enum)
+	st := jen.Add(h.CommentCodes(doc))
+	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
+	st.BlockFunc(func(g *jen.Group) {
+		g.Id("success").Call(jen.Id("c"), jen.Qual(doc.modipath, h.mth.Name).Call())
+	})
+	return st
+}
+
 func (h *Handle) Codes(doc *Document) jen.Code {
+	if len(h.Enum) > 0 {
+		return h.codeEnumList(doc)
+	}
 	mth, ok := doc.getMethod(h.Method)
 	if !ok {
 		log.Printf("unknown method: %s", h.Method)
@@ -538,7 +602,7 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	g.Var().Id("spec").Add(spec)
 	g.Add(jbind("spec"))
 	g.Id("ctx").Op(":=").Add(jrctx)
-	if len(mod.SpecUp) > 0 {
+	if len(mod.SpecUp) > 0 { // deprecated
 		g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mod.Name))
 	}
 	var r2 = "total"
@@ -563,7 +627,7 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(args...))
 }
 
-func (h *Handle) jstombc() jen.Code {
+func (h *Handle) jStoModCall() jen.Code {
 	return jen.Id("obj").Op(",").Err().Op(":=").Add(h.jcall()).Call(
 		jrctx, jen.Id("in"),
 	).Line().
@@ -580,7 +644,7 @@ func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 		g.Add(jbindWith("ain", true,
 			jen.Var().Id("in").Add(jarg),
 			jen.Add(jbindWith("in", true, jfails(400)...)),
-			h.jstombc(),
+			h.jStoModCall(),
 			jen.Return(),
 		))
 		g.Var().Id("ret").Index().Any()
@@ -593,7 +657,7 @@ func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 	} else {
 		g.Var().Id("in").Add(jarg)
 		g.Add(jbind("in"))
-		g.Add(h.jstombc())
+		g.Add(h.jStoModCall())
 	}
 }
 
