@@ -1479,9 +1479,16 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			mod.codeMetaUp(g, jdb, "exist")
 
 			if hookTxDone {
+				jsts := []jen.Code{jen.Return()}
+				if !mth.Export {
+					jsts = append(jsts, jen.Err())
+				}
 				g.If(jen.Err().Op(eop).Add(jup).Op(";").Err().Op("!=").Nil()).Block(
-					jen.Return(jen.Err()),
+					jsts...,
 				)
+				if mth.Export {
+					g.Return()
+				}
 			} else {
 				g.Add(jretf(jup))
 			}
@@ -1545,6 +1552,11 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 
 		} else {
 			jbf(g, swdb, false)
+			if mth.Export && hookTxDone {
+				g.If(jen.Err().Op("!=").Nil()).Block(
+					jen.Return(jen.Err()),
+				)
+			}
 		}
 
 		if okAX && okue {
