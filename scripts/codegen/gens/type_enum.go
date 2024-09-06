@@ -205,7 +205,7 @@ func (e *Enum) Code() jen.Code {
 				if wizhZero && zv != nil {
 					g.Id(e.Name + zv.Suffix).Op(",")
 				}
-				for _, ev := range e.Values {
+				for _, ev := range vals {
 					name := e.Name + ev.Suffix
 					g.Id(name).Op(",")
 				}
@@ -222,7 +222,7 @@ func (e *Enum) Code() jen.Code {
 				if wizhZero && zv != nil {
 					g.Add(zv.jItem(e)).Op(",")
 				}
-				for _, ev := range e.Values {
+				for _, ev := range vals {
 					g.Add(ev.jItem(e)).Op(",")
 				}
 				g.Op("}")
