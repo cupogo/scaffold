@@ -1479,12 +1479,12 @@ func (mod *Model) codeStoreUpdate(mth Method) (arg []jen.Code, ret []jen.Code, a
 			mod.codeMetaUp(g, jdb, "exist")
 
 			if hookTxDone {
-				jsts := []jen.Code{jen.Return()}
+				jst := jen.Return()
 				if !mth.Export {
-					jsts = append(jsts, jen.Err())
+					jst.Err()
 				}
 				g.If(jen.Err().Op(eop).Add(jup).Op(";").Err().Op("!=").Nil()).Block(
-					jsts...,
+					jst,
 				)
 				if mth.Export {
 					g.Return()
