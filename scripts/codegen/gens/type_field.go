@@ -199,7 +199,7 @@ func (f *Field) defCode() jen.Code {
 	return st.Id(typ)
 }
 
-func (f *Field) Code(idx int) jen.Code {
+func (f *Field) Code(idx, max int) jen.Code {
 	st := f.preCode().Add(f.defCode())
 
 	if len(f.Tags) > 0 {
@@ -216,7 +216,7 @@ func (f *Field) Code(idx int) jen.Code {
 				tags["form"] = j
 			}
 
-			tags.extOrder(idx)
+			tags.extOrder(idx, max)
 		}
 
 		st.Tag(tags)
@@ -332,7 +332,7 @@ func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 		} else if f.Tags.Has(TagSwaggerType) {
 			tags[TagSwaggerType] = f.Tags[TagSwaggerType]
 		}
-		tags.extOrder(idx + 1)
+		tags.extOrder(idx+1, 0)
 		st.Tag(tags)
 	}
 
@@ -352,7 +352,7 @@ func (z Fields) Codes(basicName string, isTable, bsonable bool) (mcs, bcs []jen.
 			idx++
 		}
 		if (isTable || bsonable) && (field.IsSet || field.IsBasic) {
-			bcs = append(bcs, field.Code(idx))
+			bcs = append(bcs, field.Code(idx, len(z)))
 			if !setBasic {
 				stb := jen.Id(basicName)
 				if bsonable {
@@ -362,7 +362,7 @@ func (z Fields) Codes(basicName string, isTable, bsonable bool) (mcs, bcs []jen.
 				setBasic = true
 			}
 		} else {
-			mcs = append(mcs, field.Code(idx))
+			mcs = append(mcs, field.Code(idx, len(z)))
 		}
 		if field.isMeta() {
 			hasMeta = true

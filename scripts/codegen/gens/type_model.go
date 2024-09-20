@@ -209,7 +209,7 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 				tags.FillKey("form", "json")
 			}
 			// tags := Tags{"json": s}
-			tags.extOrder(idx)
+			tags.extOrder(idx, len(m.Fields))
 			code.Tag(tags)
 		}
 		members = append(members, code)
@@ -958,7 +958,7 @@ func metaUpCode(a ...bool) jen.Code {
 
 func ownerUpCode(idx int) jen.Code {
 	tags := Tags{"json": "ownerID,omitempty"}
-	tags.extOrder(idx)
+	tags.extOrder(idx, 0)
 	code := jen.Comment("仅用于更新所有者(负责人)").Line()
 	code.Id("OwnerID").Op("*").Id("string")
 	code.Tag(tags)
@@ -969,7 +969,7 @@ func createdUpCode(idx int) jen.Code {
 	code := jen.Comment("创建时间").Line()
 
 	tags := Tags{"json": "created,omitempty"}
-	tags.extOrder(idx)
+	tags.extOrder(idx, 0)
 	code.Id(createdField).Op("*").Qual("time", "Time")
 	code.Tag(tags)
 	return code

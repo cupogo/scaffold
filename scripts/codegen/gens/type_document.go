@@ -83,23 +83,35 @@ func (m Tags) GetAny(a ...string) (string, bool) {
 	return "", false
 }
 
-func (m Tags) extOrder(idx int) {
+func (m Tags) extOrder(idx, max int) {
 	if idx > 55 { // max ascii offset
 		return
 	}
 	if _, ok := m[TagSwaggerIgnore]; !ok {
 		if _, ok = m[TagExtensions]; !ok {
-			m[TagExtensions] = fmt.Sprintf("x-order=%c", getRune(idx))
+			m[TagExtensions] = fmt.Sprintf("x-order=%c", getRune(idx, max))
 		}
 	}
 }
 
-func getRune(idx int) rune {
-	var offset int
-	if idx > 26 {
+func getRune(idx, max int) rune {
+	const dead = 52
+	var (
+		start, offset int
+	)
+	start = 64
+	if max > dead {
+		start = 47
+		if idx > 10 {
+			offset = 7
+			if idx > 36 {
+				offset += 6
+			}
+		}
+	} else if idx > 26 {
 		offset = 6
 	}
-	return rune(64 + idx + offset)
+	return rune(start + idx + offset)
 }
 
 type Document struct {
