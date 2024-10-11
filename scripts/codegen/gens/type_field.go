@@ -405,10 +405,11 @@ func (z Fields) withName(name string) (*Field, bool) {
 }
 
 type Query struct {
-	sift string
-	ext  string
-	add  bool
-	both bool
+	sift   string
+	ext    string
+	add    bool
+	custom bool
+	both   bool
 }
 
 func (f *Field) parseQuery() (q Query, ok bool) {
@@ -432,6 +433,7 @@ func (f *Field) parseQuery() (q Query, ok bool) {
 	case "less":
 		q.sift, ok = "siftLess", true
 	default:
+		q.custom = a == "custom"
 		ok = len(a) > 0 && len(q.ext) > 0
 	}
 	q.add = q.ext == "ints" || q.ext == "strs" || q.ext == "oids"

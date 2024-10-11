@@ -595,6 +595,16 @@ func (m *Model) specFields() (out Fields) {
 			} else if f.Type == "bool" || q.ext == "str" {
 				f.Type = "string"
 				f.siftFn = q.sift
+			} else if q.custom {
+				if f.isOwner() {
+					f.Type = "string"
+					f.Name = "OwnerID"
+					if len(f.Comment) == 0 {
+						f.Comment = "所有者编号"
+						f.qtype = "string"
+						f.Tags = Tags{"form": "owner", "json": "owner,omitempty"}
+					}
+				}
 			} else {
 				f.siftFn = q.sift
 			}

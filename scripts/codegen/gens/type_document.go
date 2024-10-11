@@ -84,7 +84,7 @@ func (m Tags) GetAny(a ...string) (string, bool) {
 }
 
 func (m Tags) extOrder(idx, max int) {
-	if idx > 55 { // max ascii offset
+	if idx > 65 { // max ascii offset
 		return
 	}
 	if _, ok := m[TagSwaggerIgnore]; !ok {
