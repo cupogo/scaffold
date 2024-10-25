@@ -317,7 +317,7 @@ func (m *Model) Codes() jen.Code {
 		}
 
 		g.Id(m.Name + "Label").Op("=").Lit(m.getLabel())
-		g.Id(m.Name + "Model").Op("=").Lit(m.getIdenty())
+		g.Id(m.Name + "TypID").Op("=").Lit(m.getIdenty())
 	}).Line()
 
 	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
@@ -1052,7 +1052,7 @@ func (m *Model) codeRegSto() (ctable jen.Code, cload jPair) {
 		ctable = m.codeNilInstance()
 		if m.RegLoader {
 			cload = jPair{
-				jen.Qual(m.getIPath(), m.Name+"Model"),
+				jen.Qual(m.getIPath(), m.Name+"TypID"),
 				jen.Op("*").Qual(m.getIPath(), m.Name),
 			}
 		}
@@ -1781,7 +1781,7 @@ func (m *Model) identityCode() (st *jen.Statement) {
 		).Id("IdentityLabel").Params().String().Op("{").Return(jen.Id(m.Name + "Label")).Op("}").Line()
 		st.Func().Params(
 			jen.Id("_").Op("*").Id(m.Name),
-		).Id("IdentityModel").Params().String().Op("{").Return(jen.Id(m.Name + "Model")).Op("}").Line()
+		).Id("IdentityModel").Params().String().Op("{").Return(jen.Id(m.Name + "TypID")).Op("}").Line()
 
 		st.Func().Params(
 			jen.Id("_").Op("*").Id(m.Name),
