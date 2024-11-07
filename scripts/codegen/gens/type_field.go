@@ -204,7 +204,7 @@ func (f *Field) Code(idx, max int) jen.Code {
 
 	tags := f.bunPatchTags()
 	if f.isEmbed() {
-		if f.bson {
+		if f.bson || f.inMgm() {
 			if tags == nil {
 				tags = make(Tags)
 			}
@@ -235,6 +235,17 @@ func (f *Field) Code(idx, max int) jen.Code {
 	}
 
 	return st
+}
+
+func (f *Field) dbCode() DbCode {
+	if f.mod != nil && f.mod.doc != nil {
+		return f.mod.doc.DbCode
+	}
+	return ""
+}
+
+func (f *Field) inMgm() bool {
+	return f.dbCode() == DbMgm
 }
 
 // return column name, is in db and is unquie

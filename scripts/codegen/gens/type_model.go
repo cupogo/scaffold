@@ -320,7 +320,7 @@ func (m *Model) Codes() jen.Code {
 		g.Id(m.Name + "TypID").Op("=").Lit(m.getIdenty())
 	}).Line()
 
-	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable || m.doc.DbCode == DbMgm)
+	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
 	jcodeDesc(st, m.Descr, "@Description ")
