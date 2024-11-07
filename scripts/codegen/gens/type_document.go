@@ -37,8 +37,8 @@ func exQual(k string) (string, bool) {
 
 type Tags map[string]string
 
-// Copy ...
-func (m Tags) Copy() (out Tags) {
+// Clone ...
+func (m Tags) Clone() Tags {
 	return maps.Clone(m)
 }
 

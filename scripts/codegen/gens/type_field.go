@@ -104,7 +104,7 @@ func (f *Field) maybeEnum() bool {
 var replTrimUseZero = strings.NewReplacer(",use_zero", "")
 
 func (f *Field) bunPatchTags() (out Tags) {
-	out = f.Tags.Copy()
+	out = f.Tags.Clone()
 	if !out.Has("bun") && out.Has("pg") {
 		v := out["pg"]
 		out["bun"] = replTrimUseZero.Replace(v)
@@ -202,8 +202,16 @@ func (f *Field) defCode() jen.Code {
 func (f *Field) Code(idx, max int) jen.Code {
 	st := f.preCode().Add(f.defCode())
 
-	if len(f.Tags) > 0 {
-		tags := f.bunPatchTags()
+	tags := f.bunPatchTags()
+	if f.isEmbed() {
+		if f.bson {
+			if tags == nil {
+				tags = make(Tags)
+			}
+			tags["bson"] = ",inline"
+		}
+	}
+	if len(tags) > 0 {
 		if j, ok := tags["json"]; ok {
 			if a, b, ok := strings.Cut(j, ","); ok {
 				if f.isScalar() && !tags.Has("form") {
@@ -223,9 +231,6 @@ func (f *Field) Code(idx, max int) jen.Code {
 	}
 
 	if f.isEmbed() {
-		if f.bson {
-			st.Tag(Tags{"bson": ",inline"})
-		}
 		st.Line()
 	}
 

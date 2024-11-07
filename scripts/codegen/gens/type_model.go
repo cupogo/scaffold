@@ -202,7 +202,7 @@ func (m *Model) ChangablCodes() (members []jen.Code, imples []jen.Code, rets []j
 		} else {
 			code.Op("*").Id(tn)
 		}
-		tags := field.Tags.Copy()
+		tags := field.Tags.Clone()
 		tags.CleanKeys("bson", "bun", "pg", "binding", "validate")
 		if tags.Has("json") {
 			if field.isScalar() {
@@ -320,7 +320,7 @@ func (m *Model) Codes() jen.Code {
 		g.Id(m.Name + "TypID").Op("=").Lit(m.getIdenty())
 	}).Line()
 
-	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable)
+	mcs, bcs := m.Fields.Codes(basicName, isTable, bsonable || m.doc.DbCode == DbMgm)
 	cs = append(cs, mcs...)
 	st.Comment(m.Name + " " + m.Comment).Line()
 	jcodeDesc(st, m.Descr, "@Description ")
