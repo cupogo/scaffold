@@ -43,6 +43,8 @@ cd myproject
 test -f go.mod || go mod init mycom/mywork/myproject
 test -d docs || mkdir docs
 
+test -d pkg/models || mkdir -p pkg/models
+test -d pkg/services || mkdir -p pkg/services
 test -d pkg/web || mkdir -p pkg/web
 test -d pkg/web/resp || cp -r ../scaffold/pkg/web/resp pkg/web/
 test -d pkg/web/routes || cp -r ../scaffold/pkg/web/routes pkg/web/

@@ -226,7 +226,7 @@ func NewDoc(docfile string) (*Document, error) {
 		return nil, fmt.Errorf("modelpkg is empty")
 	}
 	doc.gened, doc.extern = doc.getOutName(docfile)
-	doc.dirmod = path.Join("pkg", "models", doc.ModelPkg)
+	doc.dirmod = path.Join("pkg", "models", strings.TrimPrefix(doc.ModelPkg, "models/"))
 	doc.dirsto = path.Join("pkg", "services", storepkg)
 	doc.dirweb = path.Join("pkg", "web", doc.WebAPI.Pkg)
 	doc.methods = make(map[string]Method)
