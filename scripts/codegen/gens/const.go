@@ -73,6 +73,7 @@ const (
 	TagSwaggerIgnore = "swaggerignore"
 	TagSwaggerType   = "swaggertype"
 	TagExtensions    = "extensions"
+	TagSpecBinding   = "spec_binding"
 )
 
 type CompareType string

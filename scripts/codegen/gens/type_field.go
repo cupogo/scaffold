@@ -348,6 +348,9 @@ func (f *Field) queryCode(idx int, pkgs ...string) jen.Code {
 		} else if f.Tags.Has(TagSwaggerType) {
 			tags[TagSwaggerType] = f.Tags[TagSwaggerType]
 		}
+		if f.Tags.Has(TagSpecBinding) {
+			tags["binding"] = f.Tags[TagSpecBinding]
+		}
 		tags.extOrder(idx+1, 0)
 		st.Tag(tags)
 	}
