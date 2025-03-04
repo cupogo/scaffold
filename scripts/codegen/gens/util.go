@@ -35,12 +35,16 @@ func loadPackage(path string) *packages.Package {
 	if !strings.HasPrefix(path, "./") {
 		path = "./" + path
 	}
-	cfg := &packages.Config{Mode: packages.NeedFiles | packages.NeedCompiledGoFiles |
-		packages.NeedTypes | packages.NeedSyntax | packages.NeedImports}
+
+	cfg := &packages.Config{
+		Mode: packages.NeedFiles | packages.NeedCompiledGoFiles |
+			packages.NeedTypes | packages.NeedSyntax | packages.NeedImports,
+	}
 	pkgs, err := packages.Load(cfg, path)
 	if err != nil {
 		log.Fatalf("loading packages for inspection: %v", err)
 	}
+
 	if packages.PrintErrors(pkgs) > 0 {
 		os.Exit(1)
 	}

@@ -1,6 +1,8 @@
 module github.com/cupogo/scaffold
 
-go 1.22
+go 1.22.0
+
+toolchain go1.23.2
 
 require (
 	github.com/cupogo/andvari v0.0.0-20240715083635-b953f5277cab
@@ -14,8 +16,8 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/uptrace/bun/dialect/pgdialect v1.1.17
 	go.uber.org/zap v1.26.0
-	golang.org/x/text v0.14.0
-	golang.org/x/tools v0.15.0
+	golang.org/x/text v0.21.0
+	golang.org/x/tools v0.29.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -53,10 +55,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.27.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/mod v0.22.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
