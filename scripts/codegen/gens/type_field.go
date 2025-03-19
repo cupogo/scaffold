@@ -79,7 +79,7 @@ func (f *Field) isOID() bool {
 func (f *Field) isScalar() bool {
 	if f.Type == "string" || f.Type == "bool" ||
 		strings.HasPrefix(f.Type, "int") || strings.HasPrefix(f.Type, "uint") ||
-		strings.Contains(f.Type, "Money") || strings.HasSuffix(f.Type, "DateTime") ||
+		strings.Contains(f.Type, "Money") || strings.HasSuffix(f.Type, "DateTime") || strings.HasSuffix(f.Type, "Date") ||
 		strings.HasSuffix(f.Type, "Status") || strings.HasSuffix(f.Type, "Type") {
 		return true
 	}
