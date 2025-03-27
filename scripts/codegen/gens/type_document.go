@@ -129,6 +129,7 @@ type Document struct {
 	Module string `yaml:"-"`
 
 	Gename    string  `yaml:"gename"`
+	Prefix    string  `yaml:"prefix"`
 	DbCode    DbCode  `yaml:"dbcode"` //  default:"bun"
 	Enums     []Enum  `yaml:"enums"`
 	EnumCore  string  `yaml:"enumcore"`
@@ -275,6 +276,15 @@ func (doc *Document) getOutName(docfile string) (gened string, extern string) {
 	extern = name + "_x.go"
 
 	return
+}
+
+func (doc *Document) OutNamesForSto() (string, string) {
+	gened, extern := doc.gened, doc.extern
+	if len(doc.Prefix) > 0 {
+		gened = doc.Prefix + "_" + gened
+		extern = doc.Prefix + "_" + extern
+	}
+	return path.Join(doc.dirsto, gened), path.Join(doc.dirsto, extern)
 }
 
 func (doc *Document) IsPG10() bool {
@@ -522,10 +532,10 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 			return err
 		}
 	}
-	outname := path.Join(doc.dirsto, doc.gened)
-	if dropfirst && CheckFile(outname) {
-		if err := os.Remove(outname); err != nil {
-			log.Printf("drop %s fail: %s", outname, err)
+	fileG, fileX := doc.OutNamesForSto()
+	if dropfirst && CheckFile(fileG) {
+		if err := os.Remove(fileG); err != nil {
+			log.Printf("drop %s fail: %s", fileG, err)
 			return err
 		}
 	}
@@ -535,13 +545,13 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 		log.Print("no store found, skip wrap")
 		return nil
 	}
-	gfile := path.Join(doc.dirsto, doc.extern)
 	var svd *vdst
-	if CheckFile(gfile) {
-		svd, err = newDST(gfile, storepkg)
+	if CheckFile(fileX) {
+		svd, err = newDST(fileX, storepkg)
 		if err != nil {
 			return
 		}
+		// log.Printf("imports: %+v", svd.showImports())
 	}
 
 	for i, store := range doc.Stores {
@@ -563,7 +573,7 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 		sgf.Add(store.Codes(doc.ModelPkg)).Line()
 	}
 
-	err = sgf.Save(outname)
+	err = sgf.Save(fileG)
 	if err != nil {
 		log.Fatalf("generate stores fail: %s", err)
 		return err
@@ -571,12 +581,12 @@ func (doc *Document) genStores(dropfirst bool) (err error) {
 
 	log.Printf("generated '%s/%s' ok", doc.dirsto, doc.gened)
 
-	_ = goImports(outname)
+	_ = goImports(fileG)
 
 	if doc.hasStoreEmbed() || doc.hasStoreHooks() {
-		ensureGoFile(gfile, "stores/doc_x", doc)
+		ensureGoFile(fileX, "stores/doc_x", doc)
 		if svd == nil {
-			svd, err = newDST(gfile, storepkg)
+			svd, err = newDST(fileX, storepkg)
 			if err != nil {
 				return err
 			}
@@ -734,7 +744,7 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 		"WebPkg": doc.WebAPI.GetPkgName(),
 	})
 
-	outname := path.Join(doc.dirweb, "handle_"+doc.gened)
+	outname := path.Join(doc.dirweb, "handle_"+doc.Prefix+doc.gened)
 	if dropfirst && CheckFile(outname) {
 		if err := os.Remove(outname); err != nil {
 			log.Printf("drop %s fail: %s", outname, err)
