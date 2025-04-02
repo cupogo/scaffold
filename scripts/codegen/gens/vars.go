@@ -1,6 +1,11 @@
 package gens
 
-import "github.com/dave/jennifer/jen"
+import (
+	"slices"
+	"strings"
+
+	"github.com/dave/jennifer/jen"
+)
 
 var (
 	swdb  jen.Code = jen.Id("s").Dot("w").Dot("db")
@@ -22,4 +27,17 @@ var (
 		'D': "s.w.db.DeleteModel",
 		'G': "dbGetWithPKID",
 	}
+
+	commonAbbrs = []string{
+		"HR",
+		"ID",
+	}
 )
+
+func IsCommonAbbr(s string) (string, bool) {
+	k := strings.ToUpper(s)
+	if slices.Contains(commonAbbrs, k) {
+		return k, true
+	}
+	return s, false
+}

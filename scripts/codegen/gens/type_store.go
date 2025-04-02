@@ -212,6 +212,7 @@ func (s *Store) GetIName() string {
 	if len(s.IName) > 0 {
 		return s.IName
 	}
+
 	return CamelCased(s.Name)
 }
 
@@ -220,7 +221,11 @@ func (s *Store) ShortIName() string {
 		return s.SIName
 	}
 	in := s.GetIName()
-	return strings.TrimSuffix(in, "Store")
+	sn := strings.TrimSuffix(in, "Store")
+	if cn, ok := IsCommonAbbr(sn); ok {
+		return cn
+	}
+	return sn
 }
 
 func (s *Store) hasEmbed() bool {
