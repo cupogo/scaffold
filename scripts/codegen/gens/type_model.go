@@ -835,7 +835,11 @@ func (m *Model) getSpecCodes() jen.Code {
 				if wrTyp == "bool" {
 					g.If(jen.Id("spec").Dot(withRel)).Block(
 						jen.Id("q").Dot("Relation").Call(jen.Lit(relFields[0].Name)),
-					).Line()
+					)
+				} else if len(relFields) == 1 {
+					g.If(jen.Id("spec").Dot(withRel).Op("==").Lit(relFields[0].Name)).Block(
+						jen.Id("q").Dot("Relation").Call(jen.Lit(relFields[0].Name)),
+					)
 				} else {
 					jcond := jen.Len(jen.Id("spec").Dot(withRel)).Op(">0")
 					jrels := make([]jen.Code, len(relFields))
@@ -850,7 +854,7 @@ func (m *Model) getSpecCodes() jen.Code {
 								)
 							})
 						})
-					}).Line()
+					})
 
 					// g.Switch(jen.Id("spec").Dot(withRel)).BlockFunc(func(gs *jen.Group) {
 					// 	for _, relField := range relFields {
@@ -861,7 +865,7 @@ func (m *Model) getSpecCodes() jen.Code {
 					// })
 
 				}
-
+				g.Line()
 			}
 			g.Add(jfSiftCall("ModelSpec"))
 
