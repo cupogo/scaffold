@@ -831,20 +831,37 @@ func (m *Model) getSpecCodes() jen.Code {
 			// 	g.Var().Id("qd").Id("BD")
 			// }
 			if len(relFields) > 0 && !okAL {
-				// log.Printf("%s belongsTo Names %+v", m.Name, relFields)
-				// g.Var().Id("pre").String()
-				var jcond jen.Code
+
 				if wrTyp == "bool" {
-					jcond = jen.Id("spec").Dot(withRel)
+					g.If(jen.Id("spec").Dot(withRel)).Block(
+						jen.Id("q").Dot("Relation").Call(jen.Lit(relFields[0].Name)),
+					).Line()
 				} else {
-					jcond = jen.Len(jen.Id("spec").Dot(withRel)).Op(">0")
-				}
-				g.If(jcond).BlockFunc(func(g *jen.Group) {
-					for _, relField := range relFields {
-						g.Id("q").Dot("Relation").Call(jen.Lit(relField.Name))
+					jcond := jen.Len(jen.Id("spec").Dot(withRel)).Op(">0")
+					jrels := make([]jen.Code, len(relFields))
+					for i, relField := range relFields {
+						jrels[i] = jen.Lit(relField.Name)
 					}
-					// g.Id("pre").Op("=").Lit("?TableAlias.")
-				}).Line()
+					g.If(jcond).BlockFunc(func(g2 *jen.Group) {
+						g2.For(jen.Id("_,rel").Op(":=").Range().Qual("strings", "Split").Call(jen.Id("spec").Dot(withRel), jen.Lit(","))).BlockFunc(func(g3 *jen.Group) {
+							g3.Switch(jen.Id("rel")).BlockFunc(func(gs *jen.Group) {
+								gs.Case(jrels...).Block(
+									jen.Id("q").Dot("Relation").Call(jen.Id("rel")),
+								)
+							})
+						})
+					}).Line()
+
+					// g.Switch(jen.Id("spec").Dot(withRel)).BlockFunc(func(gs *jen.Group) {
+					// 	for _, relField := range relFields {
+					// 		gs.Case(jen.Lit(relField.Name)).Block(
+					// 			jen.Id("q").Dot("Relation").Call(jen.Lit(relField.Name)),
+					// 		)
+					// 	}
+					// })
+
+				}
+
 			}
 			g.Add(jfSiftCall("ModelSpec"))
 
