@@ -23,6 +23,7 @@ type Model struct {
 	StoHooks   Tags     `yaml:"hooks,omitempty"`
 	SpecExtras Fields   `yaml:"specExtras,omitempty"`
 	Sifters    []string `yaml:"sifters,omitempty"`
+	HookNs     string   `yaml:"hookNs,omitempty"` // prefix of hook store
 	SpecNs     string   `yaml:"specNs,omitempty"` // prefix of model in stores, default empty
 	SpecUp     string   `yaml:"specUp,omitempty"` // spec.{specUp}(ctx,obj) // deprecated
 	Descr      string   `yaml:"descr,omitempty"`
@@ -926,7 +927,7 @@ func (m *Model) getSpecCodes() jen.Code {
 func (m *Model) hasStoreHook(k string) (sh storeHook, ok bool) {
 	var v string
 	if v, ok = m.StoHooks[k]; ok {
-		sh, ok = ParseHook(m.Name, k, v)
+		sh, ok = ParseHook(m.Name, m.HookNs, k, v)
 	}
 	return
 }
@@ -941,7 +942,7 @@ func (m *Model) hasAnyStoreHook(a ...string) bool {
 }
 
 func (m *Model) storeHookName(k, v string) (string, bool) {
-	sh, ok := ParseHook(m.Name, k, v)
+	sh, ok := ParseHook(m.Name, m.HookNs, k, v)
 	return sh.FunName, ok
 }
 
@@ -950,7 +951,7 @@ func (m *Model) StoreHooks() (out []storeHook) {
 		if len(v) == 0 {
 			continue
 		}
-		sh, ok := ParseHook(m.Name, k, v)
+		sh, ok := ParseHook(m.Name, m.HookNs, k, v)
 		if !ok {
 			continue
 		}

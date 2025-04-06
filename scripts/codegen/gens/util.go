@@ -324,7 +324,7 @@ func Plural(str string) string {
 	return inflection.Plural(str)
 }
 
-func ParseHook(model string, k, v string) (sh storeHook, ok bool) {
+func ParseHook(model, ns string, k, v string) (sh storeHook, ok bool) {
 	sh.k = k
 	sh.ObjName = model
 	if strings.HasPrefix(v, "db") {
@@ -335,26 +335,30 @@ func ParseHook(model string, k, v string) (sh storeHook, ok bool) {
 		sh.FunName = v
 		return sh, true
 	}
+	suf := model
+	if len(ns) > 0 {
+		suf = ToExported(ns) + model
+	}
 	var deco string
 	v, deco, _ = strings.Cut(v, ",")
 	sh.isPtr = strings.Contains(deco, "ptr")
 	sh.isTot = strings.Contains(deco, "tot")
 	if v == "true" || v == "yes" { // true, yes
 		if strings.HasSuffix(k, "ing") {
-			sh.FunName = "db" + ToExported(k[0:len(k)-3]+"e") + model
+			sh.FunName = "db" + ToExported(k[0:len(k)-3]+"e") + suf
 			return sh, true
 		}
-		v = k + model
+		v = k + suf
 	}
 	switch k {
 	case afterLoad, beforeList, afterCreated, afterUpdated, afterDeleted, upsertES, deleteES:
 		sh.FunName = v
-		return sh, strings.HasPrefix(v, k+model)
+		return sh, strings.HasPrefix(v, k+suf)
 	case afterList:
 		sh.FunName = v
-		return sh, strings.HasPrefix(v, k+model)
+		return sh, strings.HasPrefix(v, k+suf)
 	case errorLoad:
-		sh.FunName = "on" + ToExported(k) + model
+		sh.FunName = "on" + ToExported(k) + suf
 		return sh, true
 	}
 	return
