@@ -1122,7 +1122,7 @@ func (m *Model) codeStoreList(_ Method) ([]jen.Code, []jen.Code, *jen.Statement)
 		jen.BlockFunc(func(g *jen.Group) {
 			if cols, ok := m.HasTextSearch(); ok || len(cols) > 0 {
 				if ok {
-					g.Id("spec").Dot("SetTsConfig").Call(jen.Id("DbTsCheck").Call())
+					g.Id("spec").Dot("SetTsConfig").Call(jen.Id("s.w.db.GetTsCfg").Call())
 				}
 				if len(cols) > 0 {
 					g.Id("spec").Dot("SetTsFallback").Call(jen.ListFunc(func(g1 *jen.Group) {
