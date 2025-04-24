@@ -94,8 +94,8 @@ func (s *accountStore) UpdateAccount(ctx context.Context, id string, in accounts
 		if err = dbGetWithPKID(ctx, tx, exist, id); err != nil {
 			return err
 		}
-		exist.SetWith(in)
 		exist.SetIsUpdate(true)
+		exist.SetWith(in)
 		if err = dbBeforeUpdateAccount(ctx, tx, exist); err != nil {
 			return err
 		}

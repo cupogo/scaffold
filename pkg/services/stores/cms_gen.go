@@ -118,7 +118,7 @@ func (spec *ArticleSpec) Sift(q *ormQuery) *ormQuery {
 	} else {
 		q, _ = siftEqual(q, "src", spec.Src, false)
 	}
-	q = spec.TextSearchSpec.Sift(q)
+	q = spec.TextSearchSpec.SiftTS(q, !spec.HasColumn())
 
 	return q
 }
@@ -213,7 +213,7 @@ func (s *contentStore) DeleteChannel(ctx context.Context, id string) error {
 }
 
 func (s *contentStore) ListArticle(ctx context.Context, spec *ArticleSpec) (data cms1.Articles, total int, err error) {
-	spec.SetTsConfig(DbTsCheck())
+	spec.SetTsConfig(s.w.db.GetTsCfg())
 	spec.SetTsFallback("title", "content")
 	q := s.w.db.NewSelect().Model(&data)
 	if err = s.beforeListArticle(ctx, spec, q); err != nil {
