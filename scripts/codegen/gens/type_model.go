@@ -802,10 +802,10 @@ func (m *Model) getSpecCodes() jen.Code {
 	relFields := m.Fields.relHasOne()
 	relations := m.Fields.Relations()
 	if len(relFields) > 0 || len(relations) > 0 {
-		wrTyp = "bool"
-		if okAL || len(relations) > 1 {
-			wrTyp = "string"
-		}
+		// wrTyp = "bool"
+		// if okAL || len(relations) > 1 {
+		wrTyp = "string"
+		// }
 		withRel = "WithRel"
 		jtag := "rel"
 		field := &Field{
@@ -833,12 +833,8 @@ func (m *Model) getSpecCodes() jen.Code {
 			// }
 			if len(relFields) > 0 && !okAL {
 
-				if wrTyp == "bool" {
-					g.If(jen.Id("spec").Dot(withRel)).Block(
-						jen.Id("q").Dot("Relation").Call(jen.Lit(relFields[0].Name)),
-					)
-				} else if len(relFields) == 1 {
-					g.If(jen.Id("spec").Dot(withRel).Op("==").Lit(relFields[0].Name)).Block(
+				if len(relFields) == 1 {
+					g.If(jen.Id("spec").Dot(withRel).Op("==").Lit("1").Op("||").Id("spec").Dot(withRel).Op("==").Lit(relFields[0].Name)).Block(
 						jen.Id("q").Dot("Relation").Call(jen.Lit(relFields[0].Name)),
 					)
 				} else {
