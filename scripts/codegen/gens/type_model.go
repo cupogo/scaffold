@@ -796,21 +796,15 @@ func (m *Model) getSpecCodes() jen.Code {
 
 	}
 
-	var withRel string
-	var wrTyp string
+	withRel := "WithRel"
 	_, okAL := m.hasStoreHook(afterList)
 	relFields := m.Fields.relHasOne()
 	relations := m.Fields.Relations()
 	if len(relFields) > 0 || len(relations) > 0 {
-		// wrTyp = "bool"
-		// if okAL || len(relations) > 1 {
-		wrTyp = "string"
-		// }
-		withRel = "WithRel"
 		jtag := "rel"
 		field := &Field{
 			Name: withRel,
-			Type: wrTyp, Tags: Tags{"json": jtag},
+			Type: "string", Tags: Tags{"json": jtag},
 			Comment: "include relation name"}
 		if len(relations) > 0 {
 			field.Comment += "s: " + strings.Join(highlights(relations), ",") + ",..."
