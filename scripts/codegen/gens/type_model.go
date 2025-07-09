@@ -1171,13 +1171,18 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 
 	jaf := func(g *jen.Group, jdb jen.Code) {
 		g.Id("obj").Op("=").New(jen.Qual(mod.getIPath(), mod.Name))
-
-		args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj"), jen.Id("id")}
+		uf, isuniq := mod.UniqueOne()
+		args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
+		if isuniq && !isBson {
+			fnGet = "dbGetWithPK"
+		} else {
+			args = append(args, jen.Id("id"))
+		}
 		if mth.Export || mth.ColGet {
 			args = append(args, jen.Id("cols").Op("..."))
 		}
 		jload.Id(fnGet).Call(args...)
-		if uf, isuniq := mod.UniqueOne(); isuniq {
+		if isuniq {
 			args := []jen.Code{jen.Id("ctx"), jdb, jen.Id("obj")}
 			var ukey string
 			var fnGet2 string
@@ -1194,8 +1199,14 @@ func (mod *Model) codeStoreGet(mth Method) (arg []jen.Code, ret []jen.Code, addi
 			if mth.Export || mth.ColGet {
 				args = append(args, jen.Id("cols").Op("..."))
 			}
-			g.If(jen.Err().Op("=").Id(fnGet2).Call(args...).
-				Op(";").Err().Op("!=").Nil()).Block(jload)
+
+			jcond := jen.Err().Op("=").Id(fnGet2).Call(args...).
+				Op(";").Err().Op("!=").Nil()
+			if !isBson {
+				jcond.Op("&&").Id("obj").Dot("SetID").Call(jen.Id("id"))
+			}
+
+			g.If(jcond).Block(jload)
 		} else {
 			g.Add(jload)
 		}
