@@ -35,6 +35,7 @@ const (
 // consts of qual
 const (
 	ginQual = "github.com/gin-gonic/gin"
+	chiQual = "github.com/go-chi/chi/v5"
 
 	metaField       = "*.MetaField"
 	ownerField      = "*.OwnerField"

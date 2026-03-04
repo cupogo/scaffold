@@ -83,8 +83,123 @@ type WebAPI struct {
 	NeedPerm  bool      `yaml:"needPerm,omitempty"`
 	TagLabel  string    `yaml:"tagLabel,omitempty"`
 	UriPrefix string    `yaml:"uriPrefix,omitempty"`
+	FormTag   string    `yaml:"formTag,omitempty"`
 
 	doc *Document
+}
+
+func (wa *WebAPI) GetUriPrefix() string {
+	if len(wa.UriPrefix) == 0 {
+		return "/" + strings.ToLower(wa.Pkg)
+	}
+	return wa.UriPrefix
+}
+
+func (wa *WebAPI) IsChi() bool {
+	return wa.doc != nil && wa.doc.WebCode == "chi"
+}
+
+func (wa *WebAPI) HandlerParams() jen.Code {
+	if wa.IsChi() {
+		return jen.Params(
+			jen.Id("w").Qual("net/http", "ResponseWriter"),
+			jen.Id("r").Op("*").Qual("net/http", "Request"),
+		)
+	}
+	return jen.Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
+}
+
+func (wa *WebAPI) ContextVar() string {
+	if wa.IsChi() {
+		return "r"
+	}
+	return "c"
+}
+
+func (wa *WebAPI) SuccessCall(g *jen.Group, args ...jen.Code) {
+	if wa.IsChi() {
+		allArgs := []jen.Code{jen.Id("w"), jen.Id("r")}
+		allArgs = append(allArgs, args...)
+		g.Id("success").Call(allArgs...)
+	} else {
+		allArgs := []jen.Code{jen.Id("c")}
+		allArgs = append(allArgs, args...)
+		g.Id("success").Call(allArgs...)
+	}
+}
+
+func (wa *WebAPI) SuccessCallVar(ctx jen.Code, args ...jen.Code) jen.Code {
+	if wa.IsChi() {
+		allArgs := []jen.Code{jen.Id("w"), jen.Id("r")}
+		allArgs = append(allArgs, args...)
+		return jen.Id("success").Call(allArgs...)
+	}
+	allArgs := []jen.Code{jen.Id("c")}
+	allArgs = append(allArgs, args...)
+	return jen.Id("success").Call(allArgs...)
+}
+
+func (wa *WebAPI) GetErrorCall(g *jen.Group, code jen.Code, errArgs ...jen.Code) {
+	if wa.IsChi() {
+		allArgs := []jen.Code{jen.Id("w"), jen.Id("r"), code}
+		allArgs = append(allArgs, errArgs...)
+		g.Id("getError").Call(allArgs...)
+	} else {
+		allArgs := []jen.Code{jen.Id("c"), code}
+		allArgs = append(allArgs, errArgs...)
+		g.Id("getError").Call(allArgs...)
+	}
+}
+
+func (wa *WebAPI) GetErrorVar(code jen.Code, errArgs ...jen.Code) jen.Code {
+	if wa.IsChi() {
+		allArgs := []jen.Code{jen.Id("w"), jen.Id("r"), code}
+		allArgs = append(allArgs, errArgs...)
+		return jen.Id("getError").Call(allArgs...)
+	}
+	allArgs := []jen.Code{jen.Id("c"), code}
+	allArgs = append(allArgs, errArgs...)
+	return jen.Id("getError").Call(allArgs...)
+}
+
+func (wa *WebAPI) FailCall(g *jen.Group, args ...jen.Code) {
+	if wa.IsChi() {
+		g.Id("fail").Call(append([]jen.Code{jen.Id("w"), jen.Id("r")}, args...)...)
+	} else {
+		g.Id("fail").Call(append([]jen.Code{jen.Id("c")}, args...)...)
+	}
+}
+
+func (wa *WebAPI) ParamCall(param string) jen.Code {
+	ctxVar := wa.ContextVar()
+	if wa.IsChi() {
+		return jen.Qual(chiQual, "URLParam").Call(jen.Id(ctxVar), jen.Lit(param))
+	}
+	return jen.Id(ctxVar).Dot("Param").Call(jen.Lit(param))
+}
+
+func (wa *WebAPI) QueryCall(query string) jen.Code {
+	ctxVar := wa.ContextVar()
+	if wa.IsChi() {
+		return jen.Id(ctxVar).Dot("URL").Dot("Query").Call().Dot("Get").Call(jen.Lit(query))
+	}
+	return jen.Id(ctxVar).Dot("GetQuery").Call(jen.Lit(query))
+}
+
+func (wa *WebAPI) QueryArrayCall(query string) jen.Code {
+	ctxVar := wa.ContextVar()
+	if wa.IsChi() {
+		return jen.Id(ctxVar).Dot("URL").Dot("Query").Call().Dot("[").Call(jen.Lit(query)).Dot("[]")
+	}
+	return jen.Id(ctxVar).Dot("GetQueryArray").Call(jen.Lit(query))
+}
+
+func (wa *WebAPI) ContextCall() jen.Code {
+	ctxVar := wa.ContextVar()
+	if wa.IsChi() {
+		return jen.Id(ctxVar).Dot("Context").Call()
+	}
+	return jen.Id(ctxVar).Dot("Request").Dot("Context").Call()
 }
 
 func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle, match bool) {
@@ -444,11 +559,10 @@ func (h *Handle) jcall() jen.Code {
 }
 
 func (h *Handle) codeEnumList(doc *Document) jen.Code {
-	// em, _ := doc.enumWithName(h.Enum)
 	st := jen.Add(h.CommentCodes(doc))
-	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
+	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Add(h.wa.HandlerParams())
 	st.BlockFunc(func(g *jen.Group) {
-		g.Id("success").Call(jen.Id("c"), jen.Qual(doc.modipath, h.mth.Name).Call())
+		h.wa.SuccessCall(g, jen.Qual(doc.modipath, h.mth.Name).Call())
 	})
 	return st
 }
@@ -473,12 +587,12 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 	}
 
 	st := jen.Add(h.CommentCodes(doc))
-	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Params(jen.Id("c").Op("*").Qual(ginQual, "Context"))
+	st.Func().Params(jen.Id("a").Op("*").Id("api")).Id(h.Name).Add(h.wa.HandlerParams())
 	st.BlockFunc(func(g *jen.Group) {
 
 		if strings.Contains(h.Route, "{id}") { // Get, Put, Delete
 			if h.act == "Get" || h.act == "Load" {
-				g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
+				g.Id("id").Op(":=").Add(h.wa.ParamCall("id"))
 				rels := mod.Fields.relHasOne()
 				h.codeLoad(g, rels, doc.qual(mth.Rets[0].Type))
 				return
@@ -488,7 +602,7 @@ func (h *Handle) Codes(doc *Document) jen.Code {
 				return
 			}
 			if h.act == "Delete" {
-				g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
+				g.Id("id").Op(":=").Add(h.wa.ParamCall("id"))
 				g.Add(h.codeDelete())
 				return
 			}
@@ -521,9 +635,9 @@ func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 		g.Var().Err().Error()
 	}
 	if len(rels) > 0 {
-		g.Id("ctx").Op(":=").Add(jrctx)
+		g.Id("ctx").Op(":=").Add(h.wa.ContextCall())
 		g.If(
-			jen.Id("rels").Op(",").Id("ok").Op(":=").Id("c").Dot("GetQueryArray").Call(jen.Lit("rel")).
+			jen.Id("rels").Op(",").Id("ok").Op(":=").Add(h.wa.QueryArrayCall("rel")).
 				Op(";").Id("ok").Op("&&").Len(jen.Id("rels")).Op(">").Lit(0)).
 			Block(
 				jen.Id("ctx").Op("=").Id("stores").Dot("ContextWithRelation").Call(
@@ -535,36 +649,42 @@ func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 
 	} else {
 		g.Id("obj").Op(",").Err().Op(op).Add(h.jcall()).Call(
-			jrctx, jen.Id("id"),
+			h.wa.ContextCall(), jen.Id("id"),
 		)
 	}
 
 	g.If(jen.Err().Op("!=").Nil()).Block(
-		jfails(503)...,
+		h.jfails(503)...,
 	).Line()
-	g.Id("success").Call(jen.Id("c"), jen.Id("obj"))
+	h.wa.SuccessCall(g, jen.Id("obj"))
 }
 
 func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
+	ctxVar := h.wa.ContextVar()
 	if h.IsBatchUpdate() {
-		g.Id("ids").Op(":=").Qual("strings", "Split").Call(jen.Id("c").Dot("Param").Call(jen.Lit("id")), jen.Lit(","))
-		jprebb(g)
+		g.Id("ids").Op(":=").Qual("strings", "Split").Call(jen.Id(ctxVar).Dot("Param").Call(jen.Lit("id")), jen.Lit(","))
+		h.jprebb(g)
 		g.Var().Id("ain").Index().Add(jarg)
-		g.Add(jbindWith("ain", true, jfails(400)...))
-		g.If(jen.Len(jen.Id("ids")).Op("!=").Len(jen.Id("ain"))).Block(jfails(400, jen.Lit("mismatch length"))...)
-		g.Id("ctx").Op(":=").Add(jrctx)
+		g.Add(h.jbindWith("ain", true, h.jfails(400)...))
+		g.If(jen.Len(jen.Id("ids")).Op("!=").Len(jen.Id("ain"))).Block(h.jfails(400, jen.Lit("mismatch length"))...)
+		g.Id("ctx").Op(":=").Add(h.wa.ContextCall())
 		g.Id("ret").Op(":=").Make(jen.Index().Any(), jen.Len(jen.Id("ids")))
-		g.For(jen.Id("i").Op(":=0;").Id("i").Op("<").Len(jen.Id("ids")).Op(";i++")).Block(jen.Err().Op(":=").Add(h.jcall()).Call(
-			jen.Id("ctx"), jen.Id("ids").Index(jen.Id("i")), jen.Id("ain").Index(jen.Id("i")),
-		), jen.If(jen.Err().Op("!=").Nil()).Block(jen.Id("ret").Index(jen.Id("i")).Op("=").Id("getError").Call(jen.Id("c"), jen.Lit(0), jen.Err())).
-			Else().Block(jen.Id("ret").Index(jen.Id("i")).Op("=").Id("idResult").Call(jen.Id("ids").Index(jen.Id("i")))),
+		g.For(jen.Id("i").Op(":=0;").Id("i").Op("<").Len(jen.Id("ids")).Op(";i++")).Block(
+			jen.Err().Op(":=").Add(h.jcall()).Call(
+				jen.Id("ctx"), jen.Id("ids").Index(jen.Id("i")), jen.Id("ain").Index(jen.Id("i")),
+			),
+			jen.If(jen.Err().Op("!=").Nil()).Block(
+				jen.Id("ret").Index(jen.Id("i")).Op("=").Add(h.wa.GetErrorVar(jen.Lit(0), jen.Err())),
+			).Else().Block(
+				jen.Id("ret").Index(jen.Id("i")).Op("=").Id("idResult").Call(jen.Id("ids").Index(jen.Id("i"))),
+			),
 		)
 		return
 	}
 
-	g.Id("id").Op(":=").Id("c").Dot("Param").Call(jen.Lit("id"))
+	g.Id("id").Op(":=").Id(ctxVar).Dot("Param").Call(jen.Lit("id"))
 	g.Var().Id("in").Add(jarg)
-	g.Add(jbind("in"))
+	g.Add(h.jbind("in"))
 	var retName string
 	if h.act == "Put" {
 		if simple {
@@ -573,39 +693,41 @@ func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
 			retName = "obj"
 		}
 		g.Id(retName).Op(",").Err().Op(":=").Add(h.jcall()).Call(
-			jrctx, jen.Id("id"), jen.Id("in"),
+			h.wa.ContextCall(), jen.Id("id"), jen.Id("in"),
 		)
 	} else {
 		g.Err().Op(":=").Add(h.jcall()).Call(
-			jrctx, jen.Id("id"), jen.Id("in"),
+			h.wa.ContextCall(), jen.Id("id"), jen.Id("in"),
 		)
 	}
 	g.If(jen.Err().Op("!=").Nil()).Block(
-		jfails(503)...,
+		h.jfails(503)...,
 	).Line()
 
 	if h.act == "Put" {
-		g.Id("success").Call(jen.Id("c"), jen.Id(retName))
+		h.wa.SuccessCall(g, jen.Id(retName))
 	} else {
-		g.Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+		h.wa.SuccessCall(g, jen.Lit("ok"))
 	}
 
 }
 
 func (h *Handle) codeDelete() jen.Code {
+	ctxVar := h.wa.ContextVar()
 	return jen.Err().Op(":=").Add(h.jcall()).Call(
-		jrctx, jen.Id("id"),
+		h.wa.ContextCall(), jen.Id("id"),
 	).Line().
 		If(jen.Err().Op("!=").Nil()).Block(
-		jfails(503)...,
+		h.jfails(503)...,
 	).Line().Line().
-		Id("success").Call(jen.Id("c"), jen.Lit("ok"))
+		Line().
+		Add(h.wa.SuccessCallVar(jen.Id(ctxVar), jen.Lit("ok")))
 }
 
 func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	g.Var().Id("spec").Add(spec)
-	g.Add(jbind("spec"))
-	g.Id("ctx").Op(":=").Add(jrctx)
+	g.Add(h.jbind("spec"))
+	g.Id("ctx").Op(":=").Add(h.wa.ContextCall())
 	if len(mod.SpecUp) > 0 { // deprecated
 		g.Id("spec").Dot(mod.SpecUp).Call(jen.Id("ctx"), jen.Lit(mod.Name))
 	}
@@ -617,7 +739,7 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 		jen.Id("ctx"), jen.Op("&").Id("spec"),
 	)
 	g.If(jen.Err().Op("!=").Nil()).Block(
-		jfails(503)...,
+		h.jfails(503)...,
 	).Line()
 	if h.NotNull {
 		g.If(jen.Id("data").Op("==").Nil()).Block(
@@ -628,39 +750,43 @@ func (h *Handle) codeList(g *jen.Group, spec jen.Code, mod *Model) {
 	if h.CalcPage {
 		args[1] = jen.Op("&").Id("spec")
 	}
-	g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(args...))
+	h.wa.SuccessCall(g, jen.Id("dtResult").Call(args...))
 }
 
 func (h *Handle) jStoModCall() jen.Code {
+	ctxVar := h.wa.ContextVar()
 	return jen.Id("obj").Op(",").Err().Op(":=").Add(h.jcall()).Call(
-		jrctx, jen.Id("in"),
+		h.wa.ContextCall(), jen.Id("in"),
 	).Line().
 		If(jen.Err().Op("!=").Nil()).Block(
-		jfails(503)...,
+		h.jfails(503)...,
 	).Line().Line().
-		Id("success").Call(jen.Id("c"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))
+		Line().
+		Add(h.wa.SuccessCallVar(jen.Id(ctxVar), jen.Id("idResult").Call(jen.Id("obj").Dot("ID"))))
 }
 
 func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 	if h.IsBatchCreate() {
-		jprebb(g)
+		h.jprebb(g)
 		g.Var().Id("ain").Index().Add(jarg)
-		g.Add(jbindWith("ain", true,
+		g.Add(h.jbindWith("ain", true,
 			jen.Var().Id("in").Add(jarg),
-			jen.Add(jbindWith("in", true, jfails(400)...)),
+			jen.Add(h.jbindWith("in", true, h.jfails(400)...)),
 			h.jStoModCall(),
 			jen.Return(),
 		))
 		g.Var().Id("ret").Index().Any()
 		g.For(jen.Id("_,in").Op(":=").Range().Id("ain")).Block(jen.Id("obj").Op(",").Err().Op(":=").Add(h.jcall()).Call(
-			jrctx, jen.Id("in"),
-		), jen.If(jen.Err().Op("!=").Nil()).Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("getError").Call(jen.Id("c"), jen.Lit(0), jen.Err()))).
-			Else().Block(jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID")))),
-		)
-		g.Id("success").Call(jen.Id("c"), jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
+			h.wa.ContextCall(), jen.Id("in"),
+		), jen.If(jen.Err().Op("!=").Nil()).Block(
+			jen.Id("ret").Op("=").Append(jen.Id("ret"), h.wa.GetErrorVar(jen.Lit(0), jen.Err())),
+		).Else().Block(
+			jen.Id("ret").Op("=").Append(jen.Id("ret"), jen.Id("idResult").Call(jen.Id("obj").Dot("ID"))),
+		))
+		h.wa.SuccessCall(g, jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
 	} else {
 		g.Var().Id("in").Add(jarg)
-		g.Add(jbind("in"))
+		g.Add(h.jbind("in"))
 		g.Add(h.jStoModCall())
 	}
 }
@@ -670,6 +796,10 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 	if wa.HandReg {
 		return st
 	}
+	handlerType := "gin.HandlerFunc"
+	if wa.doc != nil && wa.doc.WebCode == "chi" {
+		handlerType = "http.HandlerFunc"
+	}
 	st.Func().Id("init").Params().BlockFunc(func(g *jen.Group) {
 		for _, h := range wa.Handles {
 			if h.HandReg {
@@ -678,7 +808,7 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 			uri, method := h.GenPathMethod()
 			g.Id("regHI").Call(
 				jen.Lit(h.NeedAuth), jen.Lit(method), jen.Lit(uri), jen.Lit(h.GetPermID()),
-				jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("gin.HandlerFunc").Block(
+				jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id(handlerType).Block(
 					jen.Return(jen.Id("a."+h.Name)),
 				),
 			)
@@ -686,7 +816,7 @@ func (wa *WebAPI) initRegCodes() jen.Code {
 			if !h.NoPost && strings.HasPrefix(h.Method, "Put") && strings.HasSuffix(uri, "/:id") {
 				g.Id("regHI").Call(
 					jen.Lit(h.NeedAuth), jen.Lit("POST"), jen.Lit(uri[0:len(uri)-4]), jen.Lit(h.GetPermID()),
-					jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id("gin.HandlerFunc").Block(
+					jen.Func().Params(jen.Id("a").Op("*").Id("api")).Id(handlerType).Block(
 						jen.Return(jen.Id("a."+h.Name)),
 					),
 				)
@@ -718,20 +848,46 @@ func getDftFails(act string) []int {
 	return []int{400, 401, 403, 503}
 }
 
-func jfails(sc int, ae ...jen.Code) []jen.Code {
+func (h *Handle) jfails(sc int, ae ...jen.Code) []jen.Code {
 	if len(ae) == 0 {
 		ae = append(ae, jen.Err())
+	}
+	if h.wa.IsChi() {
+		return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("w"), jen.Id("r"), jen.Lit(sc), ae[0]), jen.Return())
 	}
 	return append([]jen.Code{}, jen.Id("fail").Call(jen.Id("c"), jen.Lit(sc), ae[0]), jen.Return())
 }
 
-func jbind(id string) jen.Code {
-	return jbindWith(id, false, jfails(400)...)
+func (h *Handle) jbind(id string) jen.Code {
+	return h.jbindWith(id, false, h.jfails(400)...)
 }
 
-func jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code {
+func (h *Handle) jprebb(g *jen.Group) {
+	if h.wa.IsChi() {
+		return
+	}
+	g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
+	g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
+	g.If(jen.Op("!ok")).Block(
+		h.jfails(400, jen.Lit("bad request"))...)
+}
+
+func (h *Handle) jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code {
 	st := jen.Empty()
 	if len(blocks) == 0 || len(id) == 0 {
+		return st
+	}
+	if h.wa.IsChi() {
+		ctxVar := h.wa.ContextVar()
+		if useBody {
+			st.If(jen.Err().Op(":=").Qual("github.com/marcsv/go-binder/binder", "FromRequest").Call(jen.Id(ctxVar)).Dot("To").Call(jen.Op("&").Id(id)), jen.Err().Op("!=").Nil()).Block(
+				blocks...,
+			).Line()
+		} else {
+			st.If(jen.Err().Op(":=").Id("queryBinder").Dot("Bind").Call(jen.Op("&").Id(id), jen.Id(ctxVar).Dot("URL")), jen.Err().Op("!=").Nil()).Block(
+				blocks...,
+			).Line()
+		}
 		return st
 	}
 	bind := "Bind"
@@ -740,15 +896,8 @@ func jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code {
 		bind = "ShouldBindBodyWith"
 		args = append(args, jen.Id("bb"))
 	}
-	st.If(jen.Err().Op(":=").Id("c").Dot(bind).Call(args...)).Op(";").Err().Op("!=").Nil().Block(
+	st.If(jen.Err().Op(":=").Id("c").Dot(bind).Call(args...), jen.Err().Op("!=").Nil()).Block(
 		blocks...,
 	).Line()
 	return st
-}
-
-func jprebb(g *jen.Group) {
-	g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
-	g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
-	g.If(jen.Op("!ok")).Block(
-		jfails(400, jen.Lit("bad request"))...)
 }

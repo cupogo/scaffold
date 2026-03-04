@@ -741,8 +741,10 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 	}
 
 	ensureGoFile(path.Join(doc.dirweb, "api.go"), "web/api"+suf, map[string]string{
-		"Module": doc.Module,
-		"WebPkg": doc.WebAPI.GetPkgName(),
+		"Module":    doc.Module,
+		"WebPkg":    doc.WebAPI.GetPkgName(),
+		"FormTag":   doc.WebAPI.FormTag,
+		"UriPrefix": doc.WebAPI.GetUriPrefix(),
 	})
 
 	outname := path.Join(doc.dirweb, "handle_"+doc.Prefix+doc.gened)
@@ -761,6 +763,12 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 
 	wgf.ImportName(mpkg.ID, doc.ModelPkg)
 	wgf.ImportName(spkg.ID, storepkg)
+	if doc.WebCode == "chi" {
+		wgf.ImportName("net/http", "")
+		wgf.ImportName("github.com/wgarunap/url-query-binder", "")
+		wgf.ImportName("github.com/marcsv/go-binder/binder", "")
+		wgf.ImportName("github.com/go-chi/chi/v5", "chi")
+	}
 	doc.lock.Lock()
 	doc.Qualified[doc.ModelPkg] = mpkg.ID
 	doc.Qualified[storepkg] = spkg.ID
