@@ -189,8 +189,8 @@ func (s *contentStore) ListChannel(ctx context.Context, spec *ChannelSpec) (data
 }
 func (s *contentStore) GetChannel(ctx context.Context, id string) (obj *cms1.Channel, err error) {
 	obj = new(cms1.Channel)
-	if err = dbGetWith(ctx, s.w.db, obj, "slug", "=", id); err != nil {
-		err = dbGetWithPKID(ctx, s.w.db, obj, id)
+	if err = dbGetWith(ctx, s.w.db, obj, "slug", "=", id); err != nil && obj.SetID(id) {
+		err = dbGetWithPK(ctx, s.w.db, obj)
 	}
 
 	return
