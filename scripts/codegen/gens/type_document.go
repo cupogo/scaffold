@@ -44,12 +44,7 @@ func (m Tags) Clone() Tags {
 
 func (m Tags) CleanKeys(keys ...string) {
 	maps.DeleteFunc(m, func(k, v string) bool {
-		for _, s := range keys {
-			if s == k {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(keys, k)
 	})
 }
 
@@ -139,6 +134,7 @@ type Document struct {
 	Qualified Tags    `yaml:"depends"` // imports name
 	Stores    []Store `yaml:"stores"`
 	WebAPI    WebAPI  `yaml:"webapi"`
+	WebCode   string  `yaml:"webcode"` // default:"gin"
 }
 
 func (doc *Document) Check() error {
@@ -739,7 +735,12 @@ func (doc *Document) genWebAPI(dropfirst bool) error {
 		}
 	}
 
-	ensureGoFile(path.Join(doc.dirweb, "api.go"), "web/api", map[string]string{
+	var suf string
+	if len(doc.WebCode) > 0 {
+		suf = "_" + doc.WebCode
+	}
+
+	ensureGoFile(path.Join(doc.dirweb, "api.go"), "web/api"+suf, map[string]string{
 		"Module": doc.Module,
 		"WebPkg": doc.WebAPI.GetPkgName(),
 	})

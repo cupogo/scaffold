@@ -63,6 +63,7 @@ type UriSpot struct {
 	HandReg  bool `yaml:"handReg,omitempty"`
 	NeedAuth bool `yaml:"needAuth,omitempty"`
 	NeedPerm bool `yaml:"needPerm,omitempty"`
+	NoPerm   bool `yaml:"noPerm,omitempty"`
 	NoPost   bool `yaml:"noPost,omitempty"`
 	NotNull  bool `yaml:"notnull,omitempty"` // for list
 	Auth     bool `yaml:"auth,omitempty"`    // old
@@ -139,8 +140,11 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 		Summary: mslabels[mth.action] + mod.shortComment(),
 		wa:      wa,
 	}
-	hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
-		mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm || us.NeedPerm || us.Perm
+	if !us.NoPerm {
+		hdl.NeedPerm = mth.action == "Create" || mth.action == "Update" ||
+			mth.action == "Put" || mth.action == "Delete" || wa.NeedPerm || us.NeedPerm || us.Perm
+	}
+
 	hdl.NeedAuth = hdl.NeedPerm || wa.NeedAuth || us.NeedPerm || us.NeedAuth || us.Perm || us.Auth
 	hdl.NoPost = us.NoPost
 	if len(wa.TagLabel) > 0 {
