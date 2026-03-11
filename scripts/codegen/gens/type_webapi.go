@@ -683,7 +683,7 @@ func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
 
 	g.Id("id").Op(":=").Add(h.wa.ParamCall("id"))
 	g.Var().Id("in").Add(jarg)
-	g.Add(h.jbind("in"))
+	g.Add(h.jbindBody("in", true))
 	var retName string
 	if h.act == "Put" {
 		if simple {
@@ -785,7 +785,7 @@ func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 		h.wa.SuccessCall(g, jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
 	} else {
 		g.Var().Id("in").Add(jarg)
-		g.Add(h.jbind("in"))
+		g.Add(h.jbindBody("in", true))
 		g.Add(h.jStoModCall())
 	}
 }
@@ -858,7 +858,11 @@ func (h *Handle) jfails(sc int, ae ...jen.Code) []jen.Code {
 }
 
 func (h *Handle) jbind(id string) jen.Code {
-	return h.jbindWith(id, false, h.jfails(400)...)
+	return h.jbindBody(id, false)
+}
+
+func (h *Handle) jbindBody(id string, useBody bool) jen.Code {
+	return h.jbindWith(id, useBody, h.jfails(400)...)
 }
 
 func (h *Handle) jprebb(g *jen.Group) {
@@ -879,7 +883,7 @@ func (h *Handle) jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code
 	if h.wa.IsChi() {
 		ctxVar := h.wa.ContextVar()
 		if useBody {
-			st.If(jen.Err().Op(":=").Qual("github.com/marcsv/go-binder/binder", "FromRequest").Call(jen.Id(ctxVar)).Dot("To").Call(jen.Op("&").Id(id)), jen.Err().Op("!=").Nil()).Block(
+			st.If(jen.Err().Op(":=").Qual("github.com/marcsv/go-binder/binder", "BindBody").Call(jen.Id(ctxVar), jen.Op("&").Id(id)), jen.Err().Op("!=").Nil()).Block(
 				blocks...,
 			).Line()
 		} else {
