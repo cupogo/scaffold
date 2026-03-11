@@ -660,9 +660,8 @@ func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 }
 
 func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
-	ctxVar := h.wa.ContextVar()
 	if h.IsBatchUpdate() {
-		g.Id("ids").Op(":=").Qual("strings", "Split").Call(jen.Id(ctxVar).Dot("Param").Call(jen.Lit("id")), jen.Lit(","))
+		g.Id("ids").Op(":=").Qual("strings", "Split").Call(h.wa.ParamCall("id"), jen.Lit(","))
 		h.jprebb(g)
 		g.Var().Id("ain").Index().Add(jarg)
 		g.Add(h.jbindWith("ain", true, h.jfails(400)...))
@@ -682,7 +681,7 @@ func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
 		return
 	}
 
-	g.Id("id").Op(":=").Id(ctxVar).Dot("Param").Call(jen.Lit("id"))
+	g.Id("id").Op(":=").Add(h.wa.ParamCall("id"))
 	g.Var().Id("in").Add(jarg)
 	g.Add(h.jbind("in"))
 	var retName string
