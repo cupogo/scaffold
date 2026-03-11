@@ -3,6 +3,7 @@ package gens
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/dave/jennifer/jen"
@@ -40,7 +41,19 @@ type EnumVal struct {
 	Lower  bool   `yaml:"lower,omitempty"`
 	Descr  string `yaml:"descr,omitempty"`
 
+	Alias []string `yaml:"alias,omitempty"`
+
 	realVal int
+}
+
+func uniqStrings(slice []string) []string {
+	result := make([]string, 0, len(slice))
+	for _, v := range slice {
+		if !slices.Contains(result, v) {
+			result = append(result, v)
+		}
+	}
+	return result
 }
 
 func (ev EnumVal) getCode(shorted bool) (s string) {
@@ -132,15 +145,21 @@ func (e *Enum) Code() jen.Code {
 				name := e.Name + ev.Suffix
 				id := fmt.Sprint(ev.realVal)
 				code := ev.getCode(e.Shorted)
-				cases := []jen.Code{jen.Lit(id), jen.Lit(code)}
+				strs := []string{id, code}
 				if ss := ev.getCode(false); ss != code && e.Shorted {
-					cases = append(cases, jen.Lit(ss))
+					strs = append(strs, ss)
 				}
 				if code != ev.Suffix {
-					cases = append(cases, jen.Lit(ev.Suffix))
+					strs = append(strs, ev.Suffix)
 				}
 				if IsAlphaOnly(ev.Label) && code != ev.Label && ev.Suffix != ev.Label {
-					cases = append(cases, jen.Lit(ev.Label))
+					strs = append(strs, ev.Label)
+				}
+				strs = append(strs, ev.Alias...)
+				strs = uniqStrings(strs)
+				cases := make([]jen.Code, len(strs))
+				for i, s := range strs {
+					cases[i] = jen.Lit(s)
 				}
 				g.Case(cases...)
 				g.Op("*").Id("z").Op("=").Id(name)
