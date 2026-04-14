@@ -662,7 +662,6 @@ func (h *Handle) codeLoad(g *jen.Group, rels Fields, jarg jen.Code) {
 func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
 	if h.IsBatchUpdate() {
 		g.Id("ids").Op(":=").Qual("strings", "Split").Call(h.wa.ParamCall("id"), jen.Lit(","))
-		h.jprebb(g)
 		g.Var().Id("ain").Index().Add(jarg)
 		g.Add(h.jbindWith("ain", true, h.jfails(400)...))
 		g.If(jen.Len(jen.Id("ids")).Op("!=").Len(jen.Id("ain"))).Block(h.jfails(400, jen.Lit("mismatch length"))...)
@@ -766,7 +765,6 @@ func (h *Handle) jStoModCall() jen.Code {
 
 func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 	if h.IsBatchCreate() {
-		h.jprebb(g)
 		g.Var().Id("ain").Index().Add(jarg)
 		g.Add(h.jbindWith("ain", true,
 			jen.Var().Id("in").Add(jarg),
@@ -865,16 +863,6 @@ func (h *Handle) jbindBody(id string, useBody bool) jen.Code {
 	return h.jbindWith(id, useBody, h.jfails(400)...)
 }
 
-func (h *Handle) jprebb(g *jen.Group) {
-	if h.wa.IsChi() {
-		return
-	}
-	g.Id("bd").Op(":=").Qual("github.com/gin-gonic/gin/binding", "Default").Call(jen.Id("c.Request.Method"), jen.Id("c").Dot("ContentType").Call())
-	g.Id("bb,ok:=bd.").Call(jen.Id("binding.BindingBody"))
-	g.If(jen.Op("!ok")).Block(
-		h.jfails(400, jen.Lit("bad request"))...)
-}
-
 func (h *Handle) jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code {
 	st := jen.Empty()
 	if len(blocks) == 0 || len(id) == 0 {
@@ -895,10 +883,6 @@ func (h *Handle) jbindWith(id string, useBody bool, blocks ...jen.Code) jen.Code
 	}
 	bind := "Bind"
 	args := []jen.Code{jen.Op("&").Id(id)}
-	if useBody {
-		bind = "ShouldBindBodyWith"
-		args = append(args, jen.Id("bb"))
-	}
 	st.If(jen.Err().Op(":=").Id("c").Dot(bind).Call(args...), jen.Err().Op("!=").Nil()).Block(
 		blocks...,
 	).Line()

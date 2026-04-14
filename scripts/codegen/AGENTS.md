@@ -82,6 +82,11 @@ webapi:
 - `pgx` - go-pg
 - `mgm` - MongoDB (MGM)
 
+## 支持的 Web 框架
+
+- `gin` - gin-gonic/gin
+- `chi` - go-chi/chi/v5
+
 ## 关键文件
 
 - `main.go` - 入口
