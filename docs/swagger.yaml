@@ -11,7 +11,7 @@ definitions:
       createdAt:
         description: 创建时间
         type: string
-        x-order: '['
+        x-order: ""
       creatorID:
         description: 创建者ID
         type: string
@@ -27,7 +27,7 @@ definitions:
       id:
         description: 主键
         type: string
-        x-order: /
+        x-order: '!'
       meta:
         allOf:
         - $ref: '#/definitions/Meta'
@@ -42,17 +42,29 @@ definitions:
         type: string
         x-order: H
       rt:
-        description: '角色类型: 1=普通账号，2=管理员'
+        description: |-
+          角色类型: 1=普通账号，2=管理员
+           * 1=`nor` - 普通用户
+           * 2=`adm` - 管理员
+        enum:
+        - 1
+        - 2
         type: integer
         x-order: D
       status:
-        description: '状态: 1=激活，2=禁用'
+        description: |-
+          状态: 1=激活，2=禁用
+           * 1=`active`
+           * 2=`forbid`
+        enum:
+        - 1
+        - 2
         type: integer
         x-order: E
       updatedAt:
         description: 变更时间
         type: string
-        x-order: ']'
+        x-order: .
       username:
         description: 登录名 唯一
         type: string
@@ -81,11 +93,23 @@ definitions:
         type: string
         x-order: H
       rt:
-        description: '角色类型: 1=普通账号，2=管理员'
+        description: |-
+          角色类型: 1=普通账号，2=管理员
+           * 1=`nor` - 普通用户
+           * 2=`adm` - 管理员
+        enum:
+        - 1
+        - 2
         type: integer
         x-order: D
       status:
-        description: '状态: 1=激活，2=禁用'
+        description: |-
+          状态: 1=激活，2=禁用
+           * 1=`active`
+           * 2=`forbid`
+        enum:
+        - 1
+        - 2
         type: integer
         x-order: E
       username:
@@ -116,11 +140,23 @@ definitions:
         type: string
         x-order: H
       rt:
-        description: '角色类型: 1=普通账号，2=管理员'
+        description: |-
+          角色类型: 1=普通账号，2=管理员
+           * 1=`nor` - 普通用户
+           * 2=`adm` - 管理员
+        enum:
+        - 1
+        - 2
         type: integer
         x-order: D
       status:
-        description: '状态: 1=激活，2=禁用'
+        description: |-
+          状态: 1=激活，2=禁用
+           * 1=`active`
+           * 2=`forbid`
+        enum:
+        - 1
+        - 2
         type: integer
         x-order: E
       username:
@@ -191,7 +227,7 @@ definitions:
       createdAt:
         description: 创建时间
         type: string
-        x-order: '['
+        x-order: ""
       creatorID:
         description: 创建者ID
         type: string
@@ -199,7 +235,7 @@ definitions:
       id:
         description: 主键
         type: string
-        x-order: /
+        x-order: '!'
       meta:
         allOf:
         - $ref: '#/definitions/Meta'
@@ -224,7 +260,7 @@ definitions:
       updatedAt:
         description: 变更时间
         type: string
-        x-order: ']'
+        x-order: .
     type: object
   cms1ArticleBasic:
     properties:
@@ -297,7 +333,7 @@ definitions:
       createdAt:
         description: 创建时间
         type: string
-        x-order: '['
+        x-order: ""
       creatorID:
         description: 创建者ID
         type: string
@@ -305,7 +341,7 @@ definitions:
       id:
         description: 主键
         type: string
-        x-order: /
+        x-order: '!'
       meta:
         allOf:
         - $ref: '#/definitions/Meta'
@@ -325,7 +361,7 @@ definitions:
       updatedAt:
         description: 变更时间
         type: string
-        x-order: ']'
+        x-order: .
     type: object
   cms1AttachmentBasic:
     properties:
@@ -350,7 +386,7 @@ definitions:
       createdAt:
         description: 创建时间
         type: string
-        x-order: '['
+        x-order: ""
       creatorID:
         description: 创建者ID
         type: string
@@ -358,14 +394,14 @@ definitions:
       id:
         description: 主键
         type: string
-        x-order: /
+        x-order: '!'
       text:
         type: string
         x-order: A
       updatedAt:
         description: 变更时间
         type: string
-        x-order: ']'
+        x-order: .
     type: object
   cms1ClauseSet:
     properties:
@@ -437,7 +473,10 @@ paths:
         name: nickname
         type: string
         x-order: B
-      - description: '状态: 1=激活，2=禁用'
+      - description: |-
+          状态: 1=激活，2=禁用
+           * 1=`active`
+           * 2=`forbid`
         in: query
         name: status
         type: integer
@@ -785,11 +824,6 @@ paths:
         name: src
         type: string
         x-order: H
-      - description: include relation column
-        in: query
-        name: rel
-        type: string
-        x-order: I
       - description: 第几页
         example: 1
         in: query
