@@ -7,11 +7,12 @@ import (
 )
 
 type apiEntry struct {
-	OperationID string                 `json:"operationId" yaml:"operationId"`
-	Summary     string                 `json:"summary" yaml:"summary"`
-	Description string                 `json:"description" yaml:"description"`
-	Parameters  []any                  `json:"parameters" yaml:"parameters"`
-	Responses   map[string]any         `json:"responses" yaml:"responses"`
+	OperationID string         `json:"operationId" yaml:"operationId"`
+	Summary     string         `json:"summary" yaml:"summary"`
+	Description string         `json:"description" yaml:"description"`
+	Parameters  []any          `json:"parameters" yaml:"parameters"`
+	Responses   map[string]any `json:"responses" yaml:"responses"`
+	Tags        []string       `json:"tags" yaml:"tags"`
 }
 
 type methods map[string]apiEntry

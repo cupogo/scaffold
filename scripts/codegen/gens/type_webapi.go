@@ -470,6 +470,11 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	}
 	if h.act == "List" {
 		jcodeDesc(st, h.DocL, "@Description ")
+		if mod, ok := doc.modelWithName(h.mona); ok {
+			if cols := mod.sortableColumns(); len(cols) > 0 {
+				st.Comment("@Description <sortable>id,created,updated," + strings.Join(cols, ",") + "</sortable>").Line()
+			}
+		}
 	}
 	if h.act == "Create" && h.IsBatchCreate() {
 		st.Comment("@Description 本接口支持批量创建，传入数组实体，返回结果也为数组").Line()

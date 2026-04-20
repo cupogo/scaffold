@@ -12,7 +12,7 @@ const (
 	ChannelTable = "cms_channel"
 	ChannelAlias = "c"
 	ChannelLabel = "channel"
-	ChannelModel = "cms1Channel"
+	ChannelTypID = "cms1Channel"
 )
 
 // Channel 频道
@@ -62,7 +62,7 @@ func NewChannelWithID(id any) *Channel {
 	return obj
 }
 func (_ *Channel) IdentityLabel() string { return ChannelLabel }
-func (_ *Channel) IdentityModel() string { return ChannelModel }
+func (_ *Channel) IdentityModel() string { return ChannelTypID }
 func (_ *Channel) IdentityTable() string { return ChannelTable }
 func (_ *Channel) IdentityAlias() string { return ChannelAlias }
 
@@ -116,7 +116,7 @@ const (
 	ArticleTable = "cms_article"
 	ArticleAlias = "a"
 	ArticleLabel = "article"
-	ArticleModel = "cms1Article"
+	ArticleTypID = "cms1Article"
 )
 
 // Article 文章
@@ -176,7 +176,7 @@ func NewArticleWithID(id any) *Article {
 	return obj
 }
 func (_ *Article) IdentityLabel() string { return ArticleLabel }
-func (_ *Article) IdentityModel() string { return ArticleModel }
+func (_ *Article) IdentityModel() string { return ArticleTypID }
 func (_ *Article) IdentityTable() string { return ArticleTable }
 func (_ *Article) IdentityAlias() string { return ArticleAlias }
 func (_ *Article) WithFK() bool {
@@ -251,7 +251,7 @@ const (
 	AttachmentTable = "cms_attachment"
 	AttachmentAlias = "att"
 	AttachmentLabel = "attachment"
-	AttachmentModel = "cms1Attachment"
+	AttachmentTypID = "cms1Attachment"
 )
 
 // Attachment 附件
@@ -300,7 +300,7 @@ func NewAttachmentWithID(id any) *Attachment {
 	return obj
 }
 func (_ *Attachment) IdentityLabel() string { return AttachmentLabel }
-func (_ *Attachment) IdentityModel() string { return AttachmentModel }
+func (_ *Attachment) IdentityModel() string { return AttachmentTypID }
 func (_ *Attachment) IdentityTable() string { return AttachmentTable }
 func (_ *Attachment) IdentityAlias() string { return AttachmentAlias }
 
@@ -353,7 +353,7 @@ const (
 	ClauseTable = "cms_clause"
 	ClauseAlias = "c"
 	ClauseLabel = "clause"
-	ClauseModel = "cms1Clause"
+	ClauseTypID = "cms1Clause"
 )
 
 // Clause 条款
@@ -391,7 +391,7 @@ func NewClauseWithID(id any) *Clause {
 	return obj
 }
 func (_ *Clause) IdentityLabel() string { return ClauseLabel }
-func (_ *Clause) IdentityModel() string { return ClauseModel }
+func (_ *Clause) IdentityModel() string { return ClauseTypID }
 func (_ *Clause) IdentityTable() string { return ClauseTable }
 func (_ *Clause) IdentityAlias() string { return ClauseAlias }
 
@@ -409,7 +409,7 @@ func (z *Clause) SetWith(o ClauseSet) {
 // consts of File a
 const (
 	FileLabel = "file"
-	FileModel = "cms1File"
+	FileTypID = "cms1File"
 )
 
 // File a file instance
