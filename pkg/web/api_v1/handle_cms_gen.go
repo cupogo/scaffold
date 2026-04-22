@@ -164,6 +164,7 @@ func (a *api) deleteCmsClause(c *gin.Context) {
 }
 
 // @Tags 默认 文档生成
+// @Description <sortable>id,created,updated,author,news_publish</sortable>
 // @Summary 列出文章
 // @Accept json
 // @Produce json
