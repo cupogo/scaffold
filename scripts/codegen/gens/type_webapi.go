@@ -35,6 +35,14 @@ var mslabels = map[string]string{
 	"Delete": "删除",
 }
 
+var skipaiActions = map[string]string{
+	"List":   "L",
+	"Get":    "G",
+	"Create": "C",
+	"Update": "U",
+	"Delete": "D",
+}
+
 const paramAuth = `token    header   string  true "登录票据凭证"`
 const swagTags = "默认 文档生成"
 
@@ -58,6 +66,7 @@ type UriSpot struct {
 	Prefix string `yaml:"prefix,omitempty"`
 	URI    string `yaml:"uri,omitempty"`
 	Ignore string `yaml:"ignore,omitempty"`
+	SkipAI string `yaml:"skipAI,omitempty"`
 	Batch  string `yaml:"batch,omitempty"`
 
 	HandReg  bool `yaml:"handReg,omitempty"`
@@ -450,6 +459,17 @@ func (us UriSpot) IsBatchUpdate() bool {
 	return strings.ContainsRune(us.Batch, 'U')
 }
 
+func (h *Handle) shouldSkipAI() bool {
+	if len(h.SkipAI) == 0 {
+		return false
+	}
+	char, ok := skipaiActions[h.act]
+	if !ok {
+		return false
+	}
+	return strings.ContainsRune(h.SkipAI, rune(char[0]))
+}
+
 func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	if len(h.Summary) == 0 {
 		log.Printf("WARN: empty handle summary of %s", h.Name)
@@ -486,6 +506,9 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 		suffix = " 🔑"
 	}
 	st.Comment("@Summary " + h.Summary + suffix).Line()
+	if h.shouldSkipAI() {
+		st.Comment("@Tags skipai").Line()
+	}
 	st.Comment("@Accept " + h.GetAccept()).Line()
 	st.Comment("@Produce " + h.GetProduce()).Line()
 	if h.NeedAuth || h.NeedPerm {
