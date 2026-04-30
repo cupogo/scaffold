@@ -27,12 +27,12 @@ var msmethods = map[string]string{
 }
 
 var mslabels = map[string]string{
-	"List":   "列出",
-	"Get":    "获取",
-	"Create": "录入",
-	"Update": "更新",
-	"Put":    "录入/更新",
-	"Delete": "删除",
+	"List":   "查询 %s 列表",
+	"Get":    "获取 %s 详情",
+	"Create": "录入 %s",
+	"Update": "更新 %s",
+	"Put":    "录入/更新 %s",
+	"Delete": "删除 %s",
 }
 
 var skipaiActions = map[string]string{
@@ -261,7 +261,7 @@ func (wa *WebAPI) genHandle(us UriSpot, mth Method, stoName string) (hdl Handle,
 		Method:  mth.Name,
 		Store:   stoName,
 		Route:   fmt.Sprintf("%s [%s]", uri, strings.ToLower(method)),
-		Summary: mslabels[mth.action] + mod.shortComment(),
+		Summary: fmt.Sprintf(mslabels[mth.action], mod.shortComment()),
 		wa:      wa,
 	}
 	if !us.NoPerm {
