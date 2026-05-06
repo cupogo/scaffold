@@ -35,7 +35,7 @@ var mslabels = map[string]string{
 	"Delete": "删除 %s",
 }
 
-var skipaiActions = map[string]string{
+var skipAiActions = map[string]string{
 	"List":   "L",
 	"Get":    "G",
 	"Create": "C",
@@ -463,7 +463,7 @@ func (h *Handle) shouldSkipAI() bool {
 	if len(h.SkipAI) == 0 {
 		return false
 	}
-	char, ok := skipaiActions[h.act]
+	char, ok := skipAiActions[h.act]
 	if !ok {
 		return false
 	}
@@ -507,7 +507,7 @@ func (h *Handle) CommentCodes(doc *Document) jen.Code {
 	}
 	st.Comment("@Summary " + h.Summary + suffix).Line()
 	if h.shouldSkipAI() {
-		st.Comment("@Tags skipai").Line()
+		st.Comment("@Tags skipAI").Line()
 	}
 	st.Comment("@Accept " + h.GetAccept()).Line()
 	st.Comment("@Produce " + h.GetProduce()).Line()
