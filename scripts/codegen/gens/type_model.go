@@ -1382,7 +1382,7 @@ func (mod *Model) codeStoreCreate(mth Method) (arg []jen.Code, ret []jen.Code, a
 				jaf(g2, jdb)
 			}
 		}
-		if okBC || okBS || okAS {
+		if hookTxing {
 			g.Err().Op("=").Add(swdb).Dot(mod.dbTxFn()).CallFunc(func(g1 *jen.Group) {
 				g1.Id("ctx")
 				jxf := func(g3 *jen.Group) {
