@@ -711,7 +711,7 @@ func (h *Handle) codeUpdate(g *jen.Group, jarg jen.Code, simple bool) {
 
 	g.Id("id").Op(":=").Add(h.wa.ParamCall("id"))
 	g.Var().Id("in").Add(jarg)
-	g.Add(h.jbindBody("in", false))
+	g.Add(h.jbindIn("in"))
 	var retName string
 	if h.act == "Put" {
 		if simple {
@@ -813,7 +813,7 @@ func (h *Handle) codeCreate(g *jen.Group, jarg jen.Code) {
 		h.wa.SuccessCall(g, jen.Id("dtResult").Call(jen.Id("ret"), jen.Len(jen.Id("ret"))))
 	} else {
 		g.Var().Id("in").Add(jarg)
-		g.Add(h.jbindBody("in", false))
+		g.Add(h.jbindIn("in"))
 		g.Add(h.jStoModCall())
 	}
 }
@@ -887,6 +887,24 @@ func (h *Handle) jfails(sc int, ae ...jen.Code) []jen.Code {
 
 func (h *Handle) jbind(id string) jen.Code {
 	return h.jbindBody(id, false)
+}
+
+// jbindIn generates binding code for Create/Update request body.
+// chi: binder.BindBody; gin: c.Bind (simple auto-detect, no jprebb needed).
+func (h *Handle) jbindIn(id string) jen.Code {
+	blocks := h.jfails(400)
+	st := jen.Empty()
+	if h.wa.IsChi() {
+		ctxVar := h.wa.ContextVar()
+		st.If(jen.Err().Op(":=").Qual("github.com/marcsv/go-binder/binder", "BindBody").Call(jen.Id(ctxVar), jen.Op("&").Id(id)), jen.Err().Op("!=").Nil()).Block(
+			blocks...,
+		).Line()
+	} else {
+		st.If(jen.Err().Op(":=").Id("c").Dot("Bind").Call(jen.Op("&").Id(id)), jen.Err().Op("!=").Nil()).Block(
+			blocks...,
+		).Line()
+	}
+	return st
 }
 
 func (h *Handle) jbindBody(id string, useBody bool) jen.Code {
